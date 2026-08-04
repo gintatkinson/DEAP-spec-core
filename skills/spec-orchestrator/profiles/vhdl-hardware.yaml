@@ -1,0 +1,5 @@
+name: vhdl-hardware
+stack:
+  language: VHDL-2008
+  interfaces: [AXI4-Lite Register Maps]
+  tools: [GHDL, VUnit, Yosys]
