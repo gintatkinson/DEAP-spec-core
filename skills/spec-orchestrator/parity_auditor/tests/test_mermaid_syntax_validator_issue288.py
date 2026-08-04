@@ -172,6 +172,24 @@ def test_curly_brace_in_class_member_is_rejected():
     assert any("brace" in e.lower() for e in check_mermaid_text(text))
 
 
+def test_reserved_keyword_in_class_member_is_rejected():
+    text = _block(
+        """classDiagram
+    class Foo {
+        +link(arg)
+        -style()
+        click
+        ~callback(param)
+    }"""
+    )
+    errors = check_mermaid_text(text)
+    assert any("reserved keyword 'link'" in e.lower() for e in errors)
+    assert any("reserved keyword 'style'" in e.lower() for e in errors)
+    assert any("reserved keyword 'click'" in e.lower() for e in errors)
+    assert any("reserved keyword 'callback'" in e.lower() for e in errors)
+
+
+
 def test_errors_identify_the_source_and_line():
     errors = check_mermaid_text(BROKEN_283, source="body.md")
     assert errors and "body.md" in errors[0], (

@@ -32,6 +32,7 @@ from .validators.mermaid_syntax_validator import MermaidSyntaxValidator
 from .validators.spec_filename_validator import SpecFilenameValidator
 from .validators.spec_title_uniqueness_validator import SpecTitleUniquenessValidator
 from .validators.source_reference_validator import SourceReferenceValidator
+from .validators.link_validator import LinkValidator
 from .validators.docstring_validator import DocstringValidator
 from .validators.profile_compliance_validator import ProfileComplianceValidator
 from .utils.diagnostics import serialize_diagnostics
@@ -861,6 +862,17 @@ def _main_impl():
     else:
         print("Success: Source References carry authoritative locators.")
 
+    print("\n=== Markdown Link Integrity Validation ===")
+    link_validator = LinkValidator()
+    link_errors = _scope_findings(link_validator.validate(repo), getattr(args, 'only', None))
+    if link_errors:
+        print("[!] Markdown Link Violations Identified:")
+        for err in link_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: All markdown cross-references are valid.")
+
     print("\n=== Mermaid Syntax Validation ===")
     mermaid_syntax_validator = MermaidSyntaxValidator()
     mermaid_syntax_errors = _scope_findings(mermaid_syntax_validator.validate(repo), getattr(args, 'only', None))
@@ -906,7 +918,7 @@ def _main_impl():
         print("Success: Profile compliance checks passed.")
         
     if has_failed:
-        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (logical_ui_errors or []) + (docstring_errors or []) + (profile_compliance_errors or []) + (missing_spec_errors or [])
+        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (logical_ui_errors or []) + (docstring_errors or []) + (profile_compliance_errors or []) + (missing_spec_errors or []) + (source_ref_errors or []) + (link_errors or [])
         compiled_errors = all_errors
         target_file = None
         snippet_content = None
