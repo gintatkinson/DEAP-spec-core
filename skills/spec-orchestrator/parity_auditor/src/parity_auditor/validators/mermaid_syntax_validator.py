@@ -349,6 +349,14 @@ def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
                         f"line ({line.strip()!r}). Use parentheses, e.g. "
                         f"'(default earth)'."
                     , location=f"{source}"))
+                rest = member.group("rest")
+                reserved_match = re.match(r"^(link|style|click|callback)\b", rest, re.I)
+                if reserved_match:
+                    errors.append(Finding(
+                        "mermaid-reserved-keyword-in-class-member",
+                        f"{source}:{lineno}: reserved keyword '{reserved_match.group(1)}' used as unquoted class member "
+                        f"({line.strip()!r}). This breaks rendering. Quote the member or rename it."
+                    , location=f"{source}"))
 
             class_note = _CLASS_NOTE.match(line)
             if class_note and ":" in class_note.group("text"):
