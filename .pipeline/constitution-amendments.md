@@ -162,3 +162,36 @@ the agent previously had, and adds no capability.
 
 Non-destructive: no principle is removed. Condition (2) preserves the original clause
 verbatim, and condition (1) is added alongside it.
+
+---
+
+## AMEND-0003 — Standardize product name to Digital Engineering Agentic Pipeline (DEAP)
+
+- **Date:** 2026-08-06
+- **Logged:** 2026-08-06
+- **Motivating issue:** n/a — product name standardization across repository
+- **Approved by:** "PROCEED" — approved implementation plan to standardize official product name to Digital Engineering Agentic Pipeline (DEAP).
+- **Destructive:** no
+- **Line count:** 161
+- **Resulting SHA-256:** `952397210c5163672e05bac9b1afcaa1351522e2ad6a3c18c09525cdc6cae896`
+
+### Change
+
+Frontmatter line 3 and main title line 9.
+
+Before:
+
+> project: "Digital Systems Engineering Pipeline"
+> # Project Constitution: Digital Systems Engineering Pipeline
+
+After:
+
+> project: "Digital Engineering Agentic Pipeline (DEAP)"
+> # Project Constitution: Digital Engineering Agentic Pipeline (DEAP)
+
+### Rationale
+
+Standardize the official product name to Digital Engineering Agentic Pipeline (DEAP) across the repository in accordance with the approved implementation plan.
+
+Non-destructive: product name updated, governance rules unchanged.
+

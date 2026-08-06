@@ -1,6 +1,6 @@
 ---
 title: "Implementation Profile — React Platform"
-project: "Digital Systems Engineering Pipeline"
+project: "Digital Engineering Agentic Pipeline (DEAP)"
 tier: implementation
 platform: "react"
 version: "1.0.0"

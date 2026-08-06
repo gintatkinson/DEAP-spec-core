@@ -57,7 +57,6 @@ Before beginning orchestration, verify you have:
 
 To prevent context drift, contamination, and confirmation bias, **every individual specification item (Epic, Feature, User Story, and Use Case) MUST be processed by a new, fresh subagent with an isolated context.**
 
-Additionally:
 - **Mandatory Subagent Dispatch for Specification Phases**: The Master Orchestrator (Coordinator) MUST dispatch Phase Worker subagents (TypeName: `self`) for Phase 1, Phase 2, and Phase 3:
   * Phase 1: `Structural Spec Worker`
   * Phase 2: `Behavioral Spec Worker`
@@ -84,6 +83,21 @@ When executing a phase, the worker agent must follow this lifecycle:
    - Do **NOT** pass the history of other items generated in the same run.
 3. **Drafting**: The subagent drafts only the target markdown file for that single item. It MUST open that file with the YAML frontmatter block defined by the item's own template in the worker skill — including `generation_mode: "subagent"`. That key is the only machine-readable evidence that this mandate was honoured: `_validate_subagent_isolation` in `skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/uml.py` rejects every Epic, Feature, User Story and Use Case that lacks it. Take the frontmatter from the template, never from a tracker issue body — `skills/spec-orchestrator/scripts/reconcile_backlog.py` renders frontmatter as a `| Metadata | Value |` table when it publishes to the tracker during Phase 4, and that table is a tracker-side rendering, never a substitute for the frontmatter block in the local file. Markdown tables are not otherwise restricted; the pipeline generates them itself, so a blanket prohibition would outlaw its own canonical output (issue #278).
 4. **Registration**: The worker agent aggregates the outputs, links them, and registers them sequentially in the issue tracker. All spec issues (Epics, Features, User Stories, Use Cases) MUST be created with their full body contents (via `--body-file <local-md-file>` and immediate post-creation verification) during Phases 1, 2, and 3. An immediate post-creation verification check must be run (e.g., `gh issue view <ID> --json body`) to ensure the tracker body is not a stub and is fully populated at the time of creation.
+
+## Closed-Loop Payload Verification Gate & Anti-Complacency Rule
+- **Exit code 0 is NEVER sufficient proof of success.**
+- After modifying or publishing any GitHub issue or document, the agent MUST run `gh issue view <ID>` or `gh api` to fetch the live published payload and inspect links, Mermaid headers, and syntax.
+- **Optimism bias is prohibited**: agents must cite empirical output of live payload inspection before declaring completion.
+
+> This section sits **after** § *Item-Level Subagent Context Isolation* deliberately. It
+> was originally inserted between that heading and its body, which split the isolation
+> section in two: everything from the dispatch lifecycle onward — the `generation_mode`
+> marker, the title-namespacing constraint, the Mermaid and source-locator payload rules —
+> fell outside the section as the gates measure it. `test_governed_documents_are_discoverable_issue317`,
+> `test_drafting_dispatch_passes_the_namespacing_constraint_issue317` and
+> `test_drafting_step_names_the_frontmatter_marker_issue278` all read that section by
+> heading and went red. Do not re-insert a `##` heading between the isolation heading and
+> the end of its numbered lifecycle.
 
 ## Parallel Dispatch Convention
 

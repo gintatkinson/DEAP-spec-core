@@ -110,6 +110,29 @@ def normalize_title(title, rules=None):
     return title.lower()
 
 
+def normalize_spec_slug(title, rules=None):
+    """
+    Standardized slugification that preserves stop words.
+    Converts 'Fiber Cable and Strand Inventory' to 'fiber-cable-and-strand-inventory'.
+    """
+    if not title:
+        return ""
+    # Strip quotes and leading/trailing whitespace
+    title = title.strip().strip('"\'')
+    # Strip common prefixes
+    regex = r'^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+)?\s*[:\-]?\s*'
+    stripped = re.sub(regex, '', title, flags=re.IGNORECASE)
+    if stripped.strip():
+        title = stripped
+    # Normalize hyphens to spaces to handle typographic variations
+    title = title.replace("-", " ")
+    # Strip any remaining punctuation and normalize spacing
+    title = re.sub(r'[^\w\s]', '', title)
+    # Join with hyphens to form a slug, preserving all words
+    title = "-".join(title.split())
+    return title.lower()
+
+
 def normalize_label(label):
     """Reduce a tracker label to the form every label comparison happens in (#329).
 

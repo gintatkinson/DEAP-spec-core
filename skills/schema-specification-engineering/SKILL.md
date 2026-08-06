@@ -22,6 +22,11 @@ Use this as the single canonical workflow for translating structural schemas and
 > **EXHAUSTIVE SEMANTIC MODELING MANDATE**
 > Do NOT blindly map every isolated schema attribute (e.g., `x`, `y`, `z`) to a separate Feature. You MUST semantically model the schema by grouping cohesive properties into a single logical Feature (e.g., "Cartesian Coordinates"). However, "zero abstraction" still applies: within that grouped Feature, you MUST exhaustively document EVERY underlying attribute/node, capturing its exact data type, mathematical constraints (value ranges, units), defaults, and verbatim specification text. No constraint detail may be lost or summarized away.
 
+## Closed-Loop Payload Verification Gate & Anti-Complacency Rule
+- **Exit code 0 is NEVER sufficient proof of success.**
+- After modifying or publishing any GitHub issue or document, the agent MUST run `gh issue view <ID>` or `gh api` to fetch the live published payload and inspect links, Mermaid headers, and syntax.
+- **Optimism bias is prohibited**: agents must cite empirical output of live payload inspection before declaring completion.
+
 ## Step 1: Forensic Audit & Module Decomposition
 
 1. **Parse the Schema:** Read the primary structural schema file and its imports.
@@ -102,6 +107,8 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 
 > [!WARNING]
 > You must strictly follow the operational sequencing below to ensure the `#IssueID` linkages are perfectly resolved.
+> **Unified Slugification Mandate:** When generating filenames from titles (e.g., `feat-01-fiber-cable-and-strand-inventory.md`), you MUST preserve all stop-words (like 'and', 'the', 'of', etc.) consistently. Do NOT strip stop-words when converting titles to lowercase hyphen-separated slugs.
+
 
 1. **YAML Frontmatter:** Prepend strict YAML metadata to every `.md` file:
    ```yaml
@@ -297,6 +304,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     > - **Subgraph Title Quoting**: Mandate double quotes around subgraph titles with spaces or hyphens (e.g. `subgraph "System Boundary"`).
 
 4. **Source References Block (CRITICAL):**
+   - **Dynamic Schema Locator**: You MUST inspect the active workspace directories (e.g. `schema/`) to build schema locators dynamically. Do NOT hardcode legacy paths like `standard/ietf/RFC/`.
    - At the bottom of every feature markdown file, you MUST append a `## Source References` section containing dynamic references to the input structural schemas and specifications, formatted like this:
    ```markdown
    ## Source References

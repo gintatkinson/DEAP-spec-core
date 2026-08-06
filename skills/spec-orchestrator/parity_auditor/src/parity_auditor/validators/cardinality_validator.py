@@ -139,5 +139,18 @@ class SchemaCardinalityValidator(IValidator):
                         f"(e.g. path: 'module/container', node_type: container).",
                         location=dir_label,
                     ))
+                elif n > 1:
+                    # Both worker skills state that the linter rejects
+                    # len(schema_containers) != 1, and the 1:1 container-to-item mandate
+                    # is what keeps a Feature independently testable. Only the != 1 cases
+                    # below one were checked; more-than-one was documented and enforced
+                    # nowhere, so consolidated multi-container items passed the gate.
+                    errors.append(Finding(
+                        "schema-container-consolidation-forbidden",
+                        f"{file_type} '{filename}': schema_containers declares {n} containers. "
+                        f"Every {file_type.lower()} must declare exactly one. Split the "
+                        f"consolidated containers into separate files, one per container.",
+                        location=dir_label,
+                    ))
 
         return errors

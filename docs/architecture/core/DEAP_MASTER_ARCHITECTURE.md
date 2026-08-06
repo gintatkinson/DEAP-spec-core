@@ -1,0 +1,139 @@
+# Digital Engineering Agentic Pipeline (DEAP) Master Architecture Specification
+
+## 1. Architectural Overview & Core Principles
+
+The **Digital Engineering Agentic Pipeline (DEAP)** framework establishes a standard-neutral, platform-decoupled, two-tier architecture for automated software engineering and protocol specification engineering. DEAP enforces strict separation of concerns between domain modeling, protocol specification extraction, runtime metadata rendering, and platform-specific code generation.
+
+### Core Architectural Principles:
+1. **Domain Neutrality:** The core pipeline, master architecture, runtime engines, and rule enforcement mechanisms are 100% domain-agnostic and standard-neutral.
+2. **Platform Decoupling:** Domain logic and specification artifacts are decoupled from implementation platforms (e.g., Flutter/Dart, React/TypeScript, VHDL/FPGA).
+3. **Strict Subagent Context Isolation:** Master-worker orchestration isolates token context across discrete subagents to eliminate token exhaustion and memory leakage.
+4. **Tri-Layer Definition of Done:** Every specification item (Epic, Feature, User Story, Use Case) must be realized across three mandatory layers: Domain Model, ViewModel, and Logical User Interface (LUI) Widget Binding with automated BDD integration tests.
+
+---
+
+## 2. Dual-Pipeline Master-Worker System
+
+DEAP operates via a dual-pipeline master-worker system designed to handle specification engineering and feature implementation serially and autonomously.
+
+```mermaid
+flowchart TD
+    subgraph Pipeline_1 ["Pipeline 1: Specification Engineering"]
+        Worker_A["Worker A: Schema Specification Engineer (YANG/OpenAPI/Protobuf -> Epics & Features)"]
+        Worker_B["Worker B: User Story Engineer (BDD Scenarios & GWT Statements)"]
+        Worker_C["Worker C: Use Case Engineer (Formal OOA/OOD & Realization Matrices)"]
+        Worker_D["Worker D: Specification Implementation Auditor (Spec Gap Analysis & Issue Backlog Sync)"]
+        Worker_A --> Worker_B --> Worker_C --> Worker_D
+    end
+
+    subgraph Pipeline_2 ["Pipeline 2: Feature Implementation Pipeline"]
+        Sub_Implementer["Context-Isolated Micro-Task Implementer Subagents (14 Execution Mandates)"]
+        Review_Gate["Two-Stage Review & AST Parity Auditor Gate"]
+        Sub_Implementer --> Review_Gate
+    end
+
+    Pipeline_1 -->|Approved Spec Backlog| Pipeline_2
+```
+
+### 2.1 Pipeline 1: Specification Engineering (Workers A–D)
+
+Pipeline 1 transforms raw, platform-agnostic structural schemas (e.g., YANG modules, OpenAPI v3 specs, Protocol Buffers definitions) into an Agile specification hierarchy tracking Epics, Features, User Stories, and System Use Cases.
+
+- **Worker A (Schema Specification Engineer):**
+  - Input: Structural schema definition files.
+  - Output: Epics and Features formatted with standard-neutral attribute constraints, validation rules, and structural boundaries.
+- **Worker B (User Story Engineer):**
+  - Input: Approved Features and domain requirements.
+  - Output: BDD User Stories formatted with Given-When-Then acceptance criteria and explicit Realises tags (`/// Realises: [Feat-NNN/...]`).
+- **Worker C (Use Case Engineer):**
+  - Input: Features and BDD User Stories.
+  - Output: UML System Use Cases detailing Primary Actors, Preconditions, Main Success Scenarios, and Traceability Realization Matrices.
+- **Worker D (Specification Implementation Auditor):**
+  - Input: Complete Specification Backlog and target repository codebase.
+  - Output: Comprehensive Gap Analysis Audit Report and automated issue tracker synchronization (`reconcile_backlog.py`).
+
+### 2.2 Pipeline 2: Feature Implementation (14 Execution Mandates)
+
+Pipeline 2 executes feature micro-tasks serially using context-isolated implementer subagents bound by 14 strict execution mandates:
+
+1. **Context Isolation Mandate:** Every subagent starts with a clean, unbloated context window.
+2. **Single-Item Scope Mandate:** Each subagent prompt targets at most 1 specification item.
+3. **Mandatory Skill-Reading Instruction:** Subagents must invoke `view_file` on the active `SKILL.md` before executing edits or commands.
+4. **Tri-Layer Definition of Done Mandate:** Implementation per specification item must cover (1) Domain Model, (2) ViewModel, and (3) LUI Widget Binding + BDD User Story Test.
+5. **No Silent Assumptions Mandate:** Requirement ambiguities must be clarified via the coordinator before proceeding.
+6. **No Over-Engineering Mandate:** Code changes must enforce maximum simplicity (YAGNI).
+7. **Surgical Changes Mandate:** Edits are strictly targeted; non-relevant code/files must remain untouched.
+8. **Verifiable Success Criteria Mandate:** Every change requires documented verification (RED-GREEN test execution).
+9. **No Documentation/Installation Drift Mandate:** Documentation and setup guides must be synchronized atomically with code changes.
+10. **Application Compilation Build Mandate:** Full compilation build must pass clean (`exit code == 0`) before completion.
+11. **Remote Synchronization Mandate:** Changes must be pushed and verified clean against `origin/<branch>` before final report generation.
+12. **Mandatory Subagent Termination & Cleanup Mandate:** Worker subagents must be reclaimed/terminated immediately upon task completion.
+13. **Mermaid Block & Code Fence Integrity Mandate:** All Mermaid diagrams must be strictly closed and syntax-valid.
+14. **Backlog Reconciliation Mandate:** `reconcile_backlog.py` must run to sync GitHub issue states before branch commit.
+
+---
+
+## 3. 3-Tier Rule Enforcement Architecture
+
+DEAP enforces pipeline compliance, architectural boundaries, and code quality through a 3-Tier Rule Enforcement System:
+
+```mermaid
+flowchart LR
+    Tier1["Tier 1: Pre-Execution Gate\n(4-Point Compliance Check & Planning Lock)"] --> Tier2["Tier 2: Build-Time & Static Lints\n(Static Analysis & Type Checking)"] --> Tier3["Tier 3: Post-Implementation AST Parity Auditor\n(Realization Matrix & Tri-Layer Coverage Audit)"]
+```
+
+### 3.1 Tier 1: Pre-Execution Gate
+- **4-Point Karpathy & Pipeline Compliance Check:** Mandatory header verification in coordinator thought blocks.
+- **Strict Planning Gate:** All workspace file modifications and subagent dispatches require an explicit, user-approved implementation plan.
+- **Role Boundary Lock:** Coordinator is strictly locked from direct source file writes during specification and implementation phases.
+
+### 3.2 Tier 2: Build-Time & Static Lints
+- **Compiler Lints & Type Checks:** Strict language lints (`dart analyze`, `tsc`, `vhdl syntax check`) executed on all modified components.
+- **Mermaid & Schema Linter:** Automated validation of Mermaid diagram headers, angle bracket escaping, and member syntax across all documentation artifacts.
+
+### 3.3 Tier 3: Post-Implementation AST Parity Auditor
+- **Realization Matrix Parity Check:** Automated verification that code symbols (Domain Models, ViewModels, LUI Widgets) accurately link back to specification issue keys.
+- **Tri-Layer Coverage Gate:** Verification script (`tests/test_process_discipline_gates.py::test_every_specification_has_full_lui_chain`) asserting that every Feature is fully realized across Domain, ViewModel, and LUI layers.
+
+---
+
+## 4. Standard-Neutral Schema Translation Rules
+
+DEAP defines standard-neutral, bi-directional mapping rules to ingest protocol definitions from heterogeneous standard schemas (YANG, OpenAPI v3, Protocol Buffers v3) into standard Agile specification artifacts.
+
+| Input Standard Primitive | Intermediate DEAP Descriptor | Agile Specification Target | Tri-Layer Implementation Target |
+| :--- | :--- | :--- | :--- |
+| YANG `container` / OpenAPI `object` / Protobuf `message` | `SchemaEntity` | Epic / Feature | Domain Model (Data Structure / Entity) |
+| YANG `leaf` / OpenAPI `property` / Protobuf `field` | `AttributeDescriptor` | User Story Field Definition | ViewModel Field State & Formatter |
+| YANG `typedef` / OpenAPI `enum` / Protobuf `enum` | `EnumDescriptor` | User Story Validation Constraint | ViewModel Enum State & Picker |
+| YANG `rpc` / OpenAPI `path` / Protobuf `service rpc` | `OperationDescriptor` | Use Case Main Success Scenario | ViewModel Action & Event Handlers |
+| YANG `must` / `when` / OpenAPI `constraints` | `ConstraintRule` | BDD Given-When-Then Scenario | ViewModel Validator & UI Error State |
+
+---
+
+## 5. Domain Architecture Blueprints & Extensions
+
+The master architecture is extended by specialized domain architecture blueprints that specify safety-critical, persistence, runtime metadata, and platform-specific engineering rules:
+
+| Domain Blueprint | Target Subsystem / Focus | Document Reference |
+| :--- | :--- | :--- |
+| **DEAP Flight Systems Safety Concept Paper** | Avionic Safety Architecture, STPA (UCAs), FMECA (Hardware & Bus babbling), DO-178C/DO-254 DAL A–E Alignment, Zero Heap Ban, MC/DC Coverage Gates | [`DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md) |
+| **DEAP Low-Altitude UAS & Infrastructure Safety Concept Paper** | UAS Low-Altitude Infrastructure Safety, JARUS SORA v2.5 (SAIL I–VI, GRC/ARC), ASTM F3269-17 RTA, ASTM F3411-22a Remote ID, RTCA DO-365B DAA, 3GPP 5G UAS | [`DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md) |
+| **DEAP SysML v2 Textual Safety Model Specification** | SysML v2 Textual Safety Model, MATLAB Simulink & Stateflow Synthesis Rules, STPA SC_1..SC_32, FMECA HW Faults | [`DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md) |
+| **Persistence Architecture Blueprint** | Offline-First Local Database & Storage Synchronization | [`PERSISTENCE_ARCHITECTURE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/PERSISTENCE_ARCHITECTURE.md) |
+| **Runtime Metadata Engine Blueprint** | Dynamic Schema Locator & Metadata Rendering Engine | [`RUNTIME_METADATA_ENGINE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/RUNTIME_METADATA_ENGINE.md) |
+| **SpecKit Native Integration Blueprint** | SpecKit Specification Extraction & Code Realization Engine | [`SPECKIT_NATIVE_INTEGRATION.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/SPECKIT_NATIVE_INTEGRATION.md) |
+
+---
+
+## 6. Downstream Domain Polyrepo Packages & Provisioning
+
+DEAP provisions domain-specific safety, infrastructure, and runtime platforms as modular packages under the downstream polyrepo architecture:
+
+| Package Directory | Domain Platform / Standards Scope | Provisioning Status |
+| :--- | :--- | :--- |
+| `packages/DEAP-avionic-flight-safety/` | Civil Avionic Flight Safety Platform (DO-178C DAL A-E, DO-254, ARP4754A/4761, SPARK Ada / MISRA-C) | ✅ Provisioned (Option A Standalone Monorepo Package Stage) |
+| `packages/DEAP-uas-infrastructure-safety/` | Low-Altitude UAS Infrastructure Safety Platform (SORA v2.5 SAIL I-VI, ASTM F3269-17 RTA, ASTM F3411-22a Remote ID, RTCA DO-365B DAA, ROS2 / PX4) | ✅ Provisioned (Option A Standalone Monorepo Package Stage) |
+
+
+

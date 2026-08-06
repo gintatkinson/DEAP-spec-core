@@ -15,6 +15,28 @@ if [ ! -f "$LOCAL_FILE" ]; then
     exit 1
 fi
 
+normalize_spec_slug() {
+    # Standardized slugification that preserves stop words
+    # Usage: slug=$(normalize_spec_slug "us-29-fiber-cable-and-strand-inventory")
+    local title="$1"
+    if [ -z "$title" ]; then
+        echo ""
+        return
+    fi
+    # Strip quotes and leading/trailing whitespace
+    title=$(echo "$title" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e "s/^['\"]*//" -e "s/['\"]*$//")
+    # Strip common prefixes
+    local stripped
+    stripped=$(echo "$title" | sed -E 's/^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?([- ]*[0-9]+)?[[:space:]]*[:-]?[[:space:]]*//i')
+    if [ -n "$(echo "$stripped" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')" ]; then
+        title="$stripped"
+    fi
+    # Normalize hyphens to spaces, strip punctuation, convert back to hyphens and lowercase
+    title=$(echo "$title" | tr '-' ' ' | sed 's/[^a-zA-Z0-9 ]//g' | awk '{ $1=$1; print }' | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
+    echo "$title"
+}
+
+
 # Issue #330 — fail closed. This block previously warned and carried on, so the gate
 # vanished in exactly the circumstance where it most needed to hold: a partial or broken
 # checkout with no checker present. A gate that yields when its checker is absent is not

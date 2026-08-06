@@ -32,9 +32,15 @@ def test_empty_schemas_dir_no_enforcement(tmp_path):
     validator = SchemaCardinalityValidator()
     errors = validator.validate(repo_mock)
     
-    print("ERRORS:", errors)
-    if len(errors) > 0:
-        print("Bug reproduced: SchemaCardinalityValidator enforces schema_containers on empty schema directories")
+    # This assertion was absent: the test ran the validator, printed the outcome, and
+    # returned. It passed whether the bug was present or fixed, which makes it a
+    # regression test that cannot detect the regression. The sibling test below performs
+    # the same setup with a .gitkeep present and does assert this condition, so the
+    # intended contract is unambiguous.
+    assert len(errors) == 0, (
+        f"SchemaCardinalityValidator enforced schema_containers with no schema directory "
+        f"present, got {len(errors)}: {errors}"
+    )
 
 def test_empty_schemas_dir_with_gitkeep_no_enforcement(tmp_path):
     # Setup test workspace

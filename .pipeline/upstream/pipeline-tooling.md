@@ -1,6 +1,6 @@
 ---
 title: "Implementation Profile — Pipeline Tooling (UPSTREAM ONLY)"
-project: "Digital Systems Engineering Pipeline"
+project: "Digital Engineering Agentic Pipeline (DEAP)"
 tier: implementation
 platform: pipeline-tooling
 scope: upstream-only

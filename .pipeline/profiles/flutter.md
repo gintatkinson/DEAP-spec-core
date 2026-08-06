@@ -1,6 +1,6 @@
 ---
 title: "Implementation Profile — Flutter"
-project: "Digital Systems Engineering Pipeline"
+project: "Digital Engineering Agentic Pipeline (DEAP)"
 tier: implementation
 platform: flutter
 created: "2026-06-29"

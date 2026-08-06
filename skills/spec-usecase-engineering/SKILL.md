@@ -59,7 +59,10 @@ You should invoke this skill ONLY after the behavioral User Stories have been ex
 4. **Return Control:** The subagent completes the task and returns control to the worker agent.
 
 ## Step 4: Markdown Generation
-Create a new file in `docs/use-cases/uc-[XX]-[name].md` (zero-padded, dash-separated, e.g., `uc-01-register-core-entity.md`). Format strictly:
+Create a new file in `docs/use-cases/uc-[XX]-[name].md` (zero-padded, dash-separated, e.g., `uc-01-register-core-entity.md`).
+> **Unified Slugification Mandate:** When generating filenames from titles (e.g., `uc-29-fiber-cable-and-strand-inventory.md`), you MUST preserve all stop-words (like 'and', 'the', 'of', etc.) consistently. Do NOT strip stop-words when converting titles to lowercase hyphen-separated slugs.
+
+Format strictly:
 
 ```markdown
 ---

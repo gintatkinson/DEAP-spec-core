@@ -1,6 +1,6 @@
 # Logical UI Component Specifications
 
-This document defines the platform-agnostic structural, behavioral, and API requirements for the core logical components of the Digital Systems Engineering Pipeline.
+This document defines the platform-agnostic structural, behavioral, and API requirements for the core logical components of the Digital Engineering Agentic Pipeline (DEAP).
 
 ---
 

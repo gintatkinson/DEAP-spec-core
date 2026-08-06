@@ -969,6 +969,45 @@ class UmlValidator(IValidator):
                             else:
                                 errors.append(Finding("class-diagram-must-model-the-schema-container-path", f"[{doc_type.upper()}] [{filename}] UML Class Diagram is missing class node '{exp_cls}' for schema container target node '{seg}' in path '{path}'.", location=filename))
 
+                    # Containment edges between consecutive segments.
+                    #
+                    # rules/uml-model-integrity.md documents this beside the node rule
+                    # above -- "consecutive segments of that path must be joined by a
+                    # relationship representing containment" -- but only the node half
+                    # was implemented. Present nodes with absent edges reproduce the
+                    # schema's vocabulary without its structure, which is exactly what
+                    # the rule says must not happen.
+                    #
+                    # Only pairs whose classes are BOTH present are checked. A missing
+                    # class is already reported by the node rule above, and reporting it
+                    # twice under two rule ids would make one defect look like two.
+                    resolved = []
+                    for seg_i in segments:
+                        seg_i_clean = re.sub(r"^[^:]+:", "", seg_i)
+                        cls_i = "".join(
+                            p.capitalize() for p in re.split(r'[-_]', seg_i_clean) if p
+                        )
+                        resolved.append(classes_lower_map.get(cls_i.lower()))
+
+                    connected = set()
+                    for rel in relationships:
+                        connected.add((rel.from_class, rel.to_class))
+                        connected.add((rel.to_class, rel.from_class))
+
+                    for parent, child in zip(resolved, resolved[1:]):
+                        if not parent or not child or parent == child:
+                            continue
+                        if (parent, child) not in connected:
+                            errors.append(Finding(
+                                "class-diagram-must-model-the-schema-containment-relationships",
+                                f"[{doc_type.upper()}] [{filename}] UML Class Diagram declares "
+                                f"classes '{parent}' and '{child}' but no relationship between "
+                                f"them, while schema container path '{path}' makes '{child}' a "
+                                f"child of '{parent}'. Add the containment relationship "
+                                f"(e.g. '{parent} *-- {child}').",
+                                location=filename,
+                            ))
+
         
     def build_global_classes(self, repo: WorkspaceRepository, features_dir: str, epics_dir: str = None) -> Dict[str, Any]:
         """
