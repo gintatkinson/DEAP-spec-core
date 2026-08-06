@@ -30,3 +30,43 @@ To run the full test suite and audit suite:
 ```bash
 python3 -m pytest tests/
 ```
+
+### Direct Copy Installation
+
+Copy the pipeline directories and (optionally) the application templates into your project repository.
+
+```bash
+# Refuse to run inside the pipeline repository itself. The cleanup steps below are
+# written for a downstream project: here they delete the upstream-only profile this
+# repo owns and concatenate .gitignore onto itself. `test -e` is used rather than
+# `find -type f` because rules/document-references.md requires existence checks to
+# observe symlinks.
+if [ -e ./.pipeline/upstream ]; then
+  echo "REFUSING: this is the pipeline repository, not a downstream project." >&2
+  exit 1
+fi
+
+git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
+rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter ./web_react
+cp -RP ./.tmp-pipeline/skills ./
+cp -RP ./.tmp-pipeline/rules ./
+cp -RP ./.tmp-pipeline/.pipeline ./
+rm -rf ./.pipeline/upstream   # upstream-only tooling profile; not for downstream projects
+cp -RP ./.tmp-pipeline/.agents ./
+cp -RP ./.tmp-pipeline/scripts ./
+cp -RP ./.tmp-pipeline/app_flutter ./
+cp -RP ./.tmp-pipeline/web_react ./
+if [ -f ./.gitignore ]; then
+  cat ./.tmp-pipeline/.gitignore >> ./.gitignore
+else
+  cp ./.tmp-pipeline/.gitignore ./
+fi
+rm -rf ./.tmp-pipeline
+python3 scripts/setup_git_hooks.py
+
+# Provision the tracker label taxonomy up front, rather than letting it appear one
+# label at a time during the first orchestrator run (issue #323). Idempotent, so it
+# is also the way to repair a tracker whose labels were deleted.
+python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py
+```
+

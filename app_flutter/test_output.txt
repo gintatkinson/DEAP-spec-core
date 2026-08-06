@@ -1,0 +1,73 @@
+Resolving dependencies...
+Downloading packages...
+  _flutterfire_internals 1.3.73 (1.3.75 available)
+  cloud_firestore 6.6.0 (6.7.1 available)
+  cloud_firestore_platform_interface 8.0.3 (8.0.5 available)
+  cloud_firestore_web 5.6.0 (5.7.1 available)
+  firebase_auth 6.5.4 (6.5.6 available)
+  firebase_auth_platform_interface 9.0.3 (9.0.5 available)
+  firebase_auth_web 6.2.3 (6.2.5 available)
+  firebase_core 4.11.0 (4.12.1 available)
+  firebase_core_platform_interface 7.1.0 (8.0.0 available)
+  firebase_core_web 3.9.0 (3.9.1 available)
+  hooks 2.0.2 (2.1.0 available)
+  matcher 0.12.19 (0.12.20 available)
+  meta 1.18.0 (1.19.0 available)
+  native_toolchain_c 0.19.2 (0.19.3 available)
+  package_config 2.2.0 (3.0.0 available)
+  record_use 0.6.0 (1.0.0 available)
+  shared_preferences_android 2.4.26 (2.4.27 available)
+  sqlite3 3.3.3 (3.4.0 available)
+  test_api 0.7.11 (0.7.13 available)
+  vector_math 2.2.0 (2.4.0 available)
+Got dependencies!
+20 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Checking for wireless devices...
+00:00 +0: loading /Users/perkunas/jail/digital-pipeline-repo/app_flutter/integration_test/camera_gestures_navigation_test.dart
+Building macOS application...                                   
+/Users/perkunas/jail/digital-pipeline-repo/app_flutter/macos/Runner.xcodeproj: Runner: ld: warning: search path '/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.42.0.mhkHwN/Metal.xctoolchain/usr/lib/swift/macosx' not found
+/Users/perkunas/jail/digital-pipeline-repo/app_flutter/macos/Runner.xcodeproj: Runner: ld: warning: search path '/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.42.0.mhkHwN/Metal.xctoolchain/usr/lib/swift/macosx' not found
+/Users/perkunas/jail/digital-pipeline-repo/app_flutter/macos/Pods/Pods.xcodeproj: warning: The macOS deployment target 'MACOSX_DEPLOYMENT_TARGET' is set to 10.11, but the range of supported deployment target versions is 10.13 to 26.5.99. (in target 'abseil-xcprivacy' from project 'Pods')
+/Users/perkunas/jail/digital-pipeline-repo/app_flutter/macos/Pods/Pods.xcodeproj: warning: The macOS deployment target 'MACOSX_DEPLOYMENT_TARGET' is set to 10.11, but the range of supported deployment target versions is 10.13 to 26.5.99. (in target 'abseil' from project 'Pods')
+warning: Run script build phase 'Create Symlinks to Header Folders' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'abseil' from project 'Pods')
+/Users/perkunas/jail/digital-pipeline-repo/app_flutter/macos/Pods/Pods.xcodeproj: warning: The macOS deployment target 'MACOSX_DEPLOYMENT_TARGET' is set to 10.12, but the range of supported deployment target versions is 10.13 to 26.5.99. (in target 'BoringSSL-GRPC-openssl_grpc' from project 'Pods')
+/Users/perkunas/jail/digital-pipeline-repo/app_flutter/macos/Pods/Pods.xcodeproj: warning: The macOS deployment target 'MACOSX_DEPLOYMENT_TARGET' is set to 10.12, but the range of supported deployment target versions is 10.13 to 26.5.99. (in target 'BoringSSL-GRPC' from project 'Pods')
+warning: Run script build phase 'Create Symlinks to Header Folders' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'BoringSSL-GRPC' from project 'Pods')
+warning: Run script build phase 'Create Symlinks to Header Folders' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'gRPC-Core' from project 'Pods')
+warning: Run script build phase 'Create Symlinks to Header Folders' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'gRPC-C++' from project 'Pods')
+✓ Built build/macos/Build/Products/Debug/app_flutter.app
+Failed to foreground app; open returned 1
+00:00 +0: Visual Globe TDD verification: HUD, Fly-to-Node, Panning, and Rotation
+TopographicalView: Master_1 not found in topologyData
+TopographicalView: final camera lat=35.6074, lng=140.1063
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: not <35.6074>
+  Actual: <35.6074>
+Latitude should update after fly-to
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/integration_test/camera_gestures_navigation_test.dart:140:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1952:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/integration_test/camera_gestures_navigation_test.dart line 140
+The test description was:
+  Visual Globe TDD verification: HUD, Fly-to-Node, Panning, and Rotation
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +0 -1: Visual Globe TDD verification: HUD, Fly-to-Node, Panning, and Rotation [E]
+  Test failed. See exception logs above.
+  The test description was: Visual Globe TDD verification: HUD, Fly-to-Node, Panning, and Rotation
+  
+00:02 +0 -1: (tearDownAll)
+00:02 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/perkunas/jail/digital-pipeline-repo/app_flutter/integration_test/camera_gestures_navigation_test.dart: Visual Globe TDD verification: HUD, Fly-to-Node, Panning, and Rotation

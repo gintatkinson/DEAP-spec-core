@@ -1,0 +1,5 @@
+# Upstream-only content: never ships to downstream projects.
+# Covers `git archive` and release tarballs. The README Direct Copy block and
+# tests/test_upstream_profile_containment.py cover the copy/template routes,
+# which do not use git archive.
+.pipeline/upstream/ export-ignore

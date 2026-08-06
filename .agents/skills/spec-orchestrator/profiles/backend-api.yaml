@@ -1,0 +1,5 @@
+name: backend-api
+stack:
+  language: Python/Go
+  protocols: [gNMI, gRPC, REST]
+  database: Postgres

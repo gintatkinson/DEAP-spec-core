@@ -1,0 +1,66 @@
+name: Auto Regression Testing
+
+on:
+  issues:
+    types: [opened, labeled]
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # Stale bytecode outside the repo can make a test pass or fail against source
+      # no longer on disk, which invalidates negative-control probes (issue #302).
+      PYTHONDONTWRITEBYTECODE: "1"
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.9 is the declared requires-python floor and the only interpreter
+        # installed on the development machine. 3.12 gives forward warning.
+        python-version: ['3.12', '3.13']
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Install from the declared manifest, not a hand-kept list. requirements.txt
+          # pins PyYAML and pyang; the previous explicit list omitted pyang, so every
+          # push run failed in scripts/compile_yang.py while the manifest looked fine
+          # (#311). Test-only tools stay explicit because they are not runtime deps.
+          pip install -r requirements.txt
+          pip install pytest ruff
+          pip install -e skills/spec-orchestrator/parity_auditor
+
+      - name: Run Ingest and Verify Reproduction (Issues Only)
+        if: github.event_name == 'issues' && (contains(github.event.issue.labels.*.name, 'bug') || contains(github.event.issue.labels.*.name, 'feature'))
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          python scripts/ingest_issue.py
+          if [ -d "tests/repro_cases/${{ github.event.issue.number }}" ]; then
+            python -m parity_auditor.cli --spec-only tests/repro_cases/${{ github.event.issue.number }}/docs/schemas tests/repro_cases/${{ github.event.issue.number }}/docs/features && exit 1 || exit 0
+          else
+            echo "No reproduction directory found. Skipping validation."
+          fi
+
+      - name: Lint (ruff, real-bug rules only)
+        if: github.event_name != 'issues'
+        run: |
+          ruff check skills/spec-orchestrator/parity_auditor/src skills/spec-orchestrator/parity_auditor/tests
+          ruff check --select F,E9 --target-version py312 scripts tests skills/spec-orchestrator/scripts
+
+      - name: Run Existing Regression Tests (PR / Push)
+        if: github.event_name != 'issues'
+        run: |
+          pytest tests/ -q
+          pytest skills/spec-orchestrator/parity_auditor/tests -q

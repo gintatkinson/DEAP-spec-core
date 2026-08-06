@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-08-03T15:08:24.613779Z",
+  "tooling": {
+    "name": "parity_auditor",
+    "version": "1.0.0"
+  },
+  "context": {
+    "command": "/Users/perkunas/Library/Python/3.9/lib/python/site-packages/pytest/__main__.py skills/spec-orchestrator/parity_auditor/tests/",
+    "exit_code": 1,
+    "downstream_repo": "",
+    "commit_hash": ""
+  },
+  "failure": {
+    "traceback": "",
+    "error_summary": []
+  },
+  "reproduction_case": {
+    "target_file": "",
+    "snippet_type": "text",
+    "snippet_content": ""
+  }
+}

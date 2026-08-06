@@ -113,27 +113,25 @@ DEAP defines standard-neutral, bi-directional mapping rules to ingest protocol d
 
 ## 5. Domain Architecture Blueprints & Extensions
 
-The master architecture is extended by specialized domain architecture blueprints that specify safety-critical, persistence, runtime metadata, and platform-specific engineering rules:
+The core DEAP master architecture remains 100% domain-neutral and standard-agnostic. Domain-neutral infrastructure blueprints reside in this core repository, while domain-specific safety, infrastructure, and protocol specifications reside strictly in dedicated downstream repositories:
 
-| Domain Blueprint | Target Subsystem / Focus | Document Reference |
+| Core Blueprint | Target Subsystem / Focus | Document Reference |
 | :--- | :--- | :--- |
-| **DEAP Flight Systems Safety Concept Paper** | Avionic Safety Architecture, STPA (UCAs), FMECA (Hardware & Bus babbling), DO-178C/DO-254 DAL A–E Alignment, Zero Heap Ban, MC/DC Coverage Gates | [`DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md) |
-| **DEAP Low-Altitude UAS & Infrastructure Safety Concept Paper** | UAS Low-Altitude Infrastructure Safety, JARUS SORA v2.5 (SAIL I–VI, GRC/ARC), ASTM F3269-17 RTA, ASTM F3411-22a Remote ID, RTCA DO-365B DAA, 3GPP 5G UAS | [`DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md) |
-| **DEAP SysML v2 Textual Safety Model Specification** | SysML v2 Textual Safety Model, MATLAB Simulink & Stateflow Synthesis Rules, STPA SC_1..SC_32, FMECA HW Faults | [`DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md) |
 | **Persistence Architecture Blueprint** | Offline-First Local Database & Storage Synchronization | [`PERSISTENCE_ARCHITECTURE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/PERSISTENCE_ARCHITECTURE.md) |
 | **Runtime Metadata Engine Blueprint** | Dynamic Schema Locator & Metadata Rendering Engine | [`RUNTIME_METADATA_ENGINE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/RUNTIME_METADATA_ENGINE.md) |
 | **SpecKit Native Integration Blueprint** | SpecKit Specification Extraction & Code Realization Engine | [`SPECKIT_NATIVE_INTEGRATION.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/SPECKIT_NATIVE_INTEGRATION.md) |
 
 ---
 
-## 6. Downstream Domain Polyrepo Packages & Provisioning
+## 6. Downstream Domain Polyrepo Repositories & Isolation
 
-DEAP provisions domain-specific safety, infrastructure, and runtime platforms as modular packages under the downstream polyrepo architecture:
+To preserve 100% domain neutrality in the core pipeline, all specialized domain specifications and domain-specific safety/infrastructure platforms are housed strictly in external downstream repositories:
 
-| Package Directory | Domain Platform / Standards Scope | Provisioning Status |
+| Downstream Repository | Domain Platform / Standards Scope | Governance & Location |
 | :--- | :--- | :--- |
-| `packages/DEAP-avionic-flight-safety/` | Civil Avionic Flight Safety Platform (DO-178C DAL A-E, DO-254, ARP4754A/4761, SPARK Ada / MISRA-C) | ✅ Provisioned (Option A Standalone Monorepo Package Stage) |
-| `packages/DEAP-uas-infrastructure-safety/` | Low-Altitude UAS Infrastructure Safety Platform (SORA v2.5 SAIL I-VI, ASTM F3269-17 RTA, ASTM F3411-22a Remote ID, RTCA DO-365B DAA, ROS2 / PX4) | ✅ Provisioned (Option A Standalone Monorepo Package Stage) |
+| `DEAP-spec-core` | Core specification engineering engine, base rules, and standard-neutral schemas | Downstream Repository (`https://github.com/gintatkinson/DEAP-spec-core`) |
+| `DEAP-avionic-flight-safety` | Civil Avionic Flight Safety Platform (DO-178C DAL A-E, DO-254, ARP4754A/4761, SPARK Ada / MISRA-C) | Downstream Repository (`https://github.com/gintatkinson/DEAP-avionic-flight-safety`) |
+| `DEAP-uas-infrastructure-safety` | Low-Altitude UAS Infrastructure Safety Platform (SORA v2.5 SAIL I-VI, ASTM F3269-17 RTA, ASTM F3411-22a Remote ID, RTCA DO-365B DAA, ROS2 / PX4) | Downstream Repository (`https://github.com/gintatkinson/DEAP-uas-infrastructure-safety`) |
 
 
 
