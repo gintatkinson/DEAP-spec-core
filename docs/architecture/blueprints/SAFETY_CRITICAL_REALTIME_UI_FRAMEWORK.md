@@ -108,14 +108,14 @@ sequenceDiagram
 ```
 
 #### Layer Mapping for Pattern A
-1. **Layer 1 (Data Source)**: User Application (UA) Parameter Buffer / Input Data Stream.
-2. **Layer 2 (Logic & State)**: ARINC 661 Cockpit Display System (CDS) Widget Definition File (DF) and Symbol Definition.
-3. **Layer 3 (Rendering & Visual Binding)**: Display Kernel Vector Engine Rendering to Hardware Frame Buffer.
+1. **Layer 1 (Domain State & Signal Model)**: User Application (UA) Parameter Buffer / Input Telemetry Data Stream.
+2. **Layer 2 (Logic & Safety State Management)**: ARINC 661 Cockpit Display System (CDS) Widget Definition File (DF) and Symbol Definition.
+3. **Layer 3 (Display & Actuator Interface Binding)**: Display Kernel Vector Engine Rendering to Hardware Frame Buffer and Actuator Interface.
 
 ---
 
-### 3.2 Pattern B: Real-Time Safety Statecharts & Symbology Engine
-Pattern B is optimized for high-speed, event-driven symbology generation, such as Primary Flight Display (PFD) horizon ladders, TCAS resolution advisories, and master warning alert overlays.
+### 3.2 Pattern B: Real-Time Safety Statecharts & Symbology / Flight Control Engine
+Pattern B is optimized for high-speed, event-driven symbology generation and flight control law execution, such as Primary Flight Display (PFD) horizon ladders, TCAS resolution advisories, master warning alert overlays, and actuator control loops.
 
 ```mermaid
 stateDiagram-v2
@@ -136,9 +136,9 @@ stateDiagram-v2
 ```
 
 #### Layer Mapping for Pattern B
-1. **Layer 1 (Data Source)**: Discrete Input Event / Flight Sensor Telemetry Frame.
-2. **Layer 2 (Logic & State)**: Safety Statechart / Hierarchical Finite State Machine (FSM) State.
-3. **Layer 3 (Rendering & Visual Binding)**: Symbology & Alarm Vector Graphic Render with priority-based layering.
+1. **Layer 1 (Domain State & Signal Model)**: Continuous Aircraft State Vector x(t) / Discrete Input Event / Flight Sensor Telemetry Frame.
+2. **Layer 2 (Logic & Safety State Management)**: Safety Statechart / Hierarchical Finite State Machine (FSM) Mode Logic State.
+3. **Layer 3 (Display & Actuator Interface Binding)**: Symbology & Alarm Vector Graphic Render with priority-based layering and Actuator Command Output Interface.
 
 ---
 
@@ -147,15 +147,15 @@ Pattern C provides a decoupled, model-driven architecture for ground control sta
 
 ```mermaid
 flowchart LR
-    subgraph L1 ["Layer 1: Domain / Data"]
+    subgraph L1 ["Layer 1: Domain State & Signal Model"]
         DomainModel["Telemetry & Flight Plan Domain Model"]
     end
 
-    subgraph L2 ["Layer 2: ViewModel / State Holder"]
+    subgraph L2 ["Layer 2: Logic & Safety State Management"]
         ViewModel["Operator Console ViewModel (Handles User Input Actions)"]
     end
 
-    subgraph L3 ["Layer 3: GUI Component & BDD Test"]
+    subgraph L3 ["Layer 3: Display & Actuator Interface Binding"]
         GUIWidget["GUI Component / Widget Binding"]
         BDDTest["BDD User Story Test (Asserts Event -> Action -> Render)"]
     end
@@ -167,9 +167,9 @@ flowchart LR
 ```
 
 #### Layer Mapping for Pattern C
-1. **Layer 1 (Data Source)**: Domain Model / Repository Data Source.
-2. **Layer 2 (Logic & State)**: ViewModel / Reactive State Holder handling user actions.
-3. **Layer 3 (Rendering & Visual Binding)**: GUI Component / Widget Binding + BDD User Story Widget Test asserting `User Tap/Event -> ViewModel Action -> State Change -> LUI Render`.
+1. **Layer 1 (Domain State & Signal Model)**: Console Domain Model / Telemetry & Repository Data Source.
+2. **Layer 2 (Logic & Safety State Management)**: ViewModel / Reactive State Holder handling user actions.
+3. **Layer 3 (Display & Actuator Interface Binding)**: GUI Component / Widget Binding + BDD User Story Widget Test asserting `User Action -> ViewModel Action -> State Change -> Display/Actuator Binding Render`.
 
 ---
 

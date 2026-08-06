@@ -3,7 +3,7 @@ title: "Project Constitution — Functional Layer"
 project: "Digital Engineering Agentic Pipeline (DEAP)"
 tier: functional
 created: "2026-06-29"
-last_updated: "2026-08-06"
+last_updated: "2026-08-07"
 ---
 
 # Project Constitution: Digital Engineering Agentic Pipeline (DEAP)
@@ -50,7 +50,7 @@ last_updated: "2026-08-06"
 - Every Use Case MUST link to the User Stories and Features it realizes.
 
 ### Standard & Platform Parameter Isolation
-1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI (LUI) specifications. Logical UI is 100% platform-independent and UI-framework-agnostic, supporting 3 canonical architectural patterns: (A) ARINC 661 Cockpit Display Systems (UA Parameter Buffer -> CDS Widget Definition -> Display Kernel Render), (B) Real-Time Safety Statecharts & Symbology (Discrete Event -> Safety Statechart/FSM State -> Symbology/Alarm Render), and (C) Decoupled Operator Consoles & EFBs (Operator Action -> ViewModel/State Holder -> GUI Component Binding). Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
+1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI (LUI) specifications. Logical UI is 100% platform-independent and UI-framework-agnostic, supporting the Evolved 3-Layer Semantic Chain (Domain State & Signal Model -> Logic & Safety State Management -> Display & Actuator Interface Binding) across 3 canonical aerospace architectural patterns: (A) ARINC 661 Cockpit Display Systems (UA Parameter Buffer -> CDS Widget Definition -> Display Kernel Render), (B) Real-Time Safety Statecharts & Flight Control (Discrete Event -> Safety Statechart/FSM State -> Symbology/Alarm Render), and (C) Decoupled Operator Consoles & EFBs (Operator Action -> ViewModel/State Holder -> GUI Component Binding). Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
 2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**: Design tokens, dynamic mapping configurations, translation files. Single source of truth for standard-specific definitions and visual attributes.
 3. **Tier 3: Platform Implementation Profiles (Technical Execution)**: `.pipeline/profiles/<platform>.md` and codebase implementations. Govern build mechanics, performance patterns, and dependencies.
 
@@ -79,12 +79,15 @@ last_updated: "2026-08-06"
 - Feature titles use the format: `[Verb] [Object] [Qualifier]`.
 
 ### BDD Scenario Format
-- All acceptance criteria MUST use Given-When-Then format.
-- Negative scenarios (error cases, boundary violations) are MANDATORY for every constraint.
+- All acceptance criteria MUST use Given-When-Then format adhering to canonical aerospace BDD templates:
+  - **Pattern A (ARINC 661 Cockpit Display Systems)**: `Given [UA Parameter Buffer State], When [ARINC 661 Binary Command Received], Then [CDS Widget State & Display Kernel Render Updated]`.
+  - **Pattern B (Real-Time Safety Statechart / Flight Control)**: `Given [Aircraft State Vector / Discrete Event], When [Safety FSM Transition Triggered], Then [Actuator Command / Symbology Graphic Rendered]`.
+  - **Pattern C (Decoupled Operator Console)**: `Given [Console Domain Model State], When [Operator Action Initiated], Then [ViewModel State & GUI Component Binding Updated]`.
+- Negative scenarios (error cases, boundary violations, emergency failsafe modes) are MANDATORY for every constraint.
 
 ### User Story Format
-- User Stories follow: `As a [Actor], I want to [Action], so that [Outcome]`.
-- Each User Story MUST have at least one BDD scenario (Given-When-Then).
+- User Stories follow: `As a [Actor/Subsystem], I want to [Action/Command], so that [Outcome/Safety Constraint]`.
+- Each User Story MUST have at least one canonical aerospace BDD scenario (Given-When-Then).
 
 ### Use Case Formality
 - Use Cases follow formal structure: Actor, Preconditions, Main Success Scenario (numbered steps), Alternate Flows, Postconditions.

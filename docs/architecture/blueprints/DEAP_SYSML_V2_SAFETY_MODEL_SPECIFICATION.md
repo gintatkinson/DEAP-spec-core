@@ -70,6 +70,9 @@ The SysML v2 safety architecture is encapsulated within `package DEAP_Safety_Arc
 | **`FMECA_Risk_Profiles`** | Represents hardware fault modes (`FMECA-HW-01` to `08`) with RPN metrics. | `attribute def` |
 | **`Stateflow_Execution_State_Machines`** | Defines ARINC 653 100ms major frame schedule & fail-safe FSM transitions. | `state def` |
 | **`Simulink_Export_Profile`** | Defines metadata annotations (`@SimulinkBlock`, `@StateflowChart`, `@SimulinkSignal`). | `attribute def` |
+| **`Avionic_Control_Structure`** | **Layer 1**: Domain State & Signal Model (Flight control structures, sensor validity, signal vectors). | `part def`, `attribute def` |
+| **`Safety_Statecharts`** | **Layer 2**: Logic & Safety State Management (Failsafe statecharts, Mode Logic, safety transitions). | `state def` |
+| **`ARINC661_Display_Interfaces`** | **Layer 3**: Display & Actuator Interface Binding (ARINC 661 widget protocol ports, display/actuator bindings). | `port def`, `part def` |
 
 ---
 

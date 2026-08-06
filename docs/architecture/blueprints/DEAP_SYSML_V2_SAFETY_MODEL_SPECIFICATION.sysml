@@ -496,4 +496,66 @@ package DEAP_Safety_Architecture {
             attribute sample_time_s : Real; // Sampling period in seconds
         }
     }
+
+    // =========================================================================
+    // 9. Evolved 3-Layer Semantic Chain Packages
+    // Explicit 3-layer semantic annotations connecting Certification_Requirements,
+    // Avionic_Control_Structure, Safety_Statecharts, and ARINC661_Display_Interfaces.
+    // =========================================================================
+
+    // --- Layer 1: Domain State & Signal Model ---
+    package Avionic_Control_Structure {
+        doc /* Layer 1 (Domain State & Signal Model): Defines primary flight control data structures, continuous state vectors, and telemetry signal models. Binds to Certification_Requirements. */
+
+        part def FlightControlStructure {
+            @Layer(1)
+            @RealisesLayer("Domain State & Signal Model")
+            doc /* Structural decomposition of flight control sensor inputs, state vector estimators, and command buffers. */
+            attribute control_frequency_hz : Real = 400.0;
+        }
+
+        attribute def SignalVectorModel {
+            @Layer(1)
+            doc /* Raw and filtered telemetry signal vector parameters. */
+            attribute sensor_validity_mask : Integer = 255;
+        }
+    }
+
+    // --- Layer 2: Logic & Safety State Management ---
+    package Safety_Statecharts {
+        doc /* Layer 2 (Logic & Safety State Management): Formal finite state machines, safety statecharts, and Mode Logic transition laws. Binds Layer 1 to Layer 3. */
+
+        state def FailsafeStatechart {
+            @Layer(2)
+            @RealisesLayer("Logic & Safety State Management")
+            doc /* Hierarchical safety statechart governing flight mode transitions, interlocks, and emergency degraded states. */
+
+            state NominalControl {
+                doc /* Closed-loop flight control mode under DO-178C DAL A guidance laws. */
+            }
+
+            state EmergencyOverride {
+                doc /* Automatic failsafe statechart execution upon hazard detection. */
+            }
+        }
+    }
+
+    // --- Layer 3: Display & Actuator Interface Binding ---
+    package ARINC661_Display_Interfaces {
+        doc /* Layer 3 (Display & Actuator Interface Binding): Binding CDS widgets, ARINC 661 binary parameter buffers, vector symbology renders, and actuator control interfaces. */
+
+        port def ARINC661_WidgetBindingPort {
+            @Layer(3)
+            @RealisesLayer("Display & Actuator Interface Binding")
+            doc /* ARINC 661 widget protocol parameter buffer port for Cockpit Display System (CDS) and actuator drivers. */
+            attribute widget_id : Integer;
+            attribute parameter_id : Integer;
+        }
+
+        part def DisplayActuatorBinding {
+            @Layer(3)
+            doc /* Physical interface binding display kernel rendering engines and actuator servo drivers. */
+            attribute refresh_rate_hz : Real = 60.0;
+        }
+    }
 }

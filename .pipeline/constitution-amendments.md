@@ -225,4 +225,38 @@ Clarify that Logical UI is 100% platform-independent and supports 3 canonical av
 
 Non-destructive: additive clarification of Tier 1 LUI scope, governance rules unchanged.
 
+---
+
+## AMEND-0005 — Transform BDD and LUI specifications to Evolved 3-Layer Aerospace Semantics
+
+- **Date:** 2026-08-07
+- **Logged:** 2026-08-07
+- **Motivating issue:** Aerospace & Real-Time Control Semantic Transformation (Evolved 3-Layer Chain & Canonical Aerospace BDD Templates)
+- **Approved by:** "PROCEED" — approved implementation plan for Aerospace & Real-Time Control Semantic Transformation.
+- **Destructive:** no
+- **Line count:** 164
+- **Resulting SHA-256:** `d3c6ef70323acb045f080bca88d482a609768aaec1680695daef3a4474a1734c`
+
+### Change
+
+Section *Standard & Platform Parameter Isolation*, Tier 1 Functional Layer (line 53), and Section *BDD Scenario Format* (lines 81-88).
+
+Before:
+
+> - All acceptance criteria MUST use Given-When-Then format.
+
+After:
+
+> - All acceptance criteria MUST use Given-When-Then format adhering to canonical aerospace BDD templates:
+>   - **Pattern A (ARINC 661 Cockpit Display Systems)**: `Given [UA Parameter Buffer State], When [ARINC 661 Binary Command Received], Then [CDS Widget State & Display Kernel Render Updated]`.
+>   - **Pattern B (Real-Time Safety Statechart / Flight Control)**: `Given [Aircraft State Vector / Discrete Event], When [Safety FSM Transition Triggered], Then [Actuator Command / Symbology Graphic Rendered]`.
+>   - **Pattern C (Decoupled Operator Console)**: `Given [Console Domain Model State], When [Operator Action Initiated], Then [ViewModel State & GUI Component Binding Updated]`.
+
+### Rationale
+
+Transform legacy BDD/LUI wording to lock in the Evolved 3-Layer Semantic Chain (Domain State & Signal Model -> Logic & Safety State Management -> Display & Actuator Interface Binding) and canonical aerospace BDD templates across ARINC 661, FSM safety statecharts, and operator console patterns.
+
+Non-destructive: additive refinement of Tier 1 LUI and BDD scenario standards, governance rules unchanged.
+
+
 
