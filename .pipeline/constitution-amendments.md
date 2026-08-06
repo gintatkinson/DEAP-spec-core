@@ -195,3 +195,34 @@ Standardize the official product name to Digital Engineering Agentic Pipeline (D
 
 Non-destructive: product name updated, governance rules unchanged.
 
+---
+
+## AMEND-0004 — Clarify Logical UI (LUI) platform-independence and canonical avionics patterns
+
+- **Date:** 2026-08-06
+- **Logged:** 2026-08-07
+- **Motivating issue:** Evolved LUI Architecture and Safety-Critical Real-Time UI Framework Blueprint
+- **Approved by:** "PROCEED" — approved implementation plan to evolve LUI architecture to support ARINC 661, FSM symbology, and safety-critical real-time UI framework.
+- **Destructive:** no
+- **Line count:** 161
+- **Resulting SHA-256:** `79141cff13372778f6f3e2243478512a47026584bdd1f86da6942ade07390e1a`
+
+### Change
+
+Section *Standard & Platform Parameter Isolation*, Tier 1 Functional Layer, line 53.
+
+Before:
+
+> 1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI specifications. Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
+
+After:
+
+> 1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI (LUI) specifications. Logical UI is 100% platform-independent and UI-framework-agnostic, supporting 3 canonical architectural patterns: (A) ARINC 661 Cockpit Display Systems (UA Parameter Buffer -> CDS Widget Definition -> Display Kernel Render), (B) Real-Time Safety Statecharts & Symbology (Discrete Event -> Safety Statechart/FSM State -> Symbology/Alarm Render), and (C) Decoupled Operator Consoles & EFBs (Operator Action -> ViewModel/State Holder -> GUI Component Binding). Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
+
+### Rationale
+
+Clarify that Logical UI is 100% platform-independent and supports 3 canonical avionics display patterns (ARINC 661 CDS, Real-Time FSM Symbology, Decoupled Operator Consoles/EFBs).
+
+Non-destructive: additive clarification of Tier 1 LUI scope, governance rules unchanged.
+
+

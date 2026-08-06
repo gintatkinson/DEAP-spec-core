@@ -50,7 +50,7 @@ last_updated: "2026-08-06"
 - Every Use Case MUST link to the User Stories and Features it realizes.
 
 ### Standard & Platform Parameter Isolation
-1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI specifications. Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
+1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI (LUI) specifications. Logical UI is 100% platform-independent and UI-framework-agnostic, supporting 3 canonical architectural patterns: (A) ARINC 661 Cockpit Display Systems (UA Parameter Buffer -> CDS Widget Definition -> Display Kernel Render), (B) Real-Time Safety Statecharts & Symbology (Discrete Event -> Safety Statechart/FSM State -> Symbology/Alarm Render), and (C) Decoupled Operator Consoles & EFBs (Operator Action -> ViewModel/State Holder -> GUI Component Binding). Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
 2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**: Design tokens, dynamic mapping configurations, translation files. Single source of truth for standard-specific definitions and visual attributes.
 3. **Tier 3: Platform Implementation Profiles (Technical Execution)**: `.pipeline/profiles/<platform>.md` and codebase implementations. Govern build mechanics, performance patterns, and dependencies.
 
