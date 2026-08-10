@@ -1,6 +1,6 @@
 ---
 identifier: DEAP-BLUEPRINT-SYSML-003
-title: "SysML v2 Ingestion Engine & Dual-Pipeline Model-Based Software Engineering Solution Blueprint"
+title: "SysML v2 Ingestion Engine & triple-pipeline Model-Based Software Engineering Solution Blueprint"
 status: "APPROVED / PRODUCTION-GRADE"
 created: "2026-08-10"
 target_regulatory_frameworks:
@@ -15,7 +15,7 @@ target_regulatory_frameworks:
 
 ## 1. Executive Summary & Architectural Vision
 
-The **Digital Engineering Agentic Pipeline (DEAP)** SysML v2 Ingestion Engine establishes an automated, production-grade Model-Based Systems Engineering (MBSE) ingestion pipeline. It bridges high-level OMG SysML v2 textual and graphical models with the DEAP dual-pipeline master-worker system.
+The **Digital Engineering Agentic Pipeline (DEAP)** SysML v2 Ingestion Engine establishes an automated, production-grade Model-Based Systems Engineering (MBSE) ingestion pipeline. It bridges high-level OMG SysML v2 textual and graphical models with the DEAP triple-pipeline master-worker system.
 
 ```mermaid
 flowchart TD
@@ -30,8 +30,8 @@ flowchart TD
         Safety_Annotation["Safety Annotation Binding Engine - TriggersHazard, SafetyRealises, Layer"]
     end
 
-    subgraph "Dual-Pipeline Projection & Synthesis"
-        Backlog_Engine["Dual-Pipeline Agile Backlog Projection Engine"]
+    subgraph "triple-pipeline Projection & Synthesis"
+        Backlog_Engine["triple-pipeline Agile Backlog Projection Engine"]
         MATLAB_Adapter["MATLAB / Simulink / Stateflow Tier-1 Adapter"]
         Code_Synthesis["Evolved 3-Layer Code Synthesis Engine"]
     end
@@ -146,9 +146,9 @@ class SemanticGraphDAG:
 
 ---
 
-## 3. Dual-Pipeline Agile Backlog Projection Engine
+## 3. triple-pipeline Agile Backlog Projection Engine
 
-The Dual-Pipeline Agile Backlog Projection Engine deterministically maps the in-memory `SemanticGraphDAG` into GitHub Agile backlog artifacts managed via `reconcile_backlog.py`.
+The triple-pipeline Agile Backlog Projection Engine deterministically maps the in-memory `SemanticGraphDAG` into GitHub Agile backlog artifacts managed via `reconcile_backlog.py`.
 
 ```mermaid
 flowchart TD
@@ -387,7 +387,7 @@ gantt
     Simulink slreq.ReqSet Exporter                   :p2a, after p1b, 7d
     Stateflow .sfx & Bus Generator                   :p2b, after p2a, 7d
     section Phase 3: Backlog Engine
-    Dual-Pipeline Backlog Projector                 :p3a, after p2b, 7d
+    triple-pipeline Backlog Projector                 :p3a, after p2b, 7d
     GitHub Issue Sync Integration                    :p3b, after p3a, 5d
     section Phase 4: Parity Gate
     AST Parity Auditor - tests/test_sysml_v2_traceability.py :p4a, after p3b, 7d

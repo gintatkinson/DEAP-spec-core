@@ -31,7 +31,7 @@ flowchart TD
     subgraph DEAP_Core ["DEAP Automated Safety Core"]
         STPA_Engine["Top-Down STPA Analysis Engine (UCAs & Constraints)"]
         FMECA_Engine["Bottom-Up FMECA Analysis Engine (Hardware & Bus Failures)"]
-        Dual_Pipe["DEAP Dual-Pipeline Master-Worker Engine"]
+        Dual_Pipe["DEAP triple-pipeline Master-Worker Engine"]
     end
 
     subgraph Verification ["Mechanical Safety Gates"]
@@ -48,7 +48,7 @@ The DEAP Flight Systems Safety Integration Architecture targets four foundationa
 
 1. **Mechanical Safety Enforcement:** Eliminate manual verification gaps by executing AST linters, static analysis checkers, and coverage validators that enforce zero dynamic memory allocation, MISRA-C / SPARK Ada subsets, and 100% MC/DC coverage.
 2. **Integrated Dual Risk Framework:** Unify top-down STPA (identifying control flaws, unsafe control actions, and complex software component interactions) with bottom-up FMECA (identifying hardware register faults, bus babbling, and single-point component failures) powered by MATLAB / Simulink / Stateflow / Embedded Coder control law models.
-3. **Automated Master-Worker Governance:** Employ context-isolated subagents (Workers A–D) to convert raw safety models into Agile Epics, Features, BDD User Stories, and formal Use Cases without token context bloat or memory leakage.
+3. **Automated Master-Worker Governance:** Employ context-isolated subagents (Workers 0A-0C (Pipeline 0) & Workers A-D (Pipeline 1)) to convert raw safety models into Agile Epics, Features, BDD User Stories, and formal Use Cases without token context bloat or memory leakage.
 4. **Bi-Directional Rigorous Traceability:** Guarantee total auditability from System Safety Hazards down to source code symbols, hardware register offsets, and automated test execution logs.
 
 ---
@@ -606,9 +606,9 @@ Physical validation of FMECA failure modes is executed via **dSPACE SCALEXIO Har
 
 ---
 
-## Section 5: DEAP Dual-Pipeline Integration Architecture
+## Section 5: DEAP triple-pipeline Integration Architecture
 
-DEAP integrates STPA and FMECA safety models into its master-worker dual pipeline, guaranteeing that safety rules dictate specification extraction and code implementation. MATLAB / Simulink / Stateflow / Embedded Coder serves as the primary Model-Based Design (MBD) control law synthesis and DO-178C code generation engine driving Pipeline 1 specification models and Pipeline 2 code targets.
+DEAP integrates STPA and FMECA safety models into its master-worker triple-pipeline, guaranteeing that safety rules dictate specification extraction and code implementation. MATLAB / Simulink / Stateflow / Embedded Coder serves as the primary Model-Based Design (MBD) control law synthesis and DO-178C code generation engine driving Pipeline 1 specification models and Pipeline 2 code targets.
 
 ```mermaid
 flowchart TD

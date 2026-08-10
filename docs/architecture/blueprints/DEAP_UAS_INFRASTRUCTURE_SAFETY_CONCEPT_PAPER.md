@@ -13,7 +13,7 @@
 
 Low-altitude Unmanned Aircraft System (UAS) operations—specifically Beyond Visual Line of Sight (BVLOS) flights conducting critical infrastructure inspection of cellular towers, high-voltage power grids, and cross-country energy pipelines—operate in complex, hazardous airspace environments. Unmanned aerial vehicles must dynamically navigate non-cooperative ground obstacles, severe electromagnetic field (EMF) flux surrounding transmission lines, radio frequency (RF) front-end saturation near cellular base stations, thin utility wire hazards, and loss of Command and Control (C2) datalinks.
 
-The **Digital Engineering Agentic Pipeline (DEAP)** Low-Altitude UAS Infrastructure Safety Architecture establishes a rigorous, automated safety-engineering blueprint for autonomous UAS platforms. By integrating top-down **System-Theoretic Process Analysis (STPA)** with bottom-up **Failure Mode, Effects, and Criticality Analysis (FMECA)** into the DEAP dual-pipeline master-agent framework, this architecture guarantees that low-altitude flight safety constraints are mechanically derived from international standards (JARUS SORA v2.5, ASTM, RTCA, 3GPP), verified by static AST linters, and traceably linked down to flight controller and safety statechart source code (MATLAB / Simulink / Stateflow, PX4, ArduPilot, ROS2) and test execution logs.
+The **Digital Engineering Agentic Pipeline (DEAP)** Low-Altitude UAS Infrastructure Safety Architecture establishes a rigorous, automated safety-engineering blueprint for autonomous UAS platforms. By integrating top-down **System-Theoretic Process Analysis (STPA)** with bottom-up **Failure Mode, Effects, and Criticality Analysis (FMECA)** into the DEAP triple-pipeline master-agent framework, this architecture guarantees that low-altitude flight safety constraints are mechanically derived from international standards (JARUS SORA v2.5, ASTM, RTCA, 3GPP), verified by static AST linters, and traceably linked down to flight controller and safety statechart source code (MATLAB / Simulink / Stateflow, PX4, ArduPilot, ROS2) and test execution logs.
 
 Traditional UAS safety compliance relies on static manual risk assessments that create substantial risk gaps: safety control measures drift from autopilot implementations, complex environmental hazards (such as EMF magnetometer saturation or 5G handover latencies) are neglected in software validation, and Run Time Assurance (RTA) geofencing boundaries lack continuous mechanical AST verification. DEAP eliminates these systemic vulnerabilities by embedding machine-readable safety schemas, subagent execution rules, and automated verification gates into every stage of the specification and implementation lifecycle.
 
@@ -31,7 +31,7 @@ flowchart TD
     subgraph DEAP_Core ["DEAP Automated UAS Safety Core"]
         STPA_Engine["Top-Down STPA Engine (C2 Loss, EMF, Wire Strike, Geofence)"]
         FMECA_Engine["Bottom-Up FMECA Engine (RF Saturation, BMS Cell Sag, Optical Glare)"]
-        Dual_Pipe["DEAP Master-Agent Dual-Pipeline (Agents A-D)"]
+        Triple_Pipe["DEAP Master-Worker Triple-Pipeline (Workers 0A-0C & Workers A-D)"]
     end
 
     subgraph Verification ["Mechanical Safety & Linters Gate"]
@@ -49,7 +49,7 @@ The DEAP UAS Infrastructure Safety Architecture enforces four core architectural
 
 1. **Deterministic Regulatory Alignment:** Mechanically map operations in specific risk categories to JARUS SORA v2.5 SAIL I through SAIL VI requirements, establishing precise Ground Risk Class (GRC 1–7) and Air Risk Class (ARC-a to ARC-d) mitigation strategies.
 2. **Integrated Environmental & Cyber-Physical Risk Engine:** Synthesize top-down STPA control flaws (evaluating unsafe interaction between GCS, 5G C2 links, flight controllers, DAA sensor suites, and actuators) with bottom-up FMECA failure modes (addressing EMF flux saturation, 5G tower RF front-end overload, thin wire optical non-detection, and battery cell voltage drops).
-3. **Automated Master-Agent Governance:** Leverage context-isolated subagents (Agents A–D) to extract SORA requirements, construct Given-When-Then BDD User Stories, formalize Use Case Realization Matrices, and execute continuous gap audits.
+3. **Automated Master-Agent Governance:** Leverage context-isolated subagents (Workers 0A-0C (Pipeline 0) & Workers A-D (Pipeline 1)) to extract SORA requirements, construct Given-When-Then BDD User Stories, formalize Use Case Realization Matrices, and execute continuous gap audits.
 4. **Bi-Directional Safety Traceability:** Maintain 100% auditability across the system lifecycle through standardized `/// Safety-Realises:` tags connecting SORA GRC/ARC metrics to MATLAB / Simulink / Stateflow, PX4, ArduPilot, and ROS2 code symbols and test suite outputs.
 
 ---
@@ -416,9 +416,9 @@ Physical validation of FMECA failure modes is executed via **dSPACE SCALEXIO Har
 
 ---
 
-## Section 5: DEAP Dual-Pipeline Integration Architecture
+## Section 5: DEAP triple-pipeline Integration Architecture
 
-DEAP embeds SORA regulatory parameters, STPA control models, and FMECA risk matrices directly into its master-agent dual pipeline, leveraging MATLAB / Simulink / Stateflow alongside ROS2 and PX4 as the primary flight control and safety statechart engine.
+DEAP embeds SORA regulatory parameters, STPA control models, and FMECA risk matrices directly into its master-agent triple-pipeline, leveraging MATLAB / Simulink / Stateflow alongside ROS2 and PX4 as the primary flight control and safety statechart engine.
 
 ```mermaid
 flowchart TD
