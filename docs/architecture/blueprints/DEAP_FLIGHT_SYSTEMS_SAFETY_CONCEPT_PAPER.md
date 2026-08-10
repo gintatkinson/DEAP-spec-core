@@ -257,7 +257,7 @@ The 16-row STPA matrix below systematically synthesizes all 4 UCA categories ($\
 | **UCA-06** | Autopilot Mode Logic | Autopilot Pitch Down Trim Command | **2. Provided Unsafely** | Radio altimeter sensor fault / lock loss at low altitude $h < 400\text{ ft AGL}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_1:** Controlled Flight Into Terrain (CFIT) | Catastrophic | **DAL A** |
 | **UCA-07** | Autopilot Mode Logic | VNAV Descent Mode Transition | **3. Provided Too Early** | Executed $15\text{ s}$ prior to ATC altitude clearance boundary, $h = 24,000\text{ ft MSL}$, $S_{\text{phase}} = \text{CRUISE}$ | **H_3:** Mid-Air Collision (MAC) | Hazardous | **DAL B** |
 | **UCA-08** | Autopilot Mode Logic | Nose-Up Pitch Hold Command | **4. Applied Too Long** | Pitch command maintained for $t > 5.0\text{ s}$ after Go-Around mode disengagement, $V_{\text{CAS}} < V_{\text{min}}$ | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
-| **UCA-09** | Auto-Throttle System | Engine Thrust Increase Command | **1. Not Provided** | Airspeed decay $V_{\mathrm{CAS}} < V_{\mathrm{stall-warning}}$ ($V_{\text{CAS}} < 1.1 V_{\text{stall}}$), $h > 500\text{ ft AGL}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+| **UCA-09** | Auto-Throttle System | Engine Thrust Increase Command | **1. Not Provided** | Airspeed decay $V_{\text{CAS}} < V_{\text{stall-warning}}$ ($V_{\text{CAS}} < 1.1 V_{\text{stall}}$), $h > 500\text{ ft AGL}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
 | **UCA-10** | Auto-Throttle / Reverser | Engine Thrust Reverser Deploy Command | **2. Provided Unsafely** | In-flight execution ($WoW = \text{False}$, $h > 50\text{ ft AGL}$, $V_{\text{CAS}} = 250\text{ kts}$, $S_{\text{phase}} \in \{\text{CLIMB}, \text{CRUISE}\}$) | **H_6:** Uncommanded Thrust Reversal | Catastrophic | **DAL A** |
 | **UCA-11** | Auto-Throttle System | Idle Thrust Retard Command | **3. Provided Too Early** | Issued $5.0\text{ s}$ prior to main landing gear touchdown, $h = 80\text{ ft AGL}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_4:** Runway Excursion / Hard Landing | Major | **DAL C** |
 | **UCA-12** | Auto-Throttle / Reverser | Reverse Thrust Actuator Drive Power | **4. Applied Too Long** | Reverse thrust applied for $t > 3.0\text{ s}$ after ground taxi speed drops below $V_{\text{CAS}} < 10\text{ kts}$, $S_{\text{phase}} = \text{TAXI}$ | **H_4:** Runway / Taxiway Excursion | Major | **DAL C** |
@@ -460,7 +460,7 @@ flowchart LR
 
 ## Section 4: FMECA Bottom-Up Risk Framework
 
-While System-Theoretic Process Analysis (STPA) provides top-down hazard identification focused on unsafe control interactions, Failure Mode, Effects, and Criticality Analysis (FMECA) provides the indispensable bottom-up engineering foundation. FMECA evaluates individual component failure rates, hardware interface degradations, bus register corruptions, and semiconductor soft errors to calculate quantitative criticality indices ($C_r$) and Risk Priority Numbers ($\mathrm{RPN}$). DEAP unifies top-down STPA with bottom-up FMECA into an integrated, closed-loop safety synthesis engine.
+While System-Theoretic Process Analysis (STPA) provides top-down hazard identification focused on unsafe control interactions, Failure Mode, Effects, and Criticality Analysis (FMECA) provides the indispensable bottom-up engineering foundation. FMECA evaluates individual component failure rates, hardware interface degradations, bus register corruptions, and semiconductor soft errors to calculate quantitative criticality indices ($C_r$) and Risk Priority Numbers ($\text{RPN}$). DEAP unifies top-down STPA with bottom-up FMECA into an integrated, closed-loop safety synthesis engine.
 
 ### 4.1 Mathematical & Failure-Rate Foundations of FMECA
 
@@ -498,9 +498,9 @@ where:
 - $t$: Operating mission duration ($t = 1.0$ flight hour baseline).
 
 #### 4.1.4 Risk Priority Number (RPN) Formulation
-To prioritize mechanical mitigation engineering within DEAP build pipelines, each failure mode is evaluated using the quantitative Risk Priority Number ($\mathrm{RPN}$):
+To prioritize mechanical mitigation engineering within DEAP build pipelines, each failure mode is evaluated using the quantitative Risk Priority Number ($\text{RPN}$):
 
-$$\mathrm{RPN} = S \times O \times D$$
+$$\text{RPN} = S \times O \times D$$
 
 where:
 - **Severity ($S$, 1–10):** Measures the maximum end-effect impact on aircraft safety, mapped directly to SAE ARP4761A severity categories.
