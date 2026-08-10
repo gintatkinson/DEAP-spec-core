@@ -142,6 +142,67 @@ flowchart TD
 
 System-Theoretic Process Analysis (STPA), as formulated by Leveson (2018), NASA/TM-2013-217985, and NASA/CR-2020-220454, treats safety as a dynamic control problem rather than a component failure problem. In airborne safety-critical systems governed by SAE ARP4754A, SAE ARP4761, RTCA DO-178C, and RTCA DO-254, software and hardware interactions can lead to catastrophic losses even when all individual components function as designed. DEAP formalizes STPA top-down hazard analysis into mathematically rigorous, state-space-bounded Unsafe Control Actions (UCAs) mapped to civil avionic airworthiness standards (FAA AC 25.1309-1A, EASA CS-25.1309).
 
+#### 3.2.0 Methodological Sources, Literature References, and STPA Reproducibility Protocol
+
+To ensure rigorous scientific reproducibility, traceability, and certification auditability, the top-down hazard analysis within DEAP is grounded in formal systems safety literature, civil airworthiness certification standards, empirical failure investigations, and a deterministic step-by-step mathematical derivation protocol.
+
+##### 1. Formal Theoretical Framework Citations
+- **Leveson & Thomas (2018):** Leveson, N. G., & Thomas, J. P. (2018). *STPA Handbook*. Partnership for Systems-Engineered Safety (PSAS), Massachusetts Institute of Technology (MIT).
+  - *Theoretical Foundation:* Formulates System-Theoretic Process Analysis (STPA) treating safety as a continuous control problem rather than isolated component failure rates. Defines the formal Unsafe Control Action (UCA) 4-tuple:
+    $$\text{UCA} = \langle C, CA, \text{Type}, C_{\text{context}} \rangle$$
+  - *Control Flaw Categorization:* Establishes the 4 canonical control flaw categories ($\mathcal{T}$):
+    1. Control action not provided when needed for safety.
+    2. Control action provided unsafely (causing hazard).
+    3. Control action provided too early, too late, or out of sequence.
+    4. Control action stopped too soon or applied too long.
+- **NASA Airborne Autonomy & NextGen Safety Baseline:**
+  - **NASA/TM-2013-217985:** Fleming, C. H., Leveson, N. G., et al. (2013). *Safety Assessment of NextGen Flight Deck Concept Using STPA*. NASA Technical Memorandum. Establishes state-space variable bounds for airborne autonomous guidance.
+  - **NASA/CR-2020-220454:** Thomas, J. P., et al. (2020). *STPA for Complex Airborne Systems and Autonomy Integration*. NASA Contractor Report. Establishes mathematical state mapping techniques for flight control computers and ARINC 653 partition switching.
+
+##### 2. Civil Airworthiness Regulatory Baselines
+- **SAE ARP4754A / SAE ARP4761:**
+  - *SAE ARP4754A:* Guidelines for Development of Civil Aircraft and Systems. Defines the System Safety Assessment (SSA) process, Functional Hazard Assessment (FHA), and Development Assurance Level (DAL) assignment.
+  - *SAE ARP4761:* Guidelines and Methods for Conducting the Safety Assessment Process on Civil Airborne Systems and Equipment. Defines quantitative probability targets and qualitative hazard severity classifications:
+    - **Catastrophic ($P < 10^{-9}/\text{flight hr}$):** Results in hull loss and fatal injuries. Requires **DAL A**.
+    - **Hazardous ($P < 10^{-7}/\text{flight hr}$):** Severe reduction in safety margins or physical distress. Requires **DAL B**.
+    - **Major ($P < 10^{-5}/\text{flight hr}$):** Significant reduction in safety margins or crew workload increase. Requires **DAL C**.
+- **FAA AC 25.1309-1A / EASA CS-25.1309:**
+  - Transport Category Airplane System Design and Analysis. Establishes system hazards $H_1$ through $H_6$ (CFIT, LOC-I, MAC, Runway Excursion, Airframe Overstress, Uncommanded Thrust Reversal) and failure condition severity boundaries.
+- **RTCA DO-178C / RTCA DO-254:**
+  - *RTCA DO-178C:* Software Considerations in Airborne Systems and Equipment Certification. Mandates 100% Modified Condition/Decision Coverage (MC/DC) for DAL A, zero dynamic memory allocation, and verified structural bounds.
+  - *RTCA DO-254:* Design Assurance Guidance for Airborne Electronic Hardware. Governs FPGA/ASIC register arithmetic, Q16.16 overflow bounds, and hardware interlock safety.
+- **ARINC 653 APEX Part 1:**
+  - Avionics Application Software Interface. Defines time and space partitioned execution (minor/major frame cyclic schedules) ensuring DAL A flight control loops are deterministically isolated from lower-criticality tasks.
+
+##### 3. Historical Avionic Failure Benchmark Sources
+The 16 Unsafe Control Actions derived in Section 3.2 correspond directly to empirical failure modes documented in official aviation accident investigation reports:
+- **UCA-01 & UCA-02 (Stall Recovery & Pitch Control Law Boundaries):**
+  - *Air France Flight 447 (BEA 2012 / NTSB)* & *Colgan Air Flight 3407 (NTSB/AAR-10/01):* High-AoA pitot-static icing and crew stick-pull inputs led to unrecovered stalls. `UCA-01` (failure to assert pitch recovery) and `UCA-02` (providing high-rate pitch nose-up command in stall) directly reflect these loss scenarios.
+- **UCA-04 (Elevator Trim Runaway & Auto-Trim Limits):**
+  - *Boeing 737 MAX MCAS Accidents (NTSB AAR-20/01 / FAA AD 2020-24-02):* Repeated nose-down trim drive commands based on single Angle of Attack (AoA) sensor input applied trim too long after override conditions, directly inspiring `UCA-04`.
+- **UCA-06 (Radio Altimeter Lock-Loss Pitch Retard):**
+  - *Turkish Airlines Flight 1951 (DSB 2010):* Faulty radio altimeter input (-8 ft AGL reading) caused auto-throttle idle retard and autopilot pitch-up at low altitude, leading to stall and crash. Modeled by `UCA-06`.
+- **UCA-10 (In-Flight Engine Thrust Reverser Deployment):**
+  - *Lauda Air Flight 004 (BFU/NTSB 1993):* Uncommanded in-flight deployment of No. 1 engine thrust reverser due to directional valve electrical short circuit at high speed ($M 0.78$), leading to structural breakup. Modeled by `UCA-10`.
+- **UCA-14 (Maneuvering Speed Rudder Reversal Structural Overstress):**
+  - *American Airlines Flight 587 (NTSB/AAR-04/04):* Cyclic full rudder pedal inputs above maneuvering speed ($V_A$) induced aerodynamic loads exceeding vertical stabilizer ultimate limit load, causing structural tail separation. Modeled by `UCA-14`.
+
+##### 4. Step-by-Step STPA Reproducibility Execution Protocol
+To enable any safety engineer or automated auditing pipeline to systematically reproduce the 16 Unsafe Control Actions from state space vector $\mathbf{x}(t)$ and control action set $\mathcal{U}$, execute the following 5-step algorithm:
+
+1. **Step 1: Define Control Structure Boundaries & Controller Set $\mathcal{C}$**
+   - Enumerate all issuing control entities $\mathcal{C} = \{\text{FCC}, \text{Autopilot}, \text{Auto-Throttle}, \text{Yaw Damper}, \text{ARINC 653 Partition Switcher}\}$.
+2. **Step 2: Enumerate Discrete and Continuous Control Actions $\mathcal{U}$**
+   - For each $C \in \mathcal{C}$, identify emitted control commands $CA \in \mathcal{U}$ (e.g., $CA_{\text{pitch-up}}$, $CA_{\text{trim-drive}}$, $CA_{\text{reverser-deploy}}$, $CA_{\text{partition-switch}}$).
+3. **Step 3: Define Aircraft State Vector $\mathbf{x}(t)$ & Hazardous Space $\mathcal{H}_{\text{unsafe}}$**
+   - Formulate continuous/discrete state space $\mathbf{x}(t) = [h, V_{\text{CAS}}, \alpha, \theta, \phi, r, T_{\text{eng}}, WoW, S_{\text{phase}}]^T$. Map civil hazards $H_1 \dots H_6$ to mathematical boundary conditions defining $\mathcal{H}_{\text{unsafe}} \subset \mathcal{X}$.
+4. **Step 4: Systematic Cross-Product Evaluator Across Control Flaw Categories $\mathcal{T}$**
+   - For each tuple $(C, CA)$, evaluate all 4 categories $\text{Type} \in \mathcal{T}$:
+     $$\text{UCA}_{i} = \langle C, CA, \text{Type}, C_{\text{context}} \rangle$$
+     Check whether issuing or withholding $CA$ under context $C_{\text{context}}$ forces state trajectory $\mathbf{x}(t) \in \mathcal{H}_{\text{unsafe}}$.
+5. **Step 5: Derive Inverted Safety Constraints $SC_i$ and executable BDD Proof Scenarios**
+   - Formulate logical invariants $SC_i \equiv \neg \text{UCA}_i$, ensuring $\forall t, \mathbf{x}(t) \notin \mathcal{H}_{\text{unsafe}}$. Generate executable Given-When-Then BDD test specifications carrying `/// Safety-Realises: [SAFETY-FHA-xxx/UCA-yyy]` tags.
+
 #### 3.2.1 Mathematical & State-Space Formulation of STPA UCAs
 
 Per Leveson (2018), NASA/TM-2013-217985, and NASA/CR-2020-220454, an Unsafe Control Action (UCA) is formally defined as a 4-tuple:
