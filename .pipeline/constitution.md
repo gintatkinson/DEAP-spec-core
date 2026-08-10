@@ -1,22 +1,55 @@
 ---
 title: "Project Constitution — Functional Layer"
-project: "Digital Engineering Agentic Pipeline (DEAP)"
+project: "Digital Engineering Agent Platform (DEAP)"
 tier: functional
 created: "2026-06-29"
 last_updated: "2026-08-10"
 ---
 
-# Project Constitution: Digital Engineering Agentic Pipeline (DEAP)
+# Project Constitution: Digital Engineering Agent Platform (DEAP)
 
 > This document governs specification generation and is platform-independent and protocol-agnostic.
 > All agents MUST read this file before beginning any pipeline execution.
 > For platform-specific rules, see `.pipeline/profiles/<platform>.md`.
 
+## Architecture: Three-Tier Platform Isolation
+
+The pipeline enforces a strict three-tier platform isolation architecture to decouple abstract functional specifications from dynamic runtime parameters and platform-specific execution details.
+
+```mermaid
+graph TD
+    subgraph "Tier 1: Functional Layer (Abstract Specification)"
+        T1_Specs["Epics, Features, User Stories, Use Cases"]
+        T1_LUI["Logical User & Machine Interface (LUMI) & 3-Layer Semantic Chain"]
+    end
+
+    subgraph "Tier 2: Runtime Configuration (Dynamic Context)"
+        T2_Tokens["Design Tokens & Theme Mappings"]
+        T2_Configs["Dynamic Translation Files & Rules"]
+    end
+
+    subgraph "Tier 3: Platform Implementation Profiles (Technical Execution)"
+        T3_Profiles[".pipeline/profiles/[platform].md"]
+        T3_Code["Platform Codebases (Flutter, React, etc.)"]
+    end
+
+    T1_Specs --> T2_Tokens
+    T1_LUI --> T2_Configs
+    T2_Tokens --> T3_Profiles
+    T2_Configs --> T3_Code
+```
+
+### Tier Boundary Guidelines
+
+1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical User & Machine Interface (LUMI) specifications. LUMI is 100% platform-independent and framework-agnostic, covering three primary interface categories: Visual GUI (`gui`), Machine-to-Machine API (`mcp`/`api`), and Hardware Bus (`hardware`). LUMI supports the Evolved 3-Layer Semantic Chain (Domain State & Signal Model -> Logic & Safety State Management -> Display & Actuator Interface Binding) across canonical architectural patterns (ARINC 661 Cockpit Display Systems, Real-Time Safety Statecharts & Flight Control, Decoupled Operator Consoles & EFBs, Automated M2M Agentic Tooling, and Hardware Bus Register Mapping). Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
+2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**: Design tokens, dynamic mapping configurations, translation files. Single source of truth for standard-specific definitions and visual attributes.
+3. **Tier 3: Platform Implementation Profiles (Technical Execution)**: `.pipeline/profiles/<platform>.md` and codebase implementations. Govern build mechanics, performance patterns, and dependencies.
+
 ## Domain Rules
 
 ### Specification Sources
 - Primary sources are normative technical specifications and standards documents.
-- Structural schemas, MATLAB / Simulink / Stateflow MBD models, and interface definitions are the authoritative machine-readable models.
+- Structural schemas and interface definitions are the authoritative machine-readable models.
 - When the normative text and the schema conflict, the schema is authoritative for structural completeness; the normative text is authoritative for behavioral semantics.
 
 ### Schema Compliance
@@ -30,8 +63,8 @@ last_updated: "2026-08-10"
 - Circular dependencies must be flagged and escalated — do not silently drop them.
 
 ### Model Metamodel & Profile Mapping Standard
-- Namespace & Boundary Constructs: Top-level schema modules, packages, namespaces, or tag groups map to a logical Component or Package.
-- Structural Entity & Type Definitions: Message schemas, container types, lists, structural groupings, and objects map to a logical Class.
+- Module Declarations & Container Nodes: YANG modules, OpenAPI schemas, or Protobuf packages map to a logical Component.
+- Complex Data Structures & Interfaces: RPC input/output payloads, YANG containers/lists, or OpenAPI objects map to a logical Class defined within the parent Component.
 - Data Properties & Leaf Nodes: Individual fields, properties, elements, attributes, or variables map to a logical Property (or owned attribute of a class) with appropriate visibility, type, and multiplicity.
 - Interfaces & Operations: Services, RPC methods, actions, or operational paths map to a logical Operation defined on the target classifier.
 - Rules & Validation Logic: Any syntax constraints, range checks, pattern validations, conditional dependencies, or length constraints map to a logical Constraint.
@@ -44,19 +77,17 @@ last_updated: "2026-08-10"
 - Auto-verification Failure: Any diagram or spec that references undefined operations, classes, or signals will violate the quality gates and halt the pipeline.
 
 ### Traceability
-- Every Epic MUST reference the specification section(s) it covers.
-- Every Feature MUST include a "Source References" section with verbatim specification clause numbers and schema paths.
-- Every User Story MUST link to the Features it validates.
-- Every Use Case MUST link to the User Stories and Features it realizes.
+- Every Epic MUST reference the specification section(s) it covers. Enforced by parity_auditor/validators/uml.py via required sections configuration.
+- Every Feature MUST include a 'Source References' section with verbatim specification clause numbers and schema paths. Every Epic, User Story, and Use Case MUST also carry a 'Source References' section (or Realization / Target Features Matrix linking to upstream sources). Enforced by parity_auditor/validators/uml.py via required_sections configuration in codebase_rules.json.
+- Every User Story MUST link to the Features it validates. Enforced by parity_auditor/validators/uml.py via Required Features Matrix validation.
+- Every Use Case MUST link to the User Stories and Features it realizes. Enforced by parity_auditor/validators/uml.py via Realization Matrix validation.
 
 ### Standard & Platform Parameter Isolation
-1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI (LUI) specifications. Logical UI is 100% platform-independent and UI-framework-agnostic, supporting the Evolved 3-Layer Semantic Chain (Domain State & Signal Model -> Logic & Safety State Management -> Display & Actuator Interface Binding) across 3 canonical aerospace architectural patterns: (A) ARINC 661 Cockpit Display Systems (UA Parameter Buffer -> CDS Widget Definition -> Display Kernel Render), (B) Real-Time Safety Statecharts & Flight Control (Discrete Event -> Safety Statechart/FSM State -> Symbology/Alarm Render), and (C) Decoupled Operator Consoles & EFBs (Operator Action -> ViewModel/State Holder -> GUI Component Binding). Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
-2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**: Design tokens, dynamic mapping configurations, translation files. Single source of truth for standard-specific definitions and visual attributes.
-3. **Tier 3: Platform Implementation Profiles (Technical Execution)**: `.pipeline/profiles/<platform>.md` and codebase implementations. Govern build mechanics, performance patterns, and dependencies.
+- See top-level section [Architecture: Three-Tier Platform Isolation](#architecture-three-tier-platform-isolation) for tier isolation rules and boundary guidelines.
 
 ### Unique Backlog Identifiers
 - All local specification files MUST include a permanent unique identifier (`issue_id: <int>`) in their YAML frontmatter, mapped directly to their remote issue number.
-- Matching by title normalization is prohibited as a primary selector.
+- Matching by title normalization is the primary selector used by the backlog reconciliation tool. To prevent collisions, all specification files of the same spec type MUST have unique normalised titles, as enforced by parity_auditor/validators/spec_title_uniqueness_validator.py and rules/tracker-source-of-truth.md.
 
 ### 1.9 Zero-Mocking Live Persistence Mandate
 - All client-side application targets (e.g., React, Flutter) MUST connect to a live, persistent database, emulator, or local register map at runtime.
@@ -67,14 +98,16 @@ last_updated: "2026-08-10"
 
 ## Specification Standards
 
+### Granularity Bounds
+- An Epic SHOULD contain 3-15 Features. Epics exceeding 15 Features MUST be split by the schema-specification-engineering worker during Step 1 decomposition; Epics with fewer than 3 Features MUST be reviewed for consolidation. Enforced by schema-specification-engineering decomposition heuristics.
+- A Feature SHOULD carry 3-10 acceptance criteria. Features exceeding 10 acceptance criteria MUST be split into targeted sub-features; Features with fewer than 3 acceptance criteria MUST be expanded to ensure full scenario coverage. Enforced by parity_auditor/validators/cardinality_validator.py and spec worker review gates.
+
 ### Epic Granularity
 - One Epic per major functional domain or protocol module.
-- An Epic should contain 3-15 Features. Fewer than 3 means the Epic is too narrow; more than 15 means it should be split.
 - Epic titles use the format: `[Module/Domain]: [Functional Area]`.
 
 ### Feature Granularity
 - A Feature represents a single, independently testable functional capability.
-- A Feature should have 3-10 acceptance criteria. Fewer means it lacks specificity; more than 10 means it should be split.
 - Features MUST be platform-independent and standard-agnostic.
 - Feature titles use the format: `[Verb] [Object] [Qualifier]`.
 
@@ -94,7 +127,10 @@ last_updated: "2026-08-10"
 - The Realization Matrix maps each Use Case to its constituent User Stories and Features.
 
 ### Labeling Taxonomy
-- Exactly four label types: `epic`, `feature`, `user-story`, `use-case`, or as defined by the issue tracker configuration.
+- Issue tracking labels are defined with `codebase_rules.json` acting as the authoritative label registry, categorized into specification, operational, and state labels:
+  - Specification labels: `epic`, `feature`, `user-story`, `use-case`.
+  - Operational labels: `bug`, `enhancement`, `chore`.
+  - State labels: `status:fixed-resolved`.
 - Labels are bootstrapped via the configured label bootstrap command to ensure idempotency.
 
 ## Agent Behavior
@@ -125,6 +161,27 @@ last_updated: "2026-08-10"
 
 ## Universal Quality Gates
 
+### Quality Gates & Verification Standards
+The pipeline mechanically enforces 15 active quality gates that halt execution on failure. All agents MUST ensure deliverables comply with these gates before declaring completion:
+
+| Quality Gate | Enforcing Validator Path | Documentation Reference |
+|---|---|---|
+| Specification Validation | `validators/spec_validator.py` | `rules/platform-independence.md` |
+| Model Coverage Verification | `scripts/verify_model_coverage.py` | `rules/platform-independence.md` |
+| Cross-Reference Integrity | `validators/link_validator.py` | `rules/document-references.md` |
+| Human Approval | `rules/user-authorization-lock.md` | `.pipeline/constitution.md` |
+| Downstream Conformance | `scripts/verify_downstream_baseline.py` | `rules/downstream-conformance.md` |
+| UML Model Integrity | `validators/uml.py` | `rules/uml-model-integrity.md` |
+| Mermaid Syntax Constraints | `validators/mermaid_syntax_validator.py` | `rules/platform-independence.md` |
+| Behavioral Trigger Coverage | `validators/behavioral.py` | `rules/behavioral-trigger-coverage.md` |
+| Codebase Compliance | `validators/codebase.py` | `rules/codebase-compliance.md` |
+| Document Cross-Reference Integrity | `tests/test_skill_path_references.py` | `rules/document-references.md` |
+| Constitution Amendment Integrity | `tests/test_constitution_integrity.py` | `.pipeline/constitution-amendments.md` |
+| Specification File Integrity | `validators/docs.py` | `rules/platform-independence.md` |
+| Spec Title Uniqueness | `validators/spec_title_uniqueness_validator.py` | `rules/tracker-source-of-truth.md` |
+| Source Reference Integrity | `validators/source_reference_validator.py` | `rules/codebase-compliance.md` |
+| Logical UI Validation | `validators/logical_ui_validator.py` | `rules/platform-independence.md` |
+
 ### Specification Validation Gates
 - Post schema extraction: Every schema node maps to at least one Feature. Coverage = 100%.
 - Post User Stories: Every User Story links to at least one Feature.
@@ -151,6 +208,19 @@ last_updated: "2026-08-10"
 
 ## CMMI Level 3 & Scrum Issue Lifecycle Rules
 
+### CMMI Level 3 Process Area Mapping
+The pipeline explicitly substantiates CMMI Level 3 alignment across key engineering and management process areas:
+
+| Process Area (CMMI Acronym) | Enforcing Mechanisms & Pipeline Artifacts |
+|---|---|
+| Requirements Management (REQM) | `tracker-source-of-truth.md`, `reconcile_backlog.py` |
+| Verification (VER) | `verify_model_coverage.py`, `parity_auditor` validators |
+| Validation (VAL) | Product Owner `Closed` state transition & verification walkthroughs |
+| Configuration Management (CM) | Git-tracked specification files, `constitution-amendments.md` |
+| Technical Solution (TS) | 3-Layer LUI Definition of Done & implementation profiles |
+| Product Integration (PI) | Automated baseline verification `verify_downstream_baseline.py` |
+
+
 ### Separation of Verification and Validation
 - **Verification (Process Quality Gate)**: Conducted by the development subagent and pipeline. The issue is resolved when the code compiles, the linter passes, and all unit/integration tests pass. The issue moves to the `Fixed / Resolved` state.
 - **Validation (Product Owner/Customer Approval Gate)**: Conducted by the Product Owner or Customer. The issue is moved to the `Closed` state ONLY after explicit verification, testing, and acceptance by the Product Owner/Customer in the chat.
@@ -162,3 +232,4 @@ last_updated: "2026-08-10"
 - `Verifying`: Code changes are in peer review (PR) and automated tests are executing.
 - `Fixed / Resolved`: Development work is complete, tests have passed, and the fix is integrated into `main`. The issue remains in this state awaiting customer feedback.
 - `Closed`: The issue is archived. This state is unreachable without explicit Product Owner/Customer validation approval.
+

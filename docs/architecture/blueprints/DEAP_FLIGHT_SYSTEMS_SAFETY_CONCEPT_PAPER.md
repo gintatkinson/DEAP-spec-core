@@ -70,11 +70,11 @@ DEAP aligns system development with the civil and military airborne safety certi
 
 ```mermaid
 flowchart LR
-    DAL_A["DAL A: Catastrophic\n(Loss of Aircraft / Life)"] --> DAL_A_Reqs["- 100% MC/DC Coverage\n- Zero Dynamic Heap Ban\n- SPARK Ada / MISRA-C AST\n- Dual-Bus Redundancy"]
-    DAL_B["DAL B: Hazardous\n(Severe Reduction in Safety Margins)"] --> DAL_B_Reqs["- 100% Decision / Statement Coverage\n- Bounded Loop Execution\n- Hardware Register Checking"]
-    DAL_C["DAL C: Major\n(Significant Safety Margin Reduction)"] --> DAL_C_Reqs["- 100% Statement Coverage\n- Automated Unit & Widget Tests"]
-    DAL_D["DAL D: Minor\n(Slight Reduction in Safety Margins)"] --> DAL_D_Reqs["- Standard Integration Tests\n- Static Lint Pass"]
-    DAL_E["DAL E: No Safety Effect"] --> DAL_E_Reqs["- Standard Build Verification"]
+    DAL_A["DAL A - Catastrophic - Loss of Aircraft and Life"] --> DAL_A_Reqs["100% MC-DC Coverage, Zero Dynamic Heap Ban, SPARK Ada, MISRA-C AST, Dual-Bus Redundancy"]
+    DAL_B["DAL B - Hazardous - Severe Reduction in Safety Margins"] --> DAL_B_Reqs["100% Decision and Statement Coverage, Bounded Loop Execution, Hardware Register Checking"]
+    DAL_C["DAL C - Major - Significant Safety Margin Reduction"] --> DAL_C_Reqs["100% Statement Coverage, Automated Unit and Widget Tests"]
+    DAL_D["DAL D - Minor - Slight Reduction in Safety Margins"] --> DAL_D_Reqs["Standard Integration Tests, Static Lint Pass"]
+    DAL_E["DAL E - No Safety Effect"] --> DAL_E_Reqs["Standard Build Verification"]
 ```
 
 1. **DAL A (Catastrophic):**
@@ -104,28 +104,28 @@ flowchart TD
         Pilot["Pilot / Co-Pilot Control Controls"]
     end
 
-    subgraph FCC_Boundary ["Flight Control Computer (FCC) - ARINC 653 Partitioned"]
-        FCC_Core["FCC Primary Controller\n(Pitch / Roll / Yaw Guidance)"]
+    subgraph FCC_Boundary ["Flight Control Computer FCC - ARINC 653 Partitioned"]
+        FCC_Core["FCC Primary Controller - Pitch Roll Yaw Guidance"]
         AP_Core["Autopilot Guidance Engine"]
-        FCC_Health["ARINC 653 Health Monitor & Fault Isolator"]
+        FCC_Health["ARINC 653 Health Monitor and Fault Isolator"]
     end
 
     subgraph Sensor_Suite ["Avionic Sensor Suite"]
-        IMU["Inertial Measurement Unit (IMU)"]
-        ADC["Air Data Computer (ADC - Altitude/AoA)"]
+        IMU["Inertial Measurement Unit IMU"]
+        ADC["Air Data Computer ADC - Altitude AoA"]
     end
 
     subgraph Actuation_Subsystem ["Actuation Subsystem"]
-        Elevator_ACU["Elevator Actuator Control Unit (ACU)"]
-        Aileron_ACU["Aileron Actuator Control Unit (ACU)"]
-        Rudder_ACU["Rudder Actuator Control Unit (ACU)"]
+        Elevator_ACU["Elevator Actuator Control Unit ACU"]
+        Aileron_ACU["Aileron Actuator Control Unit ACU"]
+        Rudder_ACU["Rudder Actuator Control Unit ACU"]
     end
 
     subgraph Physical_Plant ["Aircraft Dynamics"]
-        Surfaces["Flight Control Surfaces (Elevator, Aileron, Rudder)"]
+        Surfaces["Flight Control Surfaces Elevator Aileron Rudder"]
     end
 
-    Pilot -->|"Control Commands (Stick/Rudder)"| FCC_Core
+    Pilot -->|"Control Commands Stick and Rudder"| FCC_Core
     Sensor_Suite -->|"ARINC 429 Databus Feed"| FCC_Core
     Sensor_Suite -->|"ARINC 429 Databus Feed"| AP_Core
     AP_Core -->|"Autopilot Steering Commands"| FCC_Core
@@ -391,12 +391,12 @@ To prevent temporal and spatial cross-talk between safety-critical guidance loop
 
 ```mermaid
 flowchart LR
-    subgraph ARINC653["ARINC 653 Major Frame Execution Schedule (100 ms Cycle)"]
+    subgraph ARINC653 ["ARINC 653 Major Frame Execution Schedule"]
         direction LR
-        P1["Partition 1 (DAL A)<br/>Flight Control Loop (Pitch/Roll)<br/>0 - 20 ms (20 ms window)"] --> P2["Partition 2 (DAL A)<br/>Autopilot & Navigation Engine<br/>20 - 50 ms (30 ms window)"]
-        P2 --> P3["Partition 3 (DAL B)<br/>Sensor Fusion & ADC Filter<br/>50 - 75 ms (25 ms window)"]
-        P3 --> P4["Partition 4 (DAL D)<br/>Telemetry & Display Buffer<br/>75 - 95 ms (20 ms window)"]
-        P4 --> HM["Health Monitor<br/>HM Memory & Stack Check<br/>95 - 100 ms (5 ms window)"]
+        P1["Partition 1 DAL A Flight Control Loop Pitch and Roll 0 to 20 ms"] --> P2["Partition 2 DAL A Autopilot and Navigation Engine 20 to 50 ms"]
+        P2 --> P3["Partition 3 DAL B Sensor Fusion and ADC Filter 50 to 75 ms"]
+        P3 --> P4["Partition 4 DAL D Telemetry and Display Buffer 75 to 95 ms"]
+        P4 --> HM["Health Monitor HM Memory and Stack Check 95 to 100 ms"]
     end
 ```
 
@@ -508,9 +508,9 @@ The 12-row quantitative FMECA matrix below synthesizes component failure rates (
 | **FMECA-04** | FPGA Configuration SRAM | SEU Radiation Bit Flip | Cosmic heavy ion collision in Block RAM | $8.90 \times 10^{-6}$ | 0.40 | 0.80 | Routing table or gain bit corruption | Sudden pitch channel control loop instability | 9 | 5 | 2 | **90** | Triple Modular Redundancy (TMR) + periodic SRAM scrubbing engine. |
 | **FMECA-05** | IMU MEMS Gyroscope | High-Rate Bias Drift ($\Delta \omega > 2.0^\circ/\text{s}$) | Thermal stress / micro-machined beam fatigue | $3.20 \times 10^{-6}$ | 0.35 | 0.70 | EKF attitude covariance buildup | Aircraft pitch/roll angle divergence & LOC-I | 10 | 4 | 2 | **80** | Multi-IMU innovation residual test + dual GPS/optical flow fallback. |
 | **FMECA-06** | Pitot-Static Barometer | Pressure Transducer Freeze | Ice crystallization in static port | $5.10 \times 10^{-6}$ | 0.30 | 0.60 | Constant altitude output despite descent | Autopilot under-reads altitude, CFIT risk | 10 | 4 | 3 | **120** | Dual heated static probe + synthetic GNSS/radar altitude cross-check. |
-| **FMECA-07** | DAA LiDAR Unit | Point-Cloud Sparsity ($> 85\%$ drop) | Mie scattering in dense fog / rain | $1.20 \times 10^{-5}$ | 0.50 | 0.75 | Obstacle distance estimation drop | Un-detected thin wire / intruder collision | 9 | 5 | 3 | **135** | Multi-spectral 1550nm pulsed LiDAR + FMCW millimeter-wave radar fusion. |
+| **FMECA-07** | DAA LiDAR Unit | Point-Cloud Sparsity (> 85% drop) | Mie scattering in dense fog / rain | $1.20 \times 10^{-5}$ | 0.50 | 0.75 | Obstacle distance estimation drop | Un-detected thin wire / intruder collision | 9 | 5 | 3 | **135** | Multi-spectral 1550nm pulsed LiDAR + FMCW millimeter-wave radar fusion. |
 | **FMECA-08** | Navigation Camera | Sensor Pixel Dazzle / Glare Saturation | Solar glare at low sun angles / UV corona | $8.40 \times 10^{-6}$ | 0.45 | 0.30 | High-contrast image frame saturation | Optical feature tracking loss; hover drift | 5 | 5 | 2 | **50** | Dynamic exposure control + optical/thermal IR dual-camera fusion. |
-| **FMECA-09** | LiPo Battery BMS | Single-Cell Voltage Collapse ($< 3.0\text{V}$) | High-current gust load / electrolyte decay | $2.80 \times 10^{-6}$ | 0.20 | 0.90 | Bus supply voltage sag below 14V | Flight controller brownout & loss of flight | 10 | 3 | 2 | **60** | Active BMS current limiter + automated low-voltage power-shedding AST gate. |
+| **FMECA-09** | LiPo Battery BMS | Single-Cell Voltage Collapse (< 3.0V) | High-current gust load / electrolyte decay | $2.80 \times 10^{-6}$ | 0.20 | 0.90 | Bus supply voltage sag below 14V | Flight controller brownout & loss of flight | 10 | 3 | 2 | **60** | Active BMS current limiter + automated low-voltage power-shedding AST gate. |
 | **FMECA-10** | BMS I2C Fuel Gauge | SMBus Clock Stretch Lockup | High-voltage transmission line EMI noise | $6.30 \times 10^{-6}$ | 0.30 | 0.25 | State-of-Charge (SoC) update freeze | False battery level display; premature crash | 7 | 4 | 2 | **56** | Hardware I2C bus reset timer + redundant CAN-bus BMS interface. |
 | **FMECA-11** | ESC Motor Drive | H-Bridge MOSFET Thermal Breakdown | Die thermal runaway under over-current | $1.80 \times 10^{-6}$ | 0.25 | 0.85 | Phase short circuit to ground/power | Propulsion motor lost; asymmetric thrust | 9 | 3 | 2 | **54** | Dual isolation relays with automatic hardware power cutoff lines. |
 | **FMECA-12** | DroneCAN Bus Controller | Bus Arbitration Loss / Signal Noise | Ground loop potential / ESD discharge | $4.20 \times 10^{-6}$ | 0.40 | 0.40 | Throttle command frame dropping | Actuator response lag; control degradation | 8 | 4 | 2 | **64** | Redundant dual CAN transceivers + automatic hardware bus recovery. |
@@ -523,21 +523,21 @@ DEAP synthesizes industry-leading safety engineering platforms, formal verificat
 
 ```mermaid
 flowchart TD
-    subgraph Solution_Providers ["Industry Thought Leadership & Tooling Stack"]
-        Medini["Ansys Medini Analyze\n(Model-Based ARP4761A & STPA Synthesis)"]
-        WindRiver["Wind River VxWorks 653 / LynxOS-178\n(ARINC 653 Time/Space Partitioning)"]
-        AdaCore["AdaCore SPARK Ada 2012\n(Formal AST Proofs: Zero Overflow/Bounds)"]
-        dSPACE["dSPACE SCALEXIO HIL\n(Automated Fault Injection Testing)"]
+    subgraph Solution_Providers ["Industry Thought Leadership and Tooling Stack"]
+        Medini["Ansys Medini Analyze - Model-Based ARP4761A and STPA Synthesis"]
+        WindRiver["Wind River VxWorks 653 and LynxOS-178 - ARINC 653 Time and Space Partitioning"]
+        AdaCore["AdaCore SPARK Ada 2012 - Formal AST Proofs Zero Overflow and Bounds"]
+        dSPACE["dSPACE SCALEXIO HIL - Automated Fault Injection Testing"]
     end
 
     subgraph DEAP_Pipeline ["DEAP Continuous Safety Integration Core"]
         DEAP_Orchestrator["DEAP Master Safety Orchestrator"]
-        AST_Checker["DEAP AST & Verification Linters"]
+        AST_Checker["DEAP AST and Verification Linters"]
     end
 
-    Medini -->|"SysML Safety Models & FMECA Matrices"| DEAP_Orchestrator
+    Medini -->|"SysML Safety Models and FMECA Matrices"| DEAP_Orchestrator
     WindRiver -->|"ARINC 653 XML Schedule Config"| DEAP_Orchestrator
-    AdaCore -->|"SPARK Proof Logs & AST Annotations"| AST_Checker
+    AdaCore -->|"SPARK Proof Logs and AST Annotations"| AST_Checker
     dSPACE -->|"HIL Real-Time Fault Injection Logs"| AST_Checker
 ```
 
@@ -565,17 +565,17 @@ DEAP integrates STPA and FMECA safety models into its master-worker dual pipelin
 ```mermaid
 flowchart TD
     subgraph Pipe1 ["Pipeline 1: Safety Specification Engineering"]
-        WorkerA["Worker A: Safety Schema Engineer\n(Ingests STPA UCAs & FMECA Matrices)"]
-        WorkerB["Worker B: BDD User Story Engineer\n(Generates Safety Scenarios & GWT)"]
-        WorkerC["Worker C: Use Case Engineer\n(Formal Safety Realization Matrices)"]
-        WorkerD["Worker D: Safety Implementation Auditor\n(Verifies Safety Gaps & Audit Trace)"]
+        WorkerA["Worker A: Safety Schema Engineer - Ingests STPA UCAs and FMECA Matrices"]
+        WorkerB["Worker B: BDD User Story Engineer - Generates Safety Scenarios and GWT"]
+        WorkerC["Worker C: Use Case Engineer - Formal Safety Realization Matrices"]
+        WorkerD["Worker D: Safety Implementation Auditor - Verifies Safety Gaps and Audit Trace"]
 
         WorkerA --> WorkerB --> WorkerC --> WorkerD
     end
 
     subgraph Pipe2 ["Pipeline 2: Micro-Task Implementation Pipeline"]
-        SubImpl["Context-Isolated Implementer Subagents\n(Enforces SPARK/C/Dart Safety Rules)"]
-        SafetyLinter["Mechanical Safety Linter Gate\n(MC/DC Coverage & Zero Heap Ban)"]
+        SubImpl["Context-Isolated Implementer Subagents - Enforces SPARK C Dart Safety Rules"]
+        SafetyLinter["Mechanical Safety Linter Gate - MC-DC Coverage and Zero Heap Ban"]
 
         SubImpl --> SafetyLinter
     end
@@ -645,12 +645,12 @@ DEAP removes reliance on manual code review by deploying mechanical verification
 
 ```mermaid
 flowchart LR
-    Code_Input["Source Code Commit (C / SPARK Ada / Dart)"] --> AST_Parser["AST Parser & Static Analyzer"]
+    Code_Input["Source Code Commit C SPARK Ada Dart"] --> AST_Parser["AST Parser and Static Analyzer"]
 
     subgraph Linters ["Mechanical Verification Gates"]
-        L1["Gate 1: Zero Heap Linter\n(Rejects malloc / free / new)"]
-        L2["Gate 2: MC/DC Coverage Gate\n(Asserts 100% MC/DC on DAL A)"]
-        L3["Gate 3: MISRA / SPARK Checker\n(Rejects Unbounded Loops / Recursion)"]
+        L1["Gate 1: Zero Heap Linter - Rejects malloc free new"]
+        L2["Gate 2: MC-DC Coverage Gate - Asserts 100% MC-DC on DAL A"]
+        L3["Gate 3: MISRA SPARK Checker - Rejects Unbounded Loops Recursion"]
     end
 
     AST_Parser --> L1
@@ -659,8 +659,8 @@ flowchart LR
     L1 --> Pass_Fail{"All Gates Pass?"}
     L2 --> Pass_Fail
     L3 --> Pass_Fail
-    Pass_Fail -->|Yes| Build_OK["Build Certified Clean (Exit Code 0)"]
-    Pass_Fail -->|No| Build_Fail["Build Aborted & Escalated (Exit Code 1)"]
+    Pass_Fail -->|Yes| Build_OK["Build Certified Clean Exit Code 0"]
+    Pass_Fail -->|No| Build_Fail["Build Aborted and Escalated Exit Code 1"]
 ```
 
 ### 7.1 Automated Verification Enforcement Rules
@@ -680,11 +680,11 @@ DEAP mandates complete bi-directional traceability from high-level System Hazard
 
 ```mermaid
 flowchart TD
-    FHA["System Hazard (FHA / PSSA)\n[SAFETY-FHA-001]"] <--> STPA["STPA UCA / FMECA Item\n[UCA-1 / FMECA-HW-03]"]
-    STPA <--> Constraint["Safety Constraint\n[SC-STPA-001]"]
-    Constraint <--> BDD["BDD User Story\n[/// Safety-Realises: SAFETY-FHA-001/UCA-1]"]
-    BDD <--> Implementation["Source Code Symbol\n[Pitch_Controller_Clamp()]"]
-    Implementation <--> Test_Log["Verification Test & MC/DC Log\n[test_pitch_clamp_mcdc.py]"]
+    FHA["System Hazard FHA PSSA - SAFETY-FHA-001"] --- STPA["STPA UCA FMECA Item - UCA-1 FMECA-HW-03"]
+    STPA --- Constraint["Safety Constraint - SC-STPA-001"]
+    Constraint --- BDD["BDD User Story - Safety-Realises SAFETY-FHA-001 UCA-1"]
+    BDD --- Implementation["Source Code Symbol - Pitch_Controller_Clamp"]
+    Implementation --- Test_Log["Verification Test and MC-DC Log - test_pitch_clamp_mcdc.py"]
 ```
 
 ### 8.1 Complete Bi-Directional Safety Traceability Table

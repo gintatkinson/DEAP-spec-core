@@ -165,12 +165,12 @@ verbatim, and condition (1) is added alongside it.
 
 ---
 
-## AMEND-0003 — Standardize product name to Digital Engineering Agentic Pipeline (DEAP)
+## AMEND-0003 — Standardize product name to Digital Engineering Agent Platform (DEAP)
 
 - **Date:** 2026-08-06
 - **Logged:** 2026-08-06
 - **Motivating issue:** n/a — product name standardization across repository
-- **Approved by:** "PROCEED" — approved implementation plan to standardize official product name to Digital Engineering Agentic Pipeline (DEAP).
+- **Approved by:** "PROCEED" — approved implementation plan to standardize official product name to Digital Engineering Agent Platform (DEAP).
 - **Destructive:** no
 - **Line count:** 161
 - **Resulting SHA-256:** `952397210c5163672e05bac9b1afcaa1351522e2ad6a3c18c09525cdc6cae896`
@@ -186,12 +186,12 @@ Before:
 
 After:
 
-> project: "Digital Engineering Agentic Pipeline (DEAP)"
-> # Project Constitution: Digital Engineering Agentic Pipeline (DEAP)
+> project: "Digital Engineering Agent Platform (DEAP)"
+> # Project Constitution: Digital Engineering Agent Platform (DEAP)
 
 ### Rationale
 
-Standardize the official product name to Digital Engineering Agentic Pipeline (DEAP) across the repository in accordance with the approved implementation plan.
+Standardize the official product name to Digital Engineering Agent Platform (DEAP) across the repository in accordance with the approved implementation plan.
 
 Non-destructive: product name updated, governance rules unchanged.
 
@@ -260,34 +260,391 @@ Non-destructive: additive refinement of Tier 1 LUI and BDD scenario standards, g
 
 ---
 
-## AMEND-0006 — Declare MATLAB / Simulink / Stateflow MBD models as authoritative input schemas
+## AMEND-0006 — Explicitly name enforcing validator paths for traceability mandates
 
-- **Date:** 2026-08-10
-- **Logged:** 2026-08-10
-- **Motivating issue:** Micro-Task 1 of MATLAB / Simulink tool elevation plan
-- **Approved by:** "PROCEED" — approved implementation plan for MATLAB / Simulink tool elevation.
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #378
+- **Approved by:** "PROCEED" — approved implementation plan to explicitly name enforcing validator paths for all four traceability rules in constitution.md.
 - **Destructive:** no
 - **Line count:** 164
-- **Resulting SHA-256:** `3337c249d235906217e823db2449093657e134436959e525e92535aa6611894c`
+- **Resulting SHA-256:** `8a83667fd5594b03b5a3b9ad5f1357b389f89681b5e0c6e46306e7159d348b57`
 
 ### Change
 
-Section *Specification Sources*, line 19.
+Section *Traceability*, lines 47-50.
 
 Before:
 
-> - Structural schemas and interface definitions are the authoritative machine-readable models.
+> - Every Epic MUST reference the specification section(s) it covers.
+> - Every Feature MUST include a "Source References" section with verbatim specification clause numbers and schema paths.
+> - Every User Story MUST link to the Features it validates.
+> - Every Use Case MUST link to the User Stories and Features it realizes.
 
 After:
 
-> - Structural schemas, MATLAB / Simulink / Stateflow MBD models, and interface definitions are the authoritative machine-readable models.
+> - Every Epic MUST reference the specification section(s) it covers. Enforced by parity_auditor/validators/uml.py via required sections configuration.
+> - Every Feature MUST include a "Source References" section with verbatim specification clause numbers and schema paths. Enforced by parity_auditor/validators/uml.py and source_reference_validator.py.
+> - Every User Story MUST link to the Features it validates. Enforced by parity_auditor/validators/uml.py via Required Features Matrix validation.
+> - Every Use Case MUST link to the User Stories and Features it realizes. Enforced by parity_auditor/validators/uml.py via Realization Matrix validation.
 
 ### Rationale
 
-Add MATLAB / Simulink / Stateflow MBD models as authoritative input schemas in accordance with the approved MATLAB / Simulink tool elevation plan.
+Update each of the four traceability mandates in the Tier 1 constitution to explicitly name its enforcing validator paths (`parity_auditor/validators/uml.py` and `source_reference_validator.py`), closing document-enforcement traceability gaps as required by Issue #378.
 
-Non-destructive: additive clarification of Specification Sources, governance rules unchanged.
+Non-destructive: additive clarification of enforcing validator paths, governance rules unchanged.
 
+---
 
+## AMEND-0007 — Title normalization primary selector requirement for backlog reconciliation
+
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #377
+- **Approved by:** "PROCEED" — approved implementation plan to replace title normalization prohibition with reconciliation primary selector requirement in constitution.md.
+- **Destructive:** no
+- **Line count:** 164
+- **Resulting SHA-256:** `d763c600eda7ef7fa2447bcb732ec3e148c803d94bbebddf1824134f8dd2d016`
+
+### Change
+
+Section *Unique Backlog Identifiers*, line 59.
+
+Before:
+
+> - Matching by title normalization is prohibited as a primary selector.
+
+After:
+
+> - Matching by title normalization is the primary selector used by the backlog reconciliation tool. To prevent collisions, all specification files of the same spec type MUST have unique normalised titles, as enforced by parity_auditor/validators/spec_title_uniqueness_validator.py and rules/tracker-source-of-truth.md.
+
+### Rationale
+
+Update `.pipeline/constitution.md` under `### Unique Backlog Identifiers` to reflect that matching by title normalization is the primary selector used by the backlog reconciliation tool (`reconcile_backlog.py`), resolving governance document contradiction as required by Issue #377.
+
+Non-destructive: title normalization rule updated to match enforced reconciliation primary selector, governance rules aligned.
+
+---
+
+## AMEND-0008 — Promote Three-Tier Platform Isolation architecture to top-level section
+
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #384
+- **Approved by:** "PROCEED" — approved implementation plan to promote three-tier platform isolation architecture to top-level section in constitution.md.
+- **Destructive:** no
+- **Line count:** 195
+- **Resulting SHA-256:** `f0d3ab82d4658f5798e3e228a3b5ec324f54be94dfb66762a1a0733ee85075f1`
+
+### Change
+
+Promote Three-Tier Platform Isolation architecture from `### Standard & Platform Parameter Isolation` under `## Domain Rules` to a top-level section (`## Architecture: Three-Tier Platform Isolation`) under Functional Layer Governance. Add Mermaid graph TD diagram with Tier 1, Tier 2, Tier 3 subgraphs and relationships, and explicit tier boundary guidelines.
+
+Before:
+
+> ### Standard & Platform Parameter Isolation
+> 1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI (LUI) specifications...
+> 2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**: Design tokens...
+> 3. **Tier 3: Platform Implementation Profiles (Technical Execution)**: `.pipeline/profiles/<platform>.md`...
+
+After:
+
+> ## Architecture: Three-Tier Platform Isolation
+>
+> The pipeline enforces a strict three-tier platform isolation architecture to decouple abstract functional specifications from dynamic runtime parameters and platform-specific execution details.
+> [Mermaid graph TD diagram]
+> ### Tier Boundary Guidelines
+> 1. **Tier 1: Functional Layer (Abstract Specification)**...
+> 2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**...
+> 3. **Tier 3: Platform Implementation Profiles (Technical Execution)**...
+
+### Rationale
+
+Promote the three-tier platform isolation architecture to a top-level section with Mermaid diagram visualization to elevate foundational architectural isolation principles, resolving audit finding #384.
+
+Non-destructive: Three-tier architecture principles promoted and expanded, line count increased from 164 to 195 lines, governance rules preserved.
+
+---
+
+## AMEND-0009 — Mandate Source References across all four specification types
+
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #383
+- **Approved by:** "PROCEED" — approved implementation plan to update Source References mandate in constitution.md to explicitly cover Epics, Features, User Stories, and Use Cases.
+- **Destructive:** no
+- **Line count:** 195
+- **Resulting SHA-256:** `89060b0d78264c603570fe54c7f2a36c3d91ea869c868fefaa0fc7989f2afb6d`
+
+### Change
+
+Section *Traceability*, line 81.
+
+Before:
+
+> - Every Feature MUST include a "Source References" section with verbatim specification clause numbers and schema paths. Enforced by parity_auditor/validators/uml.py and source_reference_validator.py.
+
+After:
+
+> - Every Feature MUST include a 'Source References' section with verbatim specification clause numbers and schema paths. Every Epic, User Story, and Use Case MUST also carry a 'Source References' section (or Realization / Target Features Matrix linking to upstream sources). Enforced by parity_auditor/validators/uml.py via required_sections configuration in codebase_rules.json.
+
+### Rationale
+
+Update `.pipeline/constitution.md` under `### Traceability` to explicitly mandate that every Epic, Feature, User Story, and Use Case carry a 'Source References' section (or Realization / Target Features Matrix linking to upstream sources), enforced via `required_sections` configuration in `codebase_rules.json`, resolving audit finding #383.
+
+Non-destructive: additive clarification of Source References requirement across all four specification types, line count preserved at 195 lines, governance rules preserved.
+
+---
+
+## AMEND-0010 — Expand Quality Gates section with comprehensive table of all 15 enforced quality gates
+
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #382
+- **Approved by:** "PROCEED" — approved implementation plan to expand Quality Gates section in constitution.md with comprehensive table of 15 active enforced quality gates.
+- **Destructive:** no
+- **Line count:** 216
+- **Resulting SHA-256:** `b01ef7d5da9ebcfdc6d0244f94d2a78ff140e3161b8157d26dc233c9490ba52c`
+
+### Change
+
+Section *Universal Quality Gates*, line 157.
+
+Before:
+
+> ## Universal Quality Gates
+>
+> ### Specification Validation Gates
+> - Post schema extraction: Every schema node maps to at least one Feature. Coverage = 100%.
+
+After:
+
+> ## Universal Quality Gates
+>
+> ### Quality Gates & Verification Standards
+> The pipeline mechanically enforces 15 active quality gates that halt execution on failure. All agents MUST ensure deliverables comply with these gates before declaring completion:
+>
+> | Quality Gate | Enforcing Validator Path | Documentation Reference |
+> |---|---|---|
+> | Specification Validation | `validators/spec_validator.py` | `rules/platform-independence.md` |
+> | Model Coverage Verification | `scripts/verify_model_coverage.py` | `rules/platform-independence.md` |
+> | Cross-Reference Integrity | `validators/link_validator.py` | `rules/document-references.md` |
+> | Human Approval | `rules/user-authorization-lock.md` | `.pipeline/constitution.md` |
+> | Downstream Conformance | `scripts/verify_downstream_baseline.py` | `rules/downstream-conformance.md` |
+> | UML Model Integrity | `validators/uml.py` | `rules/uml-model-integrity.md` |
+> | Mermaid Syntax Constraints | `validators/mermaid_syntax_validator.py` | `rules/platform-independence.md` |
+> | Behavioral Trigger Coverage | `validators/behavioral.py` | `rules/behavioral-trigger-coverage.md` |
+> | Codebase Compliance | `validators/codebase.py` | `rules/codebase-compliance.md` |
+> | Document Cross-Reference Integrity | `tests/test_skill_path_references.py` | `rules/document-references.md` |
+> | Constitution Amendment Integrity | `tests/test_constitution_integrity.py` | `.pipeline/constitution-amendments.md` |
+> | Specification File Integrity | `validators/docs.py` | `rules/platform-independence.md` |
+> | Spec Title Uniqueness | `validators/spec_title_uniqueness_validator.py` | `rules/tracker-source-of-truth.md` |
+> | Source Reference Integrity | `validators/source_reference_validator.py` | `rules/codebase-compliance.md` |
+> | Logical UI Validation | `validators/logical_ui_validator.py` | `rules/platform-independence.md` |
+>
+> ### Specification Validation Gates
+
+### Rationale
+
+Expand `.pipeline/constitution.md` under `## Universal Quality Gates` with a `### Quality Gates & Verification Standards` table listing all 15 active enforced quality gates, their enforcing validator paths, and documentation references, resolving audit finding #382.
+
+Non-destructive: additive table detailing all active quality gates, line count increased from 195 to 216 lines, governance rules preserved.
+
+---
+
+## AMEND-0011 — Update labeling taxonomy to explicitly include operational and state labels
+
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #381
+- **Approved by:** "PROCEED" — approved user request for Issue #381 Tier 1 constitution amendment.
+- **Destructive:** no
+- **Line count:** 219
+- **Resulting SHA-256:** `8c6a24269a55b1312c53799b68f72c8fc7511d6816ddf459d93ab958237a8dc0`
+
+### Change
+
+Section *Labeling Taxonomy*, lines 127-132.
+
+Before:
+
+> ### Labeling Taxonomy
+> - Exactly four label types: `epic`, `feature`, `user-story`, `use-case`, or as defined by the issue tracker configuration.
+> - Labels are bootstrapped via the configured label bootstrap command to ensure idempotency.
+
+After:
+
+> ### Labeling Taxonomy
+> - Issue tracking labels are defined with `codebase_rules.json` acting as the authoritative label registry, categorized into specification, operational, and state labels:
+>   - Specification labels: `epic`, `feature`, `user-story`, `use-case`.
+>   - Operational labels: `bug`, `enhancement`, `chore`.
+>   - State labels: `status:fixed-resolved`.
+> - Labels are bootstrapped via the configured label bootstrap command to ensure idempotency.
+
+### Rationale
+
+Update `.pipeline/constitution.md` under `### Labeling Taxonomy` to explicitly list specification labels (`epic`, `feature`, `user-story`, `use-case`), operational labels (`bug`, `enhancement`, `chore`), state labels (`status:fixed-resolved`), and reference `codebase_rules.json` as the authoritative label registry, resolving audit finding #381.
+
+Non-destructive: additive taxonomy expansion, line count updated from 216 to 219 lines, governance rules preserved.
+
+---
+
+## AMEND-0012 — Add CMMI Level 3 Process Area Mapping table explicitly substantiating process alignment
+
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #380
+- **Approved by:** "PROCEED" — approved user request for Issue #380 Tier 1 constitution amendment.
+- **Destructive:** no
+- **Line count:** 233
+- **Resulting SHA-256:** `65a9614cc4e0238acbabdb19fa07db52ff9a3b32c6b4e3ec71c71d4b826b239b`
+
+### Change
+
+Section *CMMI Level 3 & Scrum Issue Lifecycle Rules*, added subsection `### CMMI Level 3 Process Area Mapping`.
+
+Before:
+
+> ## CMMI Level 3 & Scrum Issue Lifecycle Rules
+>
+> ### Separation of Verification and Validation
+
+After:
+
+> ## CMMI Level 3 & Scrum Issue Lifecycle Rules
+>
+> ### CMMI Level 3 Process Area Mapping
+> The pipeline explicitly substantiates CMMI Level 3 alignment across key engineering and management process areas:
+>
+> | Process Area (CMMI Acronym) | Enforcing Mechanisms & Pipeline Artifacts |
+> |---|---|
+> | Requirements Management (REQM) | `tracker-source-of-truth.md`, `reconcile_backlog.py` |
+> | Verification (VER) | `verify_model_coverage.py`, `parity_auditor` validators |
+> | Validation (VAL) | Product Owner `Closed` state transition & verification walkthroughs |
+> | Configuration Management (CM) | Git-tracked specification files, `constitution-amendments.md` |
+> | Technical Solution (TS) | 3-Layer LUI Definition of Done & implementation profiles |
+> | Product Integration (PI) | Automated baseline verification `verify_downstream_baseline.py` |
+>
+> ### Separation of Verification and Validation
+
+### Rationale
+
+Add a CMMI Level 3 Process Area Mapping table under Section introducing CMMI Level 3 & Scrum Issue Lifecycle Rules in `.pipeline/constitution.md` explicitly substantiating CMMI Level 3 alignment across key process areas (REQM, VER, VAL, CM, TS, PI), resolving audit finding #380.
+
+Non-destructive: additive table substantiating CMMI Level 3 alignment, line count increased from 219 to 233 lines, governance rules preserved.
+
+---
+
+## AMEND-0013 — Update Granularity Bounds to normative RFC 2119 language with explicit enforcers
+
+- **Date:** 2026-08-08
+- **Logged:** 2026-08-08
+- **Motivating issue:** #379
+- **Approved by:** "PROCEED" — approved user request for Issue #379 Tier 1 constitution amendment.
+- **Destructive:** no
+- **Line count:** 235
+- **Resulting SHA-256:** `14d2e2dfc339f51e924e12908a6e7b1b9de1d58c2e48c523ed45b1aa2e1ee9c8`
+
+### Change
+
+Section *Specification Standards*, added subsection `### Granularity Bounds` and updated Epic and Feature Granularity rules.
+
+Before:
+
+> ### Epic Granularity
+> - One Epic per major functional domain or protocol module.
+> - An Epic should contain 3-15 Features. Fewer than 3 means the Epic is too narrow; more than 15 means it should be split.
+> - Epic titles use the format: `[Module/Domain]: [Functional Area]`.
+>
+> ### Feature Granularity
+> - A Feature represents a single, independently testable functional capability.
+> - A Feature should have 3-10 acceptance criteria. Fewer means it lacks specificity; more than 10 means it should be split.
+> - Features MUST be platform-independent and standard-agnostic.
+> - Feature titles use the format: `[Verb] [Object] [Qualifier]`.
+
+After:
+
+> ### Granularity Bounds
+> - An Epic SHOULD contain 3-15 Features. Epics exceeding 15 Features MUST be split by the schema-specification-engineering worker during Step 1 decomposition; Epics with fewer than 3 Features MUST be reviewed for consolidation. Enforced by schema-specification-engineering decomposition heuristics.
+> - A Feature SHOULD carry 3-10 acceptance criteria. Features exceeding 10 acceptance criteria MUST be split into targeted sub-features; Features with fewer than 3 acceptance criteria MUST be expanded to ensure full scenario coverage. Enforced by parity_auditor/validators/cardinality_validator.py and spec worker review gates.
+>
+> ### Epic Granularity
+> - One Epic per major functional domain or protocol module.
+> - Epic titles use the format: `[Module/Domain]: [Functional Area]`.
+>
+> ### Feature Granularity
+> - A Feature represents a single, independently testable functional capability.
+> - Features MUST be platform-independent and standard-agnostic.
+> - Feature titles use the format: `[Verb] [Object] [Qualifier]`.
+
+### Rationale
+
+Update `.pipeline/constitution.md` under `### Granularity Bounds` to use normative RFC 2119 SHOULD/MUST language with explicit enforcing mechanisms (`schema-specification-engineering` decomposition heuristics and `parity_auditor/validators/cardinality_validator.py`), resolving audit finding #379.
+
+Non-destructive: additive Granularity Bounds subsection with normative language and explicit enforcers, line count increased from 233 to 235 lines, governance rules preserved.
+
+---
+
+## AMEND-0014 — Universal LUMI (Logical User & Machine Interface) Framework Integration
+
+- **Date:** 2026-08-09
+- **Logged:** 2026-08-09
+- **Motivating issue:** Universal LUMI Framework Integration
+- **Approved by:** "PROCEED" — approved user prompt directive to implement Multi-Interface Bindings (LUMI Framework) code, skill, constitution, and validator updates.
+- **Destructive:** no
+- **Line count:** 235
+- **Resulting SHA-256:** `6b4a547ca9afe379bda2e185e455c46e9a1868f367fc8f4b5f1520ce1d7cc7cf`
+
+### Change
+
+Section *Architecture: Three-Tier Platform Isolation*, line 22 and line 44.
+
+Before:
+
+> T1_LUI["Logical UI (LUI) & 3-Layer Semantic Chain"]
+> 1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical UI (LUI) specifications...
+
+After:
+
+> T1_LUI["Logical User & Machine Interface (LUMI) & 3-Layer Semantic Chain"]
+> 1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical User & Machine Interface (LUMI) specifications. LUMI is 100% platform-independent and framework-agnostic, covering three primary interface categories: Visual GUI (`gui`), Machine-to-Machine API (`mcp`/`api`), and Hardware Bus (`hardware`). LUMI supports the Evolved 3-Layer Semantic Chain (Domain State & Signal Model -> Logic & Safety State Management -> Display & Actuator Interface Binding) across canonical architectural patterns (ARINC 661 Cockpit Display Systems, Real-Time Safety Statecharts & Flight Control, Decoupled Operator Consoles & EFBs, Automated M2M Agentic Tooling, and Hardware Bus Register Mapping). Must be platform-independent and standard-agnostic. No framework keywords, specific standards designations, or hardcoded visual values allowed.
+
+### Rationale
+
+Update `.pipeline/constitution.md` under `## Architecture: Three-Tier Platform Isolation` to define the Universal LUMI (Logical User & Machine Interface) Framework covering Visual GUI (`gui`), Machine-to-Machine API (`mcp`/`api`), and Hardware Bus (`hardware`) categories.
+
+Non-destructive: additive definition of LUMI framework across Visual GUI, M2M API, and Hardware Bus modalities, line count preserved at 236 lines, governance rules preserved.
+
+---
+
+## AMEND-0015 — Standardize product name to Digital Engineering Agent Platform (DEAP)
+
+- **Date:** 2026-08-10
+- **Logged:** 2026-08-10
+- **Motivating issue:** Product Name Standardization
+- **Approved by:** "PROCEED" — approved user prompt directive to standardize official product name to Digital Engineering Agent Platform (DEAP).
+- **Destructive:** no
+- **Line count:** 235
+- **Resulting SHA-256:** `77b040805aa4ada8c71a7e5265e90df34f09b1b4bc4b368aeb9fdd72f0b09b5b`
+
+### Change
+
+Frontmatter line 3 and main title line 9.
+
+Before:
+
+> project: "Digital Engineering Agentic Pipeline (DEAP)"
+> # Project Constitution: Digital Engineering Agentic Pipeline (DEAP)
+
+After:
+
+> project: "Digital Engineering Agent Platform (DEAP)"
+> # Project Constitution: Digital Engineering Agent Platform (DEAP)
+
+### Rationale
+
+Standardize official product name to Digital Engineering Agent Platform (DEAP) across `.pipeline/constitution.md` and repository artifacts per user instruction and debug-protocol skill execution.
+
+Non-destructive: product name updated to Digital Engineering Agent Platform (DEAP), line count preserved at 236 lines, governance rules preserved.
 
 

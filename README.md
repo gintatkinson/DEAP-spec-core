@@ -4,6 +4,10 @@
 
 `DEAP-spec-core` contains the master safety architecture blueprints, SysML v2 models, YANG protocol schemas, and specification engineering skills for the Distributed Ecosystem Architecture Platform (DEAP).
 
+## Primary Commercial Toolchain Integration
+
+DEAP explicitly declares **MATLAB / Simulink / Stateflow / Embedded Coder** as the Primary Tier-1 Commercial Toolchain Integration (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada Code Generation).
+
 ## Repository Overview
 
 - **Safety & Domain Architecture Blueprints**: [docs/architecture/](docs/architecture/)

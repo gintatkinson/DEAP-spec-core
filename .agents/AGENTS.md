@@ -52,6 +52,7 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
      - Each micro-task's Definition of Done MUST state, for all three layers, either the deliverable in this task or **the micro-task number that closes that layer**.
      - Writing `N/A` against a layer is forbidden. A layer is never inapplicable to a Feature; it is either delivered here or deferred to a named task. `N/A` is how a Feature reaches completion permanently missing two layers with every micro-task individually looking finished.
      - Reading this bullet as "every dispatch must deliver all three layers" contradicts the single-item scope rule above and the 2-5 minute micro-task mandate in `skills/feature-driven-implementation/SKILL.md`, and it is not what the gate checks.
+   - **Primary Commercial Toolchain Integration Context**: All subagent dispatches for control law synthesis, safety statechart modeling, and DO-178C C/SPARK Ada code generation MUST cite **MATLAB / Simulink / Stateflow / Embedded Coder** as the primary commercial toolchain integration context.
    - **Authorization**: Append the keyword `PROCEED` (case-insensitive) to the end of the prompt to authorize the subagent to use modifying tools.
 3. **Wait for Completion**: Do not poll or loop. Let the system wake you up.
 4. **Coordinate Output**: When the subagents complete, perform the validation checks and sync/register them in the tracker.

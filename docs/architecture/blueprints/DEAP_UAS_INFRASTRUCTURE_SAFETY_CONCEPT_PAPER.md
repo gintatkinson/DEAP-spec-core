@@ -422,18 +422,18 @@ DEAP embeds SORA regulatory parameters, STPA control models, and FMECA risk matr
 
 ```mermaid
 flowchart TD
-    subgraph Pipe1 ["Pipeline 1: SORA Safety Specification Engineering"]
-        AgentA["Agent A: SORA Schema Engineer\n(Ingests SORA GRC/ARC, SAIL & STPA/FMECA)"]
-        AgentB["Agent B: BDD User Story Engineer\n(Generates GWT Scenarios & Safety Tags)"]
-        AgentC["Agent C: Use Case Engineer\n(Formal OOA/OOD & Traceability Realization)"]
-        AgentD["Agent D: Safety Implementation Auditor\n(Gap Analysis & Backlog Synchronization)"]
+    subgraph "Pipe1" ["Pipeline 1: SORA Safety Specification Engineering"]
+        AgentA["Agent A: SORA Schema Engineer (Ingests SORA GRC / ARC, SAIL & STPA / FMECA)"]
+        AgentB["Agent B: BDD User Story Engineer (Generates GWT Scenarios & Safety Tags)"]
+        AgentC["Agent C: Use Case Engineer (Formal OOA / OOD & Traceability Realization)"]
+        AgentD["Agent D: Safety Implementation Auditor (Gap Analysis & Backlog Synchronization)"]
 
         AgentA --> AgentB --> AgentC --> AgentD
     end
 
-    subgraph Pipe2 ["Pipeline 2: Micro-Task Implementation Pipeline"]
-        SubImpl["Context-Isolated Subagent Implementers\n(PX4 / ArduPilot / ROS2 Micro-Tasks)"]
-        SafetyGate["Mechanical Safety Linters Gate\n(RTA Geofence, Remote ID, DAA, Zero Heap)"]
+    subgraph "Pipe2" ["Pipeline 2: Micro-Task Implementation Pipeline"]
+        SubImpl["Context-Isolated Subagent Implementers (PX4 / ArduPilot / ROS2 Micro-Tasks)"]
+        SafetyGate["Mechanical Safety Linters Gate (RTA Geofence, Remote ID, DAA, Zero Heap)"]
 
         SubImpl --> SafetyGate
     end
@@ -443,59 +443,58 @@ flowchart TD
 
 ### 5.1 Pipeline 1 Safety Agent Roles
 
-- **Agent A (SORA Schema Specification Engineer):** Ingests raw SORA v2.5 operational profiles and FMECA tables. Outputs `SORASafetyEpic` and `SORASafetyFeature` specs with assigned SAIL levels and GRC/ARC metrics.
-- **Agent B (BDD User Story Engineer):** Translates safety features into Given-When-Then BDD scenarios, attaching mandatory `/// Safety-Realises: [SORA-GRC-xxx/UCA-yyy]` tags.
-- **Agent C (Use Case Engineer):** Builds formal System Use Cases detailing Primary Actors, Preconditions, Main Success Workflows, and Exception Scenarios (e.g., handling 5G front-end saturation).
-- **Agent D (Specification Implementation Auditor):** Executes automated gap analysis against the codebase, verifying that every SORA requirement maps to implemented source symbols via `reconcile_backlog.py`.
+1. **Agent A (SORA Schema Engineer):**
+   - Ingests SORA risk matrices (GRC 1–7, ARC-a to d, SAIL I–VI) alongside STPA control flaw definitions.
+   - Outputs machine-readable `SoraSafetyEpic` and `SoraSafetyFeature` records with explicit severe-harm annotations.
+2. **Agent B (BDD User Story Engineer):**
+   - Formulates Given-When-Then BDD User Stories incorporating environmental constraints (EMF flux thresholds, lost-link timers, geofence bounds).
+   - Links scenarios to upstream hazards via `/// Safety-Realises: [SORA-GRC-XXX/UCA-Y]`.
+3. **Agent C (Use Case Engineer):**
+   - Constructs formal UML System Use Cases detailing Actor interactions, Preconditions, Main Success Scenarios, and Exception Workflows (e.g., C2 Lost-Link Auto-RTL transition).
+4. **Agent D (Safety Implementation Auditor):**
+   - Continuously audits codebases for un-implemented safety features, un-tagged safety scenarios, or broken traceability references.
 
 ---
 
-## Section 6: Downstream Agent Consumption Specifications
+## Section 6: Downstream Subagent Execution Rules
 
-To eliminate ambiguity when context-isolated subagents process safety requirements, DEAP defines machine-readable Markdown and JSON schemas alongside strict execution rules.
+To ensure autonomous subagents execute safety tasks without introducing ambiguity, DEAP establishes rigid operational guardrails.
 
-### 6.1 Machine-Readable UAS Safety Requirement Schema (JSON)
+### 6.1 Machine-Readable SORA Safety Requirement Schema (JSON)
 
 ```json
 {
   "$schema": "https://deap.uas-infrastructure.safety/v1/schema.json",
-  "uas_safety_element": {
+  "sora_element": {
     "identifier": "SORA-GRC-001",
-    "sora_sail_level": "SAIL_IV",
-    "grc_arc_metrics": {
-      "intrinsic_grc": 4,
-      "final_grc": 3,
-      "air_risk_class": "ARC-b"
-    },
+    "sail_level": "SAIL_IV",
+    "grc_rating": 4,
+    "arc_rating": "ARC_b",
     "stpa_uca_ref": "UCA-UAS-01",
     "fmeca_ref": "FMECA-UAS-02",
-    "title": "5G C2 Datalink Loss Auto-RTL Intercept",
-    "description": "Flight controller must initiate Return-to-Launch when 5G C2 link loss exceeds 2.0 seconds.",
-    "safety_constraints": [
+    "title": "C2 Datalink Loss Automatic Return-To-Land",
+    "description": "Upon total loss of C2 datalink exceeding 2.0 seconds, flight controller MUST activate non-complex RTA recovery baseline and execute auto-RTL.",
+    "constraints": [
       {
         "id": "SC-UAS-1",
-        "expression": "t_loss > 2.0s => Command_RTL == ASSERTED",
-        "max_latency_ms": 100
+        "expression": "C2LinkState == LOST && DurationSec > 2.0 => FlightMode == RTA_AUTO_RTL",
+        "max_latency_ms": 50
       }
     ],
     "verification_gate": {
-      "rta_geofence_linter": true,
-      "remote_id_verifier": true,
-      "daa_collision_gate": true,
-      "zero_heap_allocation_allowed": false,
-      "target_frameworks": ["MATLAB_SIMULINK_STATEFLOW", "PX4_AUTOPILOT", "ARDUPILOT", "ROS2_HUMBLE"]
+      "ast_linter_required": "ASTM_F3269_17_RTA_GEOFENCE_LINTER",
+      "heap_allocation_allowed": false
     }
   }
 }
 ```
 
-### 6.2 Subagent Execution Rules for UAS Safety Processing
+### 6.2 Subagent Execution Directives
 
-1. **Primary Control & Statechart Engine:** MATLAB / Simulink / Stateflow is explicitly declared alongside ROS2 and PX4 as the primary flight control and safety statechart engine.
-2. **Mandatory Skill Execution:** Downstream subagents MUST invoke `view_file` on `skills/feature-driven-implementation/SKILL.md` as their very first action.
-2. **Single Specification Item Scope:** Subagents are strictly restricted to processing at most 1 SORA feature or user story per invocation context window.
-3. **Prohibition of Soft Failure Swallowing:** Subagents are strictly forbidden from wrapping safety checks in empty `catch` blocks or swallowing sensor error flags.
-4. **Zero Dynamic Heap Enforcement:** All generated safety routines for PX4 / ArduPilot modules must use static array allocation; dynamic allocation calls (`malloc`, `new`) trigger immediate subagent task rejection.
+1. **Primary MBD Engine Integration:** MATLAB / Simulink / Stateflow / Embedded Coder is explicitly declared as the primary Model-Based Design control law synthesis and DO-178C code generation engine for all UAS flight control, safety statechart, and RTA envelope specifications.
+2. **Mandatory Skill First Step:** Subagents MUST execute `view_file` on `skills/feature-driven-implementation/SKILL.md` before processing any file.
+3. **Single Item Micro-Task Scope:** Downstream subagents are restricted to processing at most 1 SORA feature or user story per invocation.
+4. **Forbidden Fallback Masks:** Subagents MUST NOT catch sensor/communications exceptions silently or supply dummy default outputs.
 
 ---
 
@@ -505,7 +504,7 @@ DEAP replaces manual safety reviews with automated, mechanical static linters bu
 
 ```mermaid
 flowchart LR
-    Source_Commit["Source Code Commit\n(C++ / Rust / PX4 / ROS2)"] --> AST_Analyzer["Clang / AST Static Analyzer"]
+    Source_Commit["Source Code Commit (C++ / Rust / PX4 / ROS2)"] --> AST_Analyzer["Clang / AST Static Analyzer"]
 
     subgraph Mechanical_Gates ["Automated Verification Linters"]
         Gate1["ASTM F3269-17 RTA Geofence Linter"]
@@ -541,11 +540,11 @@ DEAP mandates complete end-to-end traceability from high-level SORA risk metrics
 
 ```mermaid
 flowchart TD
-    SORA["SORA v2.5 Hazard & OSO\n[SORA-GRC-001]"] <--> STPA["STPA UCA / FMECA Item\n[UCA-UAS-01 / FMECA-UAS-02]"]
-    STPA <--> Constraint["Safety Constraint\n[SC-UAS-1]"]
-    Constraint <--> BDD["BDD User Story\n[/// Safety-Realises: SORA-GRC-001/UCA-UAS-01]"]
-    BDD <--> Code["Flight Controller Source Symbol\n[px4::GeofenceChecker::evaluate()]"]
-    Code <--> TestLog["Verification Test & AST Log\n[test_geofence_rta.cpp]"]
+    SORA["SORA v2.5 Hazard & OSO - SORA-GRC-001"] --- STPA["STPA UCA / FMECA Item - UCA-UAS-01 / FMECA-UAS-02"]
+    STPA --- Constraint["Safety Constraint - SC-UAS-1"]
+    Constraint --- BDD["BDD User Story - Safety-Realises: SORA-GRC-001/UCA-UAS-01"]
+    BDD --- Code["Flight Controller Source Symbol - px4::GeofenceChecker::evaluate"]
+    Code --- TestLog["Verification Test & AST Log - test_geofence_rta.cpp"]
 ```
 
 ### 8.1 Complete Bi-Directional Safety Traceability Table
