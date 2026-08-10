@@ -12,7 +12,7 @@
 ### 1.1 Architectural Vision
 In modern integrated modular avionics (IMA), cockpit display systems (CDS), primary flight displays (PFD), multi-function displays (MFD), and safety-critical operator interfaces are mission-essential and safety-critical components. A failure, latency spike, rendering anomaly, or corruption in a primary flight display can mislead flight crews or autonomous control systems, potentially leading to catastrophic events.
 
-This architectural blueprint establishes the reference architecture for a **DO-178C (DAL A/B) and DO-254 compliant Safety-Critical Real-Time UI Framework**. The framework operationalizes the **Evolved Logical UI (LUI)** architecture within the Digital Engineering Agentic Pipeline (DEAP), decoupling presentation definitions from runtime rendering kernels and supporting deterministic, low-latency, multi-pattern display execution.
+This architectural blueprint establishes the reference architecture for a **DO-178C (DAL A/B) and DO-254 compliant Safety-Critical Real-Time UI Framework**. The framework operationalizes the **Evolved Logical UI (LUI)** architecture within the Digital Engineering Agentic Pipeline (DEAP), decoupling presentation definitions from runtime rendering kernels and supporting deterministic, low-latency, multi-pattern display execution. **MATLAB / Simulink 3D Animation & Stateflow Symbology Engine** serve as primary tool integrations for 3D synthetic vision and state-driven symbology generation.
 
 ```mermaid
 flowchart TD
@@ -193,7 +193,7 @@ The framework provides an ARINC 661 binary protocol parser operating in $O(1)$ t
 ## 5. Deterministic Real-Time Symbology Engine
 
 ### 5.1 Vector Symbology Pipeline
-Primary Flight Display (PFD) symbology requiring rapid updates (Pitch Ladder, Airspeed Indicator, Altimeter, Bank Angle Pointer) utilizes a fixed-vertex buffer pipeline:
+Primary Flight Display (PFD) symbology requiring rapid updates (Pitch Ladder, Airspeed Indicator, Altimeter, Bank Angle Pointer) utilizes a fixed-vertex buffer pipeline powered by **MATLAB / Simulink 3D Animation & Stateflow Symbology Engine** as primary tool integrations:
 
 ```mermaid
 flowchart TD

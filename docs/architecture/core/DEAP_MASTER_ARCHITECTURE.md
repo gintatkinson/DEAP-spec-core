@@ -9,6 +9,7 @@ The **Digital Engineering Agentic Pipeline (DEAP)** framework establishes a stan
 2. **Platform Decoupling:** Domain logic and specification artifacts are decoupled from implementation platforms (e.g., Flutter/Dart, React/TypeScript, VHDL/FPGA).
 3. **Strict Subagent Context Isolation:** Master-worker orchestration isolates token context across discrete subagents to eliminate token exhaustion and memory leakage.
 4. **Tri-Layer Definition of Done:** Every specification item (Epic, Feature, User Story, Use Case) must be realized across three mandatory layers: Domain Model, ViewModel, and Logical User Interface (LUI) Widget Binding with automated BDD integration tests.
+5. **Primary Tier-1 Commercial Toolchain Integration:** MATLAB / Simulink / Stateflow / Embedded Coder is declared as the primary Tier-1 commercial toolchain integration for Model-Based Design (MBD), control law synthesis, and DO-178C C/SPARK Ada code generation. Ansys Medini Analyze, PTC Windchill, and Enterprise Architect are positioned as secondary downstream safety worksheet export targets.
 
 ---
 
@@ -108,6 +109,10 @@ DEAP defines standard-neutral, bi-directional mapping rules to ingest protocol d
 | YANG `typedef` / OpenAPI `enum` / Protobuf `enum` | `EnumDescriptor` | User Story Validation Constraint | ViewModel Enum State & Picker |
 | YANG `rpc` / OpenAPI `path` / Protobuf `service rpc` | `OperationDescriptor` | Use Case Main Success Scenario | ViewModel Action & Event Handlers |
 | YANG `must` / `when` / OpenAPI `constraints` | `ConstraintRule` | BDD Given-When-Then Scenario | ViewModel Validator & UI Error State |
+
+### 4.1 Primary Commercial Toolchain & Downstream Safety Integration
+
+DEAP establishes **MATLAB / Simulink / Stateflow / Embedded Coder** as the Primary Tier-1 Commercial Toolchain Integration for Model-Based Design (MBD), control law synthesis, and DO-178C C/SPARK Ada code generation. Downstream safety worksheet export targets (such as **Ansys Medini Analyze**, **PTC Windchill**, and **Enterprise Architect**) interface secondarily with DEAP to ingest generated specification artifacts and safety matrices.
 
 ---
 

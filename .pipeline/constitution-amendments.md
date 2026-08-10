@@ -258,5 +258,36 @@ Transform legacy BDD/LUI wording to lock in the Evolved 3-Layer Semantic Chain (
 
 Non-destructive: additive refinement of Tier 1 LUI and BDD scenario standards, governance rules unchanged.
 
+---
+
+## AMEND-0006 — Declare MATLAB / Simulink / Stateflow MBD models as authoritative input schemas
+
+- **Date:** 2026-08-10
+- **Logged:** 2026-08-10
+- **Motivating issue:** Micro-Task 1 of MATLAB / Simulink tool elevation plan
+- **Approved by:** "PROCEED" — approved implementation plan for MATLAB / Simulink tool elevation.
+- **Destructive:** no
+- **Line count:** 164
+- **Resulting SHA-256:** `3337c249d235906217e823db2449093657e134436959e525e92535aa6611894c`
+
+### Change
+
+Section *Specification Sources*, line 19.
+
+Before:
+
+> - Structural schemas and interface definitions are the authoritative machine-readable models.
+
+After:
+
+> - Structural schemas, MATLAB / Simulink / Stateflow MBD models, and interface definitions are the authoritative machine-readable models.
+
+### Rationale
+
+Add MATLAB / Simulink / Stateflow MBD models as authoritative input schemas in accordance with the approved MATLAB / Simulink tool elevation plan.
+
+Non-destructive: additive clarification of Specification Sources, governance rules unchanged.
+
+
 
 

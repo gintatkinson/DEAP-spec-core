@@ -11,7 +11,7 @@
 
 ### 1.1 Executive Summary
 
-Modern airborne software and electronic hardware systems operate under stringent safety constraints where system failures can lead to catastrophic losses of aircraft and human life. The **Digital Engineering Agentic Pipeline (DEAP)** Flight Systems Safety Architecture establishes a paradigm shift in safety-critical avionic software and hardware engineering. By synthesizing top-down **System-Theoretic Process Analysis (STPA)** with bottom-up **Failure Mode, Effects, and Criticality Analysis (FMECA)** into an automated master-worker specification and implementation pipeline, DEAP ensures that airborne safety requirements are mechanically derived, verified, and traceably linked down to machine code and hardware registers.
+Modern airborne software and electronic hardware systems operate under stringent safety constraints where system failures can lead to catastrophic losses of aircraft and human life. The **Digital Engineering Agentic Pipeline (DEAP)** Flight Systems Safety Architecture establishes a paradigm shift in safety-critical avionic software and hardware engineering. By synthesizing top-down **System-Theoretic Process Analysis (STPA)** with bottom-up **Failure Mode, Effects, and Criticality Analysis (FMECA)** alongside **MATLAB / Simulink / Stateflow / Embedded Coder** as the primary Model-Based Design (MBD) control law synthesis and DO-178C code generation engine, DEAP ensures that airborne safety requirements are mechanically derived, verified, and traceably linked down to machine code and hardware registers.
 
 Traditional safety engineering relies heavily on manual safety assessments (FHA, PSSA, SSA) documented in static paper artifacts. This disconnected approach introduces severe risks: safety constraints drift from software implementation, hazard mitigations are missed during rapid iteration, and verifying 100% Modified Condition/Decision Coverage (MC/DC) alongside strict structural constraints (e.g., dynamic heap bans) becomes labor-intensive and error-prone.
 
@@ -47,7 +47,7 @@ flowchart TD
 The DEAP Flight Systems Safety Integration Architecture targets four foundational objectives:
 
 1. **Mechanical Safety Enforcement:** Eliminate manual verification gaps by executing AST linters, static analysis checkers, and coverage validators that enforce zero dynamic memory allocation, MISRA-C / SPARK Ada subsets, and 100% MC/DC coverage.
-2. **Integrated Dual Risk Framework:** Unify top-down STPA (identifying control flaws, unsafe control actions, and complex software component interactions) with bottom-up FMECA (identifying hardware register faults, bus babbling, and single-point component failures).
+2. **Integrated Dual Risk Framework:** Unify top-down STPA (identifying control flaws, unsafe control actions, and complex software component interactions) with bottom-up FMECA (identifying hardware register faults, bus babbling, and single-point component failures) powered by MATLAB / Simulink / Stateflow / Embedded Coder control law models.
 3. **Automated Master-Worker Governance:** Employ context-isolated subagents (Workers A–D) to convert raw safety models into Agile Epics, Features, BDD User Stories, and formal Use Cases without token context bloat or memory leakage.
 4. **Bi-Directional Rigorous Traceability:** Guarantee total auditability from System Safety Hazards down to source code symbols, hardware register offsets, and automated test execution logs.
 
@@ -560,7 +560,7 @@ Physical validation of FMECA failure modes is executed via **dSPACE SCALEXIO Har
 
 ## Section 5: DEAP Dual-Pipeline Integration Architecture
 
-DEAP integrates STPA and FMECA safety models into its master-worker dual pipeline, guaranteeing that safety rules dictate specification extraction and code implementation.
+DEAP integrates STPA and FMECA safety models into its master-worker dual pipeline, guaranteeing that safety rules dictate specification extraction and code implementation. MATLAB / Simulink / Stateflow / Embedded Coder serves as the primary Model-Based Design (MBD) control law synthesis and DO-178C code generation engine driving Pipeline 1 specification models and Pipeline 2 code targets.
 
 ```mermaid
 flowchart TD
@@ -632,9 +632,10 @@ To eliminate ambiguity when subagents process safety requirements, DEAP establis
 
 ### 6.2 Subagent Execution Rules for Safety Processing
 
-1. **Mandatory Skill First Step:** Every subagent must invoke `view_file` on `skills/feature-driven-implementation/SKILL.md` before processing any file.
-2. **Single Specification Scope:** Downstream subagents MUST NOT process more than 1 safety feature or user story in a single context window.
-3. **No Fallback / Soft Error Swallowing:** Subagents are forbidden from wrapping safety checks in silent `try/catch` blocks or returning default dummy values during sensor failures.
+1. **Primary MBD Engine Integration:** MATLAB / Simulink / Stateflow / Embedded Coder is explicitly declared as the primary Model-Based Design control law synthesis and DO-178C code generation engine for all flight control and safety statechart specifications.
+2. **Mandatory Skill First Step:** Every subagent must invoke `view_file` on `skills/feature-driven-implementation/SKILL.md` before processing any file.
+3. **Single Specification Scope:** Downstream subagents MUST NOT process more than 1 safety feature or user story in a single context window.
+4. **No Fallback / Soft Error Swallowing:** Subagents are forbidden from wrapping safety checks in silent `try/catch` blocks or returning default dummy values during sensor failures.
 
 ---
 

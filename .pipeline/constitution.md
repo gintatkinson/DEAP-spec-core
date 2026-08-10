@@ -3,7 +3,7 @@ title: "Project Constitution — Functional Layer"
 project: "Digital Engineering Agentic Pipeline (DEAP)"
 tier: functional
 created: "2026-06-29"
-last_updated: "2026-08-07"
+last_updated: "2026-08-10"
 ---
 
 # Project Constitution: Digital Engineering Agentic Pipeline (DEAP)
@@ -16,7 +16,7 @@ last_updated: "2026-08-07"
 
 ### Specification Sources
 - Primary sources are normative technical specifications and standards documents.
-- Structural schemas and interface definitions are the authoritative machine-readable models.
+- Structural schemas, MATLAB / Simulink / Stateflow MBD models, and interface definitions are the authoritative machine-readable models.
 - When the normative text and the schema conflict, the schema is authoritative for structural completeness; the normative text is authoritative for behavioral semantics.
 
 ### Schema Compliance
