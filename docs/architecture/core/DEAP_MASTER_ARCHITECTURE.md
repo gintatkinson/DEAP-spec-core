@@ -2,23 +2,30 @@
 
 ## 1. Architectural Overview & Core Principles
 
-The **Digital Engineering Agentic Pipeline (DEAP)** framework establishes a standard-neutral, platform-decoupled, two-tier architecture for automated software engineering and protocol specification engineering. DEAP enforces strict separation of concerns between domain modeling, protocol specification extraction, runtime metadata rendering, and platform-specific code generation.
+The **Digital Engineering Agentic Pipeline (DEAP)** framework establishes a standard-neutral, platform-decoupled, triple-pipeline master-worker architecture for automated software engineering, safety-critical systems engineering, and protocol specification extraction. DEAP enforces strict separation of concerns between front-end systems/safety modeling (Pipeline 0), protocol specification extraction & Agile backlog projection (Pipeline 1), runtime metadata rendering, and platform-specific code generation (Pipeline 2).
 
 ### Core Architectural Principles:
 1. **Domain Neutrality:** The core pipeline, master architecture, runtime engines, and rule enforcement mechanisms are 100% domain-agnostic and standard-neutral.
-2. **Platform Decoupling:** Domain logic and specification artifacts are decoupled from implementation platforms (e.g., Flutter/Dart, React/TypeScript, VHDL/FPGA).
+2. **Platform Decoupling:** Domain logic and specification artifacts are decoupled from implementation platforms (e.g., Flutter/Dart, React/TypeScript, SPARK Ada, C/C++, VHDL/FPGA).
 3. **Strict Subagent Context Isolation:** Master-worker orchestration isolates token context across discrete subagents to eliminate token exhaustion and memory leakage.
 4. **Tri-Layer Definition of Done:** Every specification item (Epic, Feature, User Story, Use Case) must be realized across three mandatory layers: Domain Model, ViewModel, and Logical User Interface (LUI) Widget Binding with automated BDD integration tests.
 5. **Primary Tier-1 Commercial Toolchain Integration:** MATLAB / Simulink / Stateflow / Embedded Coder is declared as the primary Tier-1 commercial toolchain integration for Model-Based Design (MBD), control law synthesis, and DO-178C C/SPARK Ada code generation. Ansys Medini Analyze, PTC Windchill, and Enterprise Architect are positioned as secondary downstream safety worksheet export targets.
 
 ---
 
-## 2. Dual-Pipeline Master-Worker System
+## 2. Triple-Pipeline Master-Worker System
 
-DEAP operates via a dual-pipeline master-worker system designed to handle specification engineering and feature implementation serially and autonomously.
+DEAP operates via a triple-pipeline master-worker system designed to handle early systems engineering & safety modeling (Pipeline 0), specification engineering (Pipeline 1), and feature implementation (Pipeline 2) serially and autonomously.
 
 ```mermaid
 flowchart TD
+    subgraph Pipeline_0 ["Pipeline 0: Front-End Systems & Safety Modeling"]
+        Worker_0A["Worker 0A: CONOPS & Scenario Synthesizer"]
+        Worker_0B["Worker 0B: STPA Hazard & UCA Worker"]
+        Worker_0C["Worker 0C: SysML v2 Authoring Worker"]
+        Worker_0A --> Worker_0B --> Worker_0C
+    end
+
     subgraph Pipeline_1 ["Pipeline 1: Specification Engineering"]
         Worker_A["Worker A: Schema Specification Engineer - YANG, OpenAPI, Protobuf to Epics & Features"]
         Worker_B["Worker B: User Story Engineer - BDD Scenarios & GWT Statements"]
@@ -33,15 +40,30 @@ flowchart TD
         Sub_Implementer --> Review_Gate
     end
 
-    Pipeline_1 -->|Approved Spec Backlog| Pipeline_2
+    Pipeline_0 -->|"Pipeline 0 Handoff JSON Contract (DEAP_MODEL.sysml AST)"| Pipeline_1
+    Pipeline_1 -->|"Approved Specification Backlog"| Pipeline_2
 ```
 
-### 2.1 Pipeline 1: Specification Engineering (Workers A–D)
+### 2.1 Pipeline 0: Front-End Systems & Safety Modeling (Workers 0A–0C)
 
-Pipeline 1 transforms raw, platform-agnostic structural schemas (e.g., YANG modules, OpenAPI v3 specs, Protocol Buffers definitions) into an Agile specification hierarchy tracking Epics, Features, User Stories, and System Use Cases.
+Pipeline 0 ingests unstructured customer intent, flight envelopes, and operational parameters, producing normative CONOPS, STPA hazard matrices, SysML v2 models, and inter-pipeline JSON handoff contracts.
+
+- **Worker 0A (CONOPS & Scenario Synthesizer):**
+  - Input: Raw customer intent, operational parameters, flight envelopes, and stakeholder roles.
+  - Output: `CONOPS.md` establishing mission goals, operational phases, environmental boundaries, and system interfaces.
+- **Worker 0B (STPA Hazard & UCA Worker):**
+  - Input: `CONOPS.md` and regulatory safety frameworks (ARP4761, SORA v2.5).
+  - Output: `STPA_MATRIX.md` defining System Losses ($L$), System Hazards ($H$), Control Structure Diagram, Unsafe Control Actions ($UCA$), and Safety Constraints ($SC$).
+- **Worker 0C (SysML v2 Authoring Worker):**
+  - Input: `CONOPS.md` and `STPA_MATRIX.md`.
+  - Output: `DEAP_MODEL.sysml` (requirements, parts, ports, statecharts) and `pipeline0_handoff_contract.json` AST handoff payload.
+
+### 2.2 Pipeline 1: Specification Engineering (Workers A–D)
+
+Pipeline 1 transforms raw structural schemas (e.g., YANG modules, OpenAPI v3, Protocol Buffers) and Pipeline 0 SysML v2 handoff contracts into an Agile specification hierarchy tracking Epics, Features, User Stories, and System Use Cases.
 
 - **Worker A (Schema Specification Engineer):**
-  - Input: Structural schema definition files.
+  - Input: Structural schema definition files and Pipeline 0 AST handoff payload.
   - Output: Epics and Features formatted with standard-neutral attribute constraints, validation rules, and structural boundaries.
 - **Worker B (User Story Engineer):**
   - Input: Approved Features and domain requirements.
@@ -53,7 +75,7 @@ Pipeline 1 transforms raw, platform-agnostic structural schemas (e.g., YANG modu
   - Input: Complete Specification Backlog and target repository codebase.
   - Output: Comprehensive Gap Analysis Audit Report and automated issue tracker synchronization (`reconcile_backlog.py`).
 
-### 2.2 Pipeline 2: Feature Implementation (14 Execution Mandates)
+### 2.3 Pipeline 2: Feature Implementation (14 Execution Mandates)
 
 Pipeline 2 executes feature micro-tasks serially using context-isolated implementer subagents bound by 14 strict execution mandates:
 
@@ -98,12 +120,15 @@ flowchart LR
 
 ---
 
-## 4. Standard-Neutral Schema Translation Rules
+## 4. Standard-Neutral Schema Translation & Inter-Pipeline Interface Rules
 
-DEAP defines standard-neutral, bi-directional mapping rules to ingest protocol definitions from heterogeneous standard schemas (YANG, OpenAPI v3, Protocol Buffers v3) into standard Agile specification artifacts.
+DEAP defines standard-neutral, bi-directional mapping rules to ingest protocol definitions from heterogeneous standard schemas (YANG, OpenAPI v3, Protocol Buffers v3) as well as SysML v2 textual models from **Pipeline 0** into standard Agile specification artifacts in **Pipeline 1**, and code synthesis in **Pipeline 2**.
 
-| Input Standard Primitive | Intermediate DEAP Descriptor | Agile Specification Target | Tri-Layer Implementation Target |
+| Pipeline Source & Input Primitive | Intermediate DEAP Descriptor | Agile Specification Target (Pipeline 1) | Tri-Layer Implementation Target (Pipeline 2) |
 | :--- | :--- | :--- | :--- |
+| Pipeline 0 `req` / STPA `SC` | `RequirementDescriptor` | Epic / Feature Safety Constraint | Domain Safety Rule & ViewModel Guard |
+| Pipeline 0 `part` / Ports | `SystemEntityDescriptor` | Feature Structural Boundary | Domain Model Structure & Port Interface |
+| Pipeline 0 `state` / Statechart | `BehavioralStateDescriptor` | User Story Statechart Matrix | ViewModel State Machine & Safety Recovery |
 | YANG `container` / OpenAPI `object` / Protobuf `message` | `SchemaEntity` | Epic / Feature | Domain Model (Data Structure / Entity) |
 | YANG `leaf` / OpenAPI `property` / Protobuf `field` | `AttributeDescriptor` | User Story Field Definition | ViewModel Field State & Formatter |
 | YANG `typedef` / OpenAPI `enum` / Protobuf `enum` | `EnumDescriptor` | User Story Validation Constraint | ViewModel Enum State & Picker |
@@ -122,6 +147,7 @@ The core DEAP master architecture remains 100% domain-neutral and standard-agnos
 
 | Core Blueprint | Target Subsystem / Focus | Document Reference |
 | :--- | :--- | :--- |
+| **Pipeline 0 Solution Blueprint** | Front-End Systems & Safety Modeling Master Architecture | [`DEAP_PIPELINE_0_FRONTEND_SYSTEMS_SAFETY_BLUEPRINT.md`](file:///Users/perkunas/jail/DEAP-spec-core/docs/architecture/blueprints/DEAP_PIPELINE_0_FRONTEND_SYSTEMS_SAFETY_BLUEPRINT.md) |
 | **Persistence Architecture Blueprint** | Offline-First Local Database & Storage Synchronization | [`PERSISTENCE_ARCHITECTURE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/PERSISTENCE_ARCHITECTURE.md) |
 | **Runtime Metadata Engine Blueprint** | Dynamic Schema Locator & Metadata Rendering Engine | [`RUNTIME_METADATA_ENGINE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/RUNTIME_METADATA_ENGINE.md) |
 | **SpecKit Native Integration Blueprint** | SpecKit Specification Extraction & Code Realization Engine | [`SPECKIT_NATIVE_INTEGRATION.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/SPECKIT_NATIVE_INTEGRATION.md) |
