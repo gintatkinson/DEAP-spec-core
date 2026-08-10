@@ -88,6 +88,76 @@ package DEAP_Safety_Architecture {
     }
 
     // =========================================================================
+    // 1b. System Losses and Hazards Package
+    // Formal requirement definitions for top-down System Losses (L_1..L_4)
+    // and System Hazards (H_1..H_6) per SAE ARP4761 & FAA AC 25.1309-1A
+    // =========================================================================
+    package System_Losses_And_Hazards {
+
+        // --- System Losses (L_1 ... L_4) ---
+        requirement def L_1 {
+            doc /* Loss of Life / Aircraft Destruction: Complete hull loss and fatal injuries. */
+            attribute severity : String = "Catastrophic";
+            attribute target_probability_per_hr : Real = 1.0e-9;
+        }
+
+        requirement def L_2 {
+            doc /* Loss of Mission / Severe Operational Failure: Total failure of flight objective, emergency divert required. */
+            attribute severity : String = "Hazardous";
+            attribute target_probability_per_hr : Real = 1.0e-7;
+        }
+
+        requirement def L_3 {
+            doc /* Damage to Ground Infrastructure: Destruction of runway, airport structures, or ground equipment. */
+            attribute severity : String = "Major";
+            attribute target_probability_per_hr : Real = 1.0e-5;
+        }
+
+        requirement def L_4 {
+            doc /* Loss of System Availability / Margins: Reduction in avionic functional capability or safety margins. */
+            attribute severity : String = "Major";
+            attribute target_probability_per_hr : Real = 1.0e-5;
+        }
+
+        // --- System Hazards (H_1 ... H_6) ---
+        requirement def H_1 {
+            doc /* Controlled Flight Into Terrain (CFIT): Airworthy aircraft flown into terrain under control or guidance. */
+            attribute regulatory_baseline : String = "FAA AC 25.1309-1A §8.b / CS-25.1309(b)(1)";
+            attribute severity : String = "Catastrophic";
+        }
+
+        requirement def H_2 {
+            doc /* Loss of Control in Flight (LOC-I): Aircraft attitude, altitude, or aerodynamic state exceeds normal flight envelope. */
+            attribute regulatory_baseline : String = "FAA AC 25.1309-1A §8.a / CS-25.1309(b)(1)";
+            attribute severity : String = "Catastrophic";
+        }
+
+        requirement def H_3 {
+            doc /* Mid-Air Collision (MAC): Loss of required horizontal or vertical separation between aircraft in controlled airspace. */
+            attribute regulatory_baseline : String = "FAA AC 25.1309-1A §8.c / CS-25.1309(b)(2)";
+            attribute severity : String = "Hazardous";
+        }
+
+        requirement def H_4 {
+            doc /* Runway Incursion / Excursion: Aircraft departs runway surface during landing, takeoff, or ground taxi operations. */
+            attribute regulatory_baseline : String = "FAA AC 25.1309-1A §8.d / CS-25.1309(b)(3)";
+            attribute severity : String = "Major";
+        }
+
+        requirement def H_5 {
+            doc /* Airframe Structural Overstress: Aerodynamic or structural loads exceed ultimate design limits. */
+            attribute regulatory_baseline : String = "FAA AC 25.1309-1A §8.e / CS-25.1309(b)(1)";
+            attribute severity : String = "Catastrophic";
+        }
+
+        requirement def H_6 {
+            doc /* Uncommanded Engine Thrust Reversal: In-flight deployment of engine thrust reversers creating catastrophic asymmetric drag. */
+            attribute regulatory_baseline : String = "FAA AC 25.1309-1A §8.f / CS-25.1309(b)(1)";
+            attribute severity : String = "Catastrophic";
+        }
+    }
+
+    // =========================================================================
     // 2. Aircraft State Space Package
     // Continuous State Vector x(t) definition
     // =========================================================================
@@ -165,6 +235,206 @@ package DEAP_Safety_Architecture {
         port def CanBusPort {
             doc /* CAN Aerospace / UAVCAN / DroneCAN bus port for internal actuator sensor node networks. */
             attribute baudrate_kbps : Integer = 1000;
+        }
+    }
+
+    // =========================================================================
+    // 4b. STPA Unsafe Control Actions Package
+    // Formal SysML v2 requirement definitions (UCA_01 ... UCA_16) for all 16 rows
+    // of the STPA UCA matrix in DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md
+    // =========================================================================
+    package STPA_Unsafe_Control_Actions {
+
+        requirement def UCA_01 {
+            @TriggersHazard(H_1)
+            doc /* Flight Control Computer fails to provide Pitch Nose-Up Recovery Command during low altitude speed decay. */
+            attribute controller : String = "Flight Control Computer (FCC)";
+            attribute control_action : String = "Pitch Nose-Up Recovery Command";
+            attribute uca_type : String = "Not Provided";
+            attribute context_vector : String = "h < 500 ft AGL, V_CAS < V_ref, alpha > 12.0 deg, WoW = False, S_phase = APPROACH";
+            attribute triggered_hazard_id : String = "H_1";
+            attribute severity : String = "Catastrophic";
+            attribute dal_level : String = "DAL A";
+        }
+
+        requirement def UCA_02 {
+            @TriggersHazard(H_2)
+            doc /* Flight Control Computer provides Pitch High-Rate Elevator Command unsafely during high angle of attack state. */
+            attribute controller : String = "Flight Control Computer (FCC)";
+            attribute control_action : String = "Pitch High-Rate Elevator Command";
+            attribute uca_type : String = "Provided Unsafely";
+            attribute context_vector : String = "alpha > 14.5 deg, V_CAS < V_stall + 5 kts, theta > 18.0 deg, WoW = False, S_phase in {CLIMB, APPROACH}";
+            attribute triggered_hazard_id : String = "H_2";
+            attribute severity : String = "Catastrophic";
+            attribute dal_level : String = "DAL A";
+        }
+
+        requirement def UCA_03 {
+            @TriggersHazard(H_5)
+            doc /* Flight Control Computer provides Roll Stabilization Aileron Command too late during severe turbulence gust. */
+            attribute controller : String = "Flight Control Computer (FCC)";
+            attribute control_action : String = "Roll Stabilization Aileron Command";
+            attribute uca_type : String = "Provided Too Late";
+            attribute context_vector : String = "Command processing latency t_latency > 50 ms, severe turbulence gust d(t), S_phase = CRUISE";
+            attribute triggered_hazard_id : String = "H_5";
+            attribute severity : String = "Hazardous";
+            attribute dal_level : String = "DAL B";
+        }
+
+        requirement def UCA_04 {
+            @TriggersHazard(H_2)
+            doc /* Flight Control Computer applies Elevator Auto-Trim Torque Drive too long after manual pilot override signal. */
+            attribute controller : String = "Flight Control Computer (FCC)";
+            attribute control_action : String = "Elevator Auto-Trim Torque Drive";
+            attribute uca_type : String = "Applied Too Long";
+            attribute context_vector : String = "Continuous trim drive applied for t > 2.0 s after manual pilot override / AP disconnect signal";
+            attribute triggered_hazard_id : String = "H_2";
+            attribute severity : String = "Catastrophic";
+            attribute dal_level : String = "DAL A";
+        }
+
+        requirement def UCA_05 {
+            @TriggersHazard(H_1)
+            doc /* Autopilot Mode Logic fails to provide Auto-Go-Around (GA) Mode Engage upon severe glideslope deviation. */
+            attribute controller : String = "Autopilot Mode Logic";
+            attribute control_action : String = "Auto-Go-Around (GA) Mode Engage";
+            attribute uca_type : String = "Not Provided";
+            attribute context_vector : String = "ILS glideslope deviation > 1.5 dots below decision height h < 200 ft AGL, S_phase = APPROACH";
+            attribute triggered_hazard_id : String = "H_1";
+            attribute severity : String = "Catastrophic";
+            attribute dal_level : String = "DAL A";
+        }
+
+        requirement def UCA_06 {
+            @TriggersHazard(H_1)
+            doc /* Autopilot Mode Logic provides Autopilot Pitch Down Trim Command unsafely during radio altimeter lock loss. */
+            attribute controller : String = "Autopilot Mode Logic";
+            attribute control_action : String = "Autopilot Pitch Down Trim Command";
+            attribute uca_type : String = "Provided Unsafely";
+            attribute context_vector : String = "Radio altimeter sensor fault / lock loss at low altitude h < 400 ft AGL, S_phase = APPROACH";
+            attribute triggered_hazard_id : String = "H_1";
+            attribute severity : String = "Catastrophic";
+            attribute dal_level : String = "DAL A";
+        }
+
+        requirement def UCA_07 {
+            @TriggersHazard(H_3)
+            doc /* Autopilot Mode Logic provides VNAV Descent Mode Transition too early prior to ATC clearance boundary. */
+            attribute controller : String = "Autopilot Mode Logic";
+            attribute control_action : String = "VNAV Descent Mode Transition";
+            attribute uca_type : String = "Provided Too Early";
+            attribute context_vector : String = "Executed 15 s prior to ATC altitude clearance boundary, h = 24,000 ft MSL, S_phase = CRUISE";
+            attribute triggered_hazard_id : String = "H_3";
+            attribute severity : String = "Hazardous";
+            attribute dal_level : String = "DAL B";
+        }
+
+        requirement def UCA_08 {
+            @TriggersHazard(H_2)
+            doc /* Autopilot Mode Logic applies Nose-Up Pitch Hold Command too long after Go-Around mode disengagement. */
+            attribute controller : String = "Autopilot Mode Logic";
+            attribute control_action : String = "Nose-Up Pitch Hold Command";
+            attribute uca_type : String = "Applied Too Long";
+            attribute context_vector : String = "Pitch command maintained for t > 5.0 s after Go-Around mode disengagement, V_CAS < V_min";
+            attribute triggered_hazard_id : String = "H_2";
+            attribute severity : String = "Catastrophic";
+            attribute dal_level : String = "DAL A";
+        }
+
+        requirement def UCA_09 {
+            @TriggersHazard(H_2)
+            doc /* Auto-Throttle System fails to provide Engine Thrust Increase Command during critical airspeed decay. */
+            attribute controller : String = "Auto-Throttle System";
+            attribute control_action : String = "Engine Thrust Increase Command";
+            attribute uca_type : String = "Not Provided";
+            attribute context_vector : String = "Airspeed decay V_CAS < V_stall-warning (V_CAS < 1.1 V_stall), h > 500 ft AGL, S_phase = APPROACH";
+            attribute triggered_hazard_id : String = "H_2";
+            attribute severity : String = "Catastrophic";
+            attribute dal_level : String = "DAL A";
+        }
+
+        requirement def UCA_10 {
+            @TriggersHazard(H_6)
+            doc /* Auto-Throttle / Reverser provides Engine Thrust Reverser Deploy Command unsafely in-flight. */
+            attribute controller : String = "Auto-Throttle / Reverser";
+            attribute control_action : String = "Engine Thrust Reverser Deploy Command";
+            attribute uca_type : String = "Provided Unsafely";
+            attribute context_vector : String = "In-flight execution (WoW = False, h > 50 ft AGL, V_CAS = 250 kts, S_phase in {CLIMB, CRUISE})";
+            attribute triggered_hazard_id : String = "H_6";
+            attribute severity : String = "Catastrophic";
+            attribute dal_level : String = "DAL A";
+        }
+
+        requirement def UCA_11 {
+            @TriggersHazard(H_4)
+            doc /* Auto-Throttle System provides Idle Thrust Retard Command too early prior to main landing gear touchdown. */
+            attribute controller : String = "Auto-Throttle System";
+            attribute control_action : String = "Idle Thrust Retard Command";
+            attribute uca_type : String = "Provided Too Early";
+            attribute context_vector : String = "Issued 5.0 s prior to main landing gear touchdown, h = 80 ft AGL, S_phase = APPROACH";
+            attribute triggered_hazard_id : String = "H_4";
+            attribute severity : String = "Major";
+            attribute dal_level : String = "DAL C";
+        }
+
+        requirement def UCA_12 {
+            @TriggersHazard(H_4)
+            doc /* Auto-Throttle / Reverser applies Reverse Thrust Actuator Drive Power too long after low taxi speed. */
+            attribute controller : String = "Auto-Throttle / Reverser";
+            attribute control_action : String = "Reverse Thrust Actuator Drive Power";
+            attribute uca_type : String = "Applied Too Long";
+            attribute context_vector : String = "Reverse thrust applied for t > 3.0 s after ground taxi speed drops below V_CAS < 10 kts, S_phase = TAXI";
+            attribute triggered_hazard_id : String = "H_4";
+            attribute severity : String = "Major";
+            attribute dal_level : String = "DAL C";
+        }
+
+        requirement def UCA_13 {
+            @TriggersHazard(H_2)
+            doc /* Rudder Yaw Damper fails to provide Asymmetric Thrust Compensation Yaw Command during single engine failure. */
+            attribute controller : String = "Rudder Yaw Damper";
+            attribute control_action : String = "Asymmetric Thrust Compensation Yaw Command";
+            attribute uca_type : String = "Not Provided";
+            attribute context_vector : String = "Single engine failure event (T_eng1 - T_eng2 > 40%), V_CAS > V_1, h > 100 ft AGL, S_phase = TAKEOFF";
+            attribute triggered_hazard_id : String = "H_2";
+            attribute severity : String = "Catastrophic";
+            attribute dal_level : String = "DAL A";
+        }
+
+        requirement def UCA_14 {
+            @TriggersHazard(H_5)
+            doc /* Rudder Yaw Damper provides Full Scale Rudder Deflection Command unsafely above maneuvering speed. */
+            attribute controller : String = "Rudder Yaw Damper";
+            attribute control_action : String = "Full Scale Rudder Deflection Command";
+            attribute uca_type : String = "Provided Unsafely";
+            attribute context_vector : String = "Airspeed exceeds maneuvering speed (V_CAS > V_A = 270 kts), h = 15,000 ft MSL, S_phase = CRUISE";
+            attribute triggered_hazard_id : String = "H_5";
+            attribute severity : String = "Catastrophic";
+            attribute dal_level : String = "DAL A";
+        }
+
+        requirement def UCA_15 {
+            @TriggersHazard(H_2)
+            doc /* ARINC 653 Partition Switcher fails to provide Executive Partition Context Switch Command on minor frame expiration. */
+            attribute controller : String = "ARINC 653 Partition Switcher";
+            attribute control_action : String = "Executive Partition Context Switch Command";
+            attribute uca_type : String = "Not Provided";
+            attribute context_vector : String = "Flight Control Partition 1 execution minor frame deadline expired (t > 20 ms), S_phase = ALL";
+            attribute triggered_hazard_id : String = "H_2";
+            attribute severity : String = "Catastrophic";
+            attribute dal_level : String = "DAL A";
+        }
+
+        requirement def UCA_16 {
+            @TriggersHazard(H_2)
+            doc /* ARINC 653 Partition Switcher provides Partition Preemption Switch Command unsafely during active DAL A flight loop. */
+            attribute controller : String = "ARINC 653 Partition Switcher";
+            attribute control_action : String = "Partition Preemption Switch Command";
+            attribute uca_type : String = "Provided Unsafely";
+            attribute context_vector : String = "Preempting active DAL A Flight Control Partition 1 to service lower-criticality Partition 4 during maneuver";
+            attribute triggered_hazard_id : String = "H_2";
+            attribute severity : String = "Catastrophic";
+            attribute dal_level : String = "DAL A";
         }
     }
 

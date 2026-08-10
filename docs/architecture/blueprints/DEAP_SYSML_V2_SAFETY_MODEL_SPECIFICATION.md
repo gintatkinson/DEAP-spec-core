@@ -56,16 +56,18 @@ flowchart TD
 
 ## Section 2: SysML v2 Safety Model Architecture
 
-The SysML v2 safety architecture is encapsulated within `package DEAP_Safety_Architecture` across eight sub-packages designed for modularity, strict scoping, and standard compliance.
+The SysML v2 safety architecture is encapsulated within `package DEAP_Safety_Architecture` across sub-packages designed for modularity, strict scoping, and standard compliance.
 
 ### 2.1 Package Breakdown & System Topology
 
 | Package Name | Domain Role & Description | Primary SysML v2 Constructs |
 | :--- | :--- | :--- |
 | **`Certification_Requirements`** | Defines airworthiness and regulatory targets (DO-178C, DO-254, ARP4754A/4761, SORA v2.5). | `requirement def` |
+| **`System_Losses_And_Hazards`** | Defines top-down System Losses ($L_1 \dots L_4$) and System Hazards ($H_1 \dots H_6$) per SAE ARP4761 & FAA AC 25.1309-1A. | `requirement def` |
 | **`Aircraft_State_Space`** | Formalizes continuous state vector $x(t)$ for flight dynamics & sensor inputs. | `attribute def` |
 | **`Avionic_System_Parts`** | Defines primary flight computers, guidance engines, actuators, and sensor suites. | `part def` |
 | **`Databus_Port_Definitions`** | Defines avionics databuses (ARINC 429, MIL-STD-1553B, C2 5G, CAN Bus). | `port def` |
+| **`STPA_Unsafe_Control_Actions`** | Contains 16 formal STPA Unsafe Control Actions ($UCA_{01} \dots UCA_{16}$) with `@TriggersHazard` annotations. | `requirement def` |
 | **`STPA_Safety_Control_Constraints`** | Contains 32 formal safety control constraints ($SC_1 \dots SC_{32}$) with `@SafetyRealises`. | `requirement def` |
 | **`FMECA_Risk_Profiles`** | Represents hardware fault modes (`FMECA-HW-01` to `08`) with RPN metrics. | `attribute def` |
 | **`Stateflow_Execution_State_Machines`** | Defines ARINC 653 100ms major frame schedule & fail-safe FSM transitions. | `state def` |
@@ -102,6 +104,40 @@ package Certification_Requirements {
         doc /* Specific Assurance and Integrity Level VI (Complex Category / Commercial Airliner Proximity). */
         attribute sail_level : String = "SAIL VI";
         attribute target_integrity_level : String = "Equivalent to Manned Aviation (1e-9/hr)";
+    }
+}
+```
+
+### 3.1b System Losses & Hazards (`package System_Losses_And_Hazards`)
+
+Defines top-down System Losses ($L_1 \dots L_4$) and System Hazards ($H_1 \dots H_6$) per SAE ARP4761 & FAA AC 25.1309-1A.
+
+```sysml
+package System_Losses_And_Hazards {
+    requirement def L_1 {
+        doc /* Loss of Life / Aircraft Destruction: Complete hull loss and fatal injuries. */
+        attribute severity : String = "Catastrophic";
+        attribute target_probability_per_hr : Real = 1.0e-9;
+    }
+    requirement def L_2 {
+        doc /* Loss of Mission / Severe Operational Failure: Total failure of flight objective, emergency divert required. */
+        attribute severity : String = "Hazardous";
+        attribute target_probability_per_hr : Real = 1.0e-7;
+    }
+    requirement def H_1 {
+        doc /* Controlled Flight Into Terrain (CFIT): Airworthy aircraft flown into terrain under control or guidance. */
+        attribute regulatory_baseline : String = "FAA AC 25.1309-1A §8.b / CS-25.1309(b)(1)";
+        attribute severity : String = "Catastrophic";
+    }
+    requirement def H_2 {
+        doc /* Loss of Control in Flight (LOC-I): Aircraft attitude, altitude, or aerodynamic state exceeds normal flight envelope. */
+        attribute regulatory_baseline : String = "FAA AC 25.1309-1A §8.a / CS-25.1309(b)(1)";
+        attribute severity : String = "Catastrophic";
+    }
+    requirement def H_6 {
+        doc /* Uncommanded Engine Thrust Reversal: In-flight deployment of engine thrust reversers creating catastrophic asymmetric drag. */
+        attribute regulatory_baseline : String = "FAA AC 25.1309-1A §8.f / CS-25.1309(b)(1)";
+        attribute severity : String = "Catastrophic";
     }
 }
 ```
@@ -177,6 +213,59 @@ package Databus_Port_Definitions {
     port def CanBusPort {
         doc /* CAN Aerospace / UAVCAN / DroneCAN bus port for internal actuator sensor node networks. */
         attribute baudrate_kbps : Integer = 1000;
+    }
+}
+```
+
+### 3.4b STPA Unsafe Control Actions (`package STPA_Unsafe_Control_Actions`)
+
+Contains formal requirement definitions for all 16 STPA Unsafe Control Actions ($UCA_{01} \dots UCA_{16}$) annotated with `@TriggersHazard(H_i)` and formal attributes.
+
+```sysml
+package STPA_Unsafe_Control_Actions {
+    requirement def UCA_01 {
+        @TriggersHazard(H_1)
+        doc /* Flight Control Computer fails to provide Pitch Nose-Up Recovery Command during low altitude speed decay. */
+        attribute controller : String = "Flight Control Computer (FCC)";
+        attribute control_action : String = "Pitch Nose-Up Recovery Command";
+        attribute uca_type : String = "Not Provided";
+        attribute context_vector : String = "h < 500 ft AGL, V_CAS < V_ref, alpha > 12.0 deg, WoW = False, S_phase = APPROACH";
+        attribute triggered_hazard_id : String = "H_1";
+        attribute severity : String = "Catastrophic";
+        attribute dal_level : String = "DAL A";
+    }
+    requirement def UCA_02 {
+        @TriggersHazard(H_2)
+        doc /* Flight Control Computer provides Pitch High-Rate Elevator Command unsafely during high angle of attack state. */
+        attribute controller : String = "Flight Control Computer (FCC)";
+        attribute control_action : String = "Pitch High-Rate Elevator Command";
+        attribute uca_type : String = "Provided Unsafely";
+        attribute context_vector : String = "alpha > 14.5 deg, V_CAS < V_stall + 5 kts, theta > 18.0 deg, WoW = False, S_phase in {CLIMB, APPROACH}";
+        attribute triggered_hazard_id : String = "H_2";
+        attribute severity : String = "Catastrophic";
+        attribute dal_level : String = "DAL A";
+    }
+    requirement def UCA_10 {
+        @TriggersHazard(H_6)
+        doc /* Auto-Throttle / Reverser provides Engine Thrust Reverser Deploy Command unsafely in-flight. */
+        attribute controller : String = "Auto-Throttle / Reverser";
+        attribute control_action : String = "Engine Thrust Reverser Deploy Command";
+        attribute uca_type : String = "Provided Unsafely";
+        attribute context_vector : String = "In-flight execution (WoW = False, h > 50 ft AGL, V_CAS = 250 kts, S_phase in {CLIMB, CRUISE})";
+        attribute triggered_hazard_id : String = "H_6";
+        attribute severity : String = "Catastrophic";
+        attribute dal_level : String = "DAL A";
+    }
+    requirement def UCA_16 {
+        @TriggersHazard(H_2)
+        doc /* ARINC 653 Partition Switcher provides Partition Preemption Switch Command unsafely during active DAL A flight loop. */
+        attribute controller : String = "ARINC 653 Partition Switcher";
+        attribute control_action : String = "Partition Preemption Switch Command";
+        attribute uca_type : String = "Provided Unsafely";
+        attribute context_vector : String = "Preempting active DAL A Flight Control Partition 1 to service lower-criticality Partition 4 during maneuver";
+        attribute triggered_hazard_id : String = "H_2";
+        attribute severity : String = "Catastrophic";
+        attribute dal_level : String = "DAL A";
     }
 }
 ```
@@ -272,10 +361,12 @@ To enable automated synthesis into MATLAB Simulink (`.slx`) and Stateflow (`.sfx
 
 | SysML v2 Source Construct | MATLAB Target Representation | Generated Simulink / Stateflow Asset |
 | :--- | :--- | :--- |
+| `package System_Losses_And_Hazards` | `slreq.ReqSet` Target | Top-level system safety loss ($L_1 \dots L_4$) and hazard ($H_1 \dots H_6$) requirement nodes in Simulink Requirements. |
+| `package STPA_Unsafe_Control_Actions` | Stateflow Assertion & `slreq.ReqSet` | Unsafe Control Action items ($UCA_{01} \dots UCA_{16}$) with `@TriggersHazard` links, DAL metadata, and Stateflow hazard monitor blocks. |
 | `part def` | `Simulink.BlockDiagram` / Subsystem | Atomic Subsystem block (`Simulink.BlockType = 'SubSystem'`) with inports and outports. |
 | `port def` | `Simulink.Bus` / Inport / Outport | `Simulink.BusObject` definition with typed signal elements matching port specifications. |
 | `attribute def` | `Simulink.Parameter` / Signal | Block parameter or signal attribute in MATLAB Workspace / Data Dictionary (`Simulink.DataDictionary`). |
-| `requirement def` | `Simulink Requirements` Item | Requirement object in Simulink Requirements (`slreq.ReqSet`) with `@SafetyRealises` links. |
+| `requirement def` | `Simulink Requirements` Item | Requirement object in Simulink Requirements (`slreq.ReqSet`) with `@SafetyRealises` / `@TriggersHazard` links. |
 | `state def` | `Stateflow.Chart` | Stateflow Chart (`Stateflow.State`) with hierarchical state boundaries and transition logic. |
 | `@SimulinkBlock` | Metadata Attribute | Direct mapping parameters (`block_type`, `model_file`) for `add_block()` MAT-file scripts. |
 | `@StateflowChart` | Stateflow Metadata | Configuration options (`chart_type`, `stateflow_file`) for Stateflow API synthesis. |
@@ -300,9 +391,9 @@ sequenceDiagram
 
 ### 4.3 Automated Simulink Test Harness & BDD Suite Synthesis
 
-Every SysML v2 requirement ($SC_1 \dots SC_{32}$) is compiled into a corresponding **Simulink Test Harness** (`sltest.harness`) containing:
+Every SysML v2 constraint ($SC_1 \dots SC_{32}$) and Unsafe Control Action ($UCA_{01} \dots UCA_{16}$) is compiled into a corresponding **Simulink Test Harness** (`sltest.harness`) containing:
 1. **Signal Builder / Test Assessment Block:** Inputs continuous state vectors $x(t)$ defined in `Aircraft_State_Space`.
-2. **Stateflow Truth Table / Assertion Block:** Verifies bounds (e.g. $V_{CAS} > 1.3 \cdot V_{stall}$, pitch angle $-15^\circ \le \theta \le +20^\circ$, max surface deflection $\le 30^\circ$).
+2. **Stateflow Truth Table / Assertion Block:** Verifies bounds (e.g. $V_{CAS} > 1.3 \cdot V_{stall}$, pitch angle $-15^\circ \le \theta \le +20^\circ$, max surface deflection $\le 30^\circ$) and asserts zero active $UCA_k$ hazard triggering during simulated maneuvers.
 3. **Automated Coverage Analyzer:** Generates DO-178C DAL A 100% MC/DC coverage reports for MATLAB Embedded Coder generated C/C++ code.
 
 ---
@@ -315,7 +406,7 @@ The model is verified against the DEAP AST parser script:
 ```bash
 python3 scripts/compile_sysml.py docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml
 ```
-Validation asserts that all 9 packages, 5 part definitions, 12 attribute definitions, 4 port definitions, 48 requirement definitions, and 2 state definitions are parsed cleanly without syntax errors.
+Validation asserts that all 14 packages, 7 part definitions, 13 attribute definitions, 5 port definitions, 74 requirement definitions, and 3 state definitions are parsed cleanly without syntax errors.
 
 ### 5.2 Test Suite Execution
 
