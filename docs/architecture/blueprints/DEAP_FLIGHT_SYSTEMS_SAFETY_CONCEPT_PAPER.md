@@ -268,21 +268,21 @@ The 16-row STPA matrix below systematically synthesizes all 4 UCA categories ($\
 
 #### 3.2.3 System Loss & Hazard Mapping Matrix
 
-Per SAE ARP4761, NASA/CR-2020-220454, and FAA AC 25.1309-1A / EASA CS-25.1309, safety constraints must trace explicitly from high-level System Losses (L_i) through System Hazards (H_j) down to Unsafe Control Actions (UCA_k).
+Per SAE ARP4761, NASA/CR-2020-220454, and FAA AC 25.1309-1A / EASA CS-25.1309, safety constraints must trace explicitly from high-level System Losses ($L_i$) through System Hazards ($H_j$) down to Unsafe Control Actions ($\text{UCA}_k$).
 
-##### System Loss Definitions (L_1 to L_4)
-- **L_1 (Loss of Life / Aircraft Destruction):** Complete hull loss, fatal injuries to passengers/crew. Severity: **Catastrophic** (Probability < 10⁻⁹ per flight hour).
-- **L_2 (Loss of Mission / Severe Operational Failure):** Total failure of flight objective, emergency landing divert required. Severity: **Hazardous** (Probability < 10⁻⁷ per flight hour).
-- **L_3 (Damage to Ground Infrastructure):** Physical destruction of runway, airport structures, or ground equipment. Severity: **Major** (Probability < 10⁻⁵ per flight hour).
-- **L_4 (Loss of System Availability / Margins):** Reduction in avionic functional capability or pilot workload safety margins. Severity: **Major** (Probability < 10⁻⁵ per flight hour).
+##### System Loss Definitions ($L_1 \dots L_4$)
+- **$L_1$ (Loss of Life / Aircraft Destruction):** Complete hull loss, fatal injuries to passengers/crew. Severity: *Catastrophic* ($\text{Probability} < 10^{-9} \text{ per flight hour}$).
+- **$L_2$ (Loss of Mission / Severe Operational Failure):** Total failure of flight objective, emergency landing divert required. Severity: *Hazardous* ($\text{Probability} < 10^{-7} \text{ per flight hour}$).
+- **$L_3$ (Damage to Ground Infrastructure):** Physical destruction of runway, airport structures, or ground equipment. Severity: *Major* ($\text{Probability} < 10^{-5} \text{ per flight hour}$).
+- **$L_4$ (Loss of System Availability / Margins):** Reduction in avionic functional capability or pilot workload safety margins. Severity: *Major* ($\text{Probability} < 10^{-5} \text{ per flight hour}$).
 
-##### System Hazard Definitions (H_1 to H_6)
-- **H_1 (Controlled Flight Into Terrain - CFIT):** Airworthy aircraft under control or automated guidance flown into terrain, water, or obstacles.
-- **H_2 (Loss of Control in Flight - LOC-I):** Aircraft attitude, altitude, or aerodynamic state exceeds normal flight envelope, resulting in unrecoverable stall or dive.
-- **H_3 (Mid-Air Collision - MAC):** Loss of required horizontal or vertical separation between aircraft in controlled airspace.
-- **H_4 (Runway Incursion / Excursion):** Aircraft departs runway surface during landing, takeoff, or ground taxi operations.
-- **H_5 (Airframe Structural Overstress):** Aerodynamic or structural loads exceed ultimate limit design limits (Q > Q_max or n_z > n_z,limit).
-- **H_6 (Uncommanded Engine Thrust Reversal):** In-flight deployment of engine thrust reversers creating catastrophic asymmetric drag and loss of pitch/yaw authority.
+##### System Hazard Definitions ($H_1 \dots H_6$)
+- **$H_1$ (Controlled Flight Into Terrain - CFIT):** Airworthy aircraft under control or automated guidance flown into terrain, water, or obstacles.
+- **$H_2$ (Loss of Control in Flight - LOC-I):** Aircraft attitude, altitude, or aerodynamic state exceeds normal flight envelope, resulting in unrecoverable stall or dive.
+- **$H_3$ (Mid-Air Collision - MAC):** Loss of required horizontal or vertical separation between aircraft in controlled airspace.
+- **$H_4$ (Runway Incursion / Excursion):** Aircraft departs runway surface during landing, takeoff, or ground taxi operations.
+- **$H_5$ (Airframe Structural Overstress):** Aerodynamic or structural loads exceed ultimate limit design limits ($Q > Q_{\text{max}}$ or $n_z > n_{z,\text{limit}}$).
+- **$H_6$ (Uncommanded Engine Thrust Reversal):** In-flight deployment of engine thrust reversers creating catastrophic asymmetric drag and loss of pitch/yaw authority.
 
 ##### System Hazard to Loss & UCA Tracing Matrix
 
@@ -295,7 +295,7 @@ Per SAE ARP4761, NASA/CR-2020-220454, and FAA AC 25.1309-1A / EASA CS-25.1309, s
 | **H_5** | Airframe Structural Overstress | AC 25.1309-1A § 8.e / CS-25.1309(b)(1) Catastrophic / Hazardous | **L_1, L_2** | `UCA-03`, `UCA-14` |
 | **H_6** | Uncommanded Engine Thrust Reversal | AC 25.1309-1A § 8.f / CS-25.1309(b)(1) Catastrophic Failure Condition | **L_1, L_2** | `UCA-10` |
 
-#### 3.2.4 Formal Safety Control Constraint (SC_i) Derivation & BDD Proof Scenarios
+#### 3.2.4 Formal Safety Control Constraint ($SC_i$) Derivation & BDD Proof Scenarios
 
 To satisfy RTCA DO-178C DAL A software requirements, each Unsafe Control Action ($\text{UCA}_i$) must be inverted into a mathematically verifiable Safety Control Constraint ($SC_i$). In DEAP, these constraints are expressed as formal mathematical invariants and realized as executable BDD Given-When-Then scenarios tagged with `/// Safety-Realises: [SAFETY-FHA-xxx/UCA-yyy]`.
 
