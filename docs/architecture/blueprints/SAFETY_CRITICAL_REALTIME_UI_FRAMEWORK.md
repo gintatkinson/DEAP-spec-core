@@ -17,7 +17,7 @@ This architectural blueprint establishes the reference architecture for a **DO-1
 ```mermaid
 flowchart TD
     subgraph Regulatory ["Regulatory & Safety Compliance"]
-        DO178C["RTCA DO-178C Software (DAL A 100% MC/DC)"]
+        DO178C["RTCA DO-178C Software - DAL A 100% MCDC"]
         DO254["RTCA DO-254 Hardware & GPU / FPGA"]
         A653["ARINC 653 APEX Spatial & Temporal Partitioning"]
     end
@@ -72,7 +72,7 @@ graph TD
         end
     end
 
-    UA_Buffer -- "ARINC 653 Sampling Port (UDP/Shared Memory)" --> A661_Parser
+    UA_Buffer -- "ARINC 653 Sampling Port UDP or Shared Memory" --> A661_Parser
     Render_Engine -- "Direct Memory Access (DMA)" --> FrameBuffer["Hardware Frame Buffer"]
     FrameBuffer -- "Readback DMA" --> CRC_Monitor
 ```
@@ -197,9 +197,9 @@ Primary Flight Display (PFD) symbology requiring rapid updates (Pitch Ladder, Ai
 
 ```mermaid
 flowchart TD
-    Sensors["Sensor Input (IMU / ADC / GNSS)"] --> MatrixCalc["Fixed-Point Projection Matrix Calculation"]
+    Sensors["Sensor Input - IMU ADC GNSS"] --> MatrixCalc["Fixed-Point Projection Matrix Calculation"]
     MatrixCalc --> VBuffer["Pre-allocated Static Vertex Buffer (Max 4096 Vertices)"]
-    VBuffer --> Rasterizer["Hardware Vector Rasterizer (DO-254 FPGA/GPU Core)"]
+    VBuffer --> Rasterizer["Hardware Vector Rasterizer - DO-254 FPGA GPU Core"]
     Rasterizer --> FrameBuffer["Display Frame Buffer"]
 ```
 

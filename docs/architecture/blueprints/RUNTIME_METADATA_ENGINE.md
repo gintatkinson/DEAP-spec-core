@@ -142,7 +142,7 @@ flowchart TD
     end
 
     subgraph Metadata_Layer ["Runtime Metadata Descriptor Pool"]
-        TypeDesc["TypeDescriptor[] / FieldDescriptor[] / TypeRelationDescriptor[]"]
+        TypeDesc["TypeDescriptor Pool - FieldDescriptor and TypeRelationDescriptor"]
     end
 
     subgraph ViewModel_Layer ["Agnostic ViewModels"]

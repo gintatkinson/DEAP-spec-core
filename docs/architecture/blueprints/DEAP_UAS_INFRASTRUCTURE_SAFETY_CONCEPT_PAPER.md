@@ -64,8 +64,8 @@ The Specific Operations Risk Assessment (SORA) v2.5 framework determines the req
 
 ```mermaid
 flowchart LR
-    iGRC["Intrinsic GRC (1-7)\n(Population Density / Operational Buffer)"] --> FinalGRC["Final GRC\n(M1 Operational Containment / M2 Parachute)"]
-    iARC["Intrinsic ARC (a-d)\n(Airspace Density / BVLOS Altitude)"] --> FinalARC["Final ARC (ARC-a to d)\n(Strategic Airspace Mitigations)"]
+    iGRC["Intrinsic GRC (1-7)\nPopulation Density and Operational Buffer"] --> FinalGRC["Final GRC\nM1 Operational Containment and M2 Parachute"]
+    iARC["Intrinsic ARC (a-d)\nAirspace Density and BVLOS Altitude"] --> FinalARC["Final ARC (ARC-a to d)\n(Strategic Airspace Mitigations)"]
     FinalGRC --> SAIL_Matrix{"SORA v2.5 SAIL Determination Matrix"}
     FinalARC --> SAIL_Matrix
     SAIL_Matrix --> SAIL_Level["Target SAIL (SAIL I to SAIL VI)"]
@@ -119,7 +119,7 @@ flowchart TD
     subgraph UAS_Avionics ["UAS Onboard Avionic Architecture (PX4 / ArduPilot / ROS2)"]
         Flight_Controller["PX4 / ArduPilot Flight Controller Engine"]
         RTA_Geofence["ASTM F3269-17 RTA Geofence Guard"]
-        DAA_Engine["RTCA DO-365B DAA Core (LiDAR / Radar / Optical)"]
+        DAA_Engine["RTCA DO-365B DAA Core - LiDAR Radar Optical"]
         Remote_ID_Module["ASTM F3411-22a Remote ID Broadcaster"]
         BMS_Module["Battery Management System (BMS) Monitor"]
     end
@@ -383,8 +383,8 @@ DEAP synthesizes industry-leading safety engineering platforms, formal verificat
 flowchart TD
     subgraph Solution_Providers ["Industry Thought Leadership & Tooling Stack"]
         Medini["Ansys Medini Analyze\n(Model-Based ARP4761A, STPA & SORA Synthesis)"]
-        WindRiver["Wind River VxWorks 653 / LynxOS-178\n(ARINC 653 Time/Space Partitioning)"]
-        AdaCore["AdaCore SPARK Ada 2012\n(Formal AST Proofs: Zero Overflow/Bounds)"]
+        WindRiver["Wind River VxWorks 653 / LynxOS-178\nARINC 653 Time and Space Partitioning"]
+        AdaCore["AdaCore SPARK Ada 2012\nFormal AST Proofs - Zero Overflow Bounds"]
         dSPACE["dSPACE SCALEXIO HIL\n(Automated Fault Injection Testing)"]
     end
 
@@ -422,17 +422,17 @@ DEAP embeds SORA regulatory parameters, STPA control models, and FMECA risk matr
 
 ```mermaid
 flowchart TD
-    subgraph "Pipe1" ["Pipeline 1: SORA Safety Specification Engineering"]
-        AgentA["Agent A: SORA Schema Engineer (Ingests SORA GRC / ARC, SAIL & STPA / FMECA)"]
+    subgraph Pipe1 ["Pipeline 1 - SORA Safety Specification Engineering"]
+        AgentA["Agent A SORA Schema Engineer - Ingests SORA GRC ARC SAIL and STPA FMECA"]
         AgentB["Agent B: BDD User Story Engineer (Generates GWT Scenarios & Safety Tags)"]
-        AgentC["Agent C: Use Case Engineer (Formal OOA / OOD & Traceability Realization)"]
+        AgentC["Agent C Use Case Engineer - Formal OOA OOD and Traceability Realization"]
         AgentD["Agent D: Safety Implementation Auditor (Gap Analysis & Backlog Synchronization)"]
 
         AgentA --> AgentB --> AgentC --> AgentD
     end
 
-    subgraph "Pipe2" ["Pipeline 2: Micro-Task Implementation Pipeline"]
-        SubImpl["Context-Isolated Subagent Implementers (PX4 / ArduPilot / ROS2 Micro-Tasks)"]
+    subgraph Pipe2 ["Pipeline 2 - Micro-Task Implementation Pipeline"]
+        SubImpl["Context-Isolated Subagent Implementers - PX4 ArduPilot ROS2 Micro-Tasks"]
         SafetyGate["Mechanical Safety Linters Gate (RTA Geofence, Remote ID, DAA, Zero Heap)"]
 
         SubImpl --> SafetyGate
@@ -504,7 +504,7 @@ DEAP replaces manual safety reviews with automated, mechanical static linters bu
 
 ```mermaid
 flowchart LR
-    Source_Commit["Source Code Commit (C++ / Rust / PX4 / ROS2)"] --> AST_Analyzer["Clang / AST Static Analyzer"]
+    Source_Commit["Source Code Commit - C++ Rust PX4 ROS2"] --> AST_Analyzer["Clang / AST Static Analyzer"]
 
     subgraph Mechanical_Gates ["Automated Verification Linters"]
         Gate1["ASTM F3269-17 RTA Geofence Linter"]

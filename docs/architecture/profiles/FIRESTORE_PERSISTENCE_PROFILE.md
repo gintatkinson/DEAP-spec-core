@@ -17,7 +17,7 @@ The presentation layer consumes data using an abstract repository, which resolve
 ```mermaid
 flowchart TD
     subgraph UI_Presentation ["Presentation Layer (Agnostic)"]
-        UI[UI View Components] -->|Reads/Writes| DomainModel[Domain Model: GeoLocation]
+        UI[UI View Components] -->|Reads/Writes| DomainModel["Domain Model: GeoLocation"]
     end
 
     subgraph Service_Locator ["Dependency Injection Context"]
@@ -26,12 +26,12 @@ flowchart TD
 
     subgraph Adapter_Encapsulation ["Firestore Adapter Module"]
         FirestoreAdapter[FirestoreRepositoryAdapter]
-        FirestoreSDK[Firebase/Firestore Client SDK]
+        FirestoreSDK["Firebase/Firestore Client SDK"]
         ModelTranslator[Snapshot-to-Domain Translator]
     end
 
     subgraph Backend_Database ["Firestore Database Stack"]
-        Emulator[Firestore Emulator :8080]
+        Emulator["Firestore Emulator :8080"]
         CloudFirestore[Cloud Firestore Instance]
     end
 
