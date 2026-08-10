@@ -31,7 +31,7 @@ flowchart TD
     subgraph DEAP_Core ["DEAP Automated UAS Safety Core"]
         STPA_Engine["Top-Down STPA Engine (C2 Loss, EMF, Wire Strike, Geofence)"]
         FMECA_Engine["Bottom-Up FMECA Engine (RF Saturation, BMS Cell Sag, Optical Glare)"]
-        Triple_Pipe["DEAP Master-Worker Triple-Pipeline (Workers 0A-0C & Workers A-D)"]
+        Triple_Pipe["DEAP Master-Worker Triple-Pipeline (Pipeline 0, 1 & 2)"]
     end
 
     subgraph Verification ["Mechanical Safety & Linters Gate"]
@@ -49,7 +49,7 @@ The DEAP UAS Infrastructure Safety Architecture enforces four core architectural
 
 1. **Deterministic Regulatory Alignment:** Mechanically map operations in specific risk categories to JARUS SORA v2.5 SAIL I through SAIL VI requirements, establishing precise Ground Risk Class (GRC 1–7) and Air Risk Class (ARC-a to ARC-d) mitigation strategies.
 2. **Integrated Environmental & Cyber-Physical Risk Engine:** Synthesize top-down STPA control flaws (evaluating unsafe interaction between GCS, 5G C2 links, flight controllers, DAA sensor suites, and actuators) with bottom-up FMECA failure modes (addressing EMF flux saturation, 5G tower RF front-end overload, thin wire optical non-detection, and battery cell voltage drops).
-3. **Automated Master-Agent Governance:** Leverage context-isolated subagents (Workers 0A-0C (Pipeline 0) & Workers A-D (Pipeline 1)) to extract SORA requirements, construct Given-When-Then BDD User Stories, formalize Use Case Realization Matrices, and execute continuous gap audits.
+3. **Automated Master-Agent Governance:** Leverage context-isolated subagents (Workers 0A–0C in Pipeline 0 & Workers A–D in Pipeline 1) to extract SORA requirements, construct Given-When-Then BDD User Stories, formalize Use Case Realization Matrices, and execute continuous gap audits.
 4. **Bi-Directional Safety Traceability:** Maintain 100% auditability across the system lifecycle through standardized `/// Safety-Realises:` tags connecting SORA GRC/ARC metrics to MATLAB / Simulink / Stateflow, PX4, ArduPilot, and ROS2 code symbols and test suite outputs.
 
 ---

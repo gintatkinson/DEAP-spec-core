@@ -48,7 +48,7 @@ The DEAP Flight Systems Safety Integration Architecture targets four foundationa
 
 1. **Mechanical Safety Enforcement:** Eliminate manual verification gaps by executing AST linters, static analysis checkers, and coverage validators that enforce zero dynamic memory allocation, MISRA-C / SPARK Ada subsets, and 100% MC/DC coverage.
 2. **Integrated Dual Risk Framework:** Unify top-down STPA (identifying control flaws, unsafe control actions, and complex software component interactions) with bottom-up FMECA (identifying hardware register faults, bus babbling, and single-point component failures) powered by MATLAB / Simulink / Stateflow / Embedded Coder control law models.
-3. **Automated Master-Worker Governance:** Employ context-isolated subagents (Workers 0A-0C (Pipeline 0) & Workers A-D (Pipeline 1)) to convert raw safety models into Agile Epics, Features, BDD User Stories, and formal Use Cases without token context bloat or memory leakage.
+3. **Automated Master-Worker Governance:** Employ context-isolated subagents (Workers 0A–0C in Pipeline 0 & Workers A–D in Pipeline 1) to convert raw safety models into Agile Epics, Features, BDD User Stories, and formal Use Cases without token context bloat or memory leakage.
 4. **Bi-Directional Rigorous Traceability:** Guarantee total auditability from System Safety Hazards down to source code symbols, hardware register offsets, and automated test execution logs.
 
 ---

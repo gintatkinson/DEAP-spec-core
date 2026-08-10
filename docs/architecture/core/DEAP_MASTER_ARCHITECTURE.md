@@ -58,7 +58,7 @@ Pipeline 0 ingests unstructured customer intent, flight envelopes, and operation
   - Input: `CONOPS.md` and `STPA_MATRIX.md`.
   - Output: `DEAP_MODEL.sysml` (requirements, parts, ports, statecharts) and `pipeline0_handoff_contract.json` AST handoff payload.
 
-### 2.2 Pipeline 1: Specification Engineering (Workers A-D)
+### 2.2 Pipeline 1: Specification Engineering (Workers A–D in Pipeline 1)
 
 Pipeline 1 transforms raw structural schemas (e.g., YANG modules, OpenAPI v3, Protocol Buffers) and Pipeline 0 SysML v2 handoff contracts into an Agile specification hierarchy tracking Epics, Features, User Stories, and System Use Cases.
 
