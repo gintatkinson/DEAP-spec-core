@@ -35,7 +35,7 @@ flowchart TD
     end
 
     Pipeline_0 -->|"Pipeline 0 Handoff JSON Contract (DEAP_MODEL.sysml AST)"| Pipeline_1
-    Pipeline_1 -->|"Approved Specification Backlog (Epics / Features / Stories / Use Cases)"| Pipeline_2
+    Pipeline_1 -->|"Approved Specification Backlog: Epics, Features, Stories, Use Cases"| Pipeline_2
 ```
 
 ### Vision for Zero-to-One Systems Engineering
