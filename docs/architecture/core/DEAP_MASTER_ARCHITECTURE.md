@@ -20,15 +20,15 @@ DEAP operates via a dual-pipeline master-worker system designed to handle specif
 ```mermaid
 flowchart TD
     subgraph Pipeline_1 ["Pipeline 1: Specification Engineering"]
-        Worker_A["Worker A: Schema Specification Engineer (YANG/OpenAPI/Protobuf -> Epics & Features)"]
-        Worker_B["Worker B: User Story Engineer (BDD Scenarios & GWT Statements)"]
-        Worker_C["Worker C: Use Case Engineer (Formal OOA/OOD & Realization Matrices)"]
-        Worker_D["Worker D: Specification Implementation Auditor (Spec Gap Analysis & Issue Backlog Sync)"]
+        Worker_A["Worker A: Schema Specification Engineer - YANG, OpenAPI, Protobuf to Epics & Features"]
+        Worker_B["Worker B: User Story Engineer - BDD Scenarios & GWT Statements"]
+        Worker_C["Worker C: Use Case Engineer - Formal OOA/OOD & Realization Matrices"]
+        Worker_D["Worker D: Specification Implementation Auditor - Spec Gap Analysis & Issue Backlog Sync"]
         Worker_A --> Worker_B --> Worker_C --> Worker_D
     end
 
     subgraph Pipeline_2 ["Pipeline 2: Feature Implementation Pipeline"]
-        Sub_Implementer["Context-Isolated Micro-Task Implementer Subagents (14 Execution Mandates)"]
+        Sub_Implementer["Context-Isolated Micro-Task Implementer Subagents - 14 Execution Mandates"]
         Review_Gate["Two-Stage Review & AST Parity Auditor Gate"]
         Sub_Implementer --> Review_Gate
     end

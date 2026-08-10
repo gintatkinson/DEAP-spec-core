@@ -20,14 +20,14 @@ The **Digital Engineering Agentic Pipeline (DEAP)** SysML v2 Ingestion Engine es
 ```mermaid
 flowchart TD
     subgraph "SysML v2 Source Models"
-        SysML_Text["SysML v2 Textual Models (.sysml)"]
-        SysML_Graph["SysML v2 Kernel Metamodel (KerML)"]
+        SysML_Text["SysML v2 Textual Models - .sysml"]
+        SysML_Graph["SysML v2 Kernel Metamodel - KerML"]
     end
 
     subgraph "DEAP Ingestion Engine"
-        AST_Parser["LALR(1) / ANTLR4 AST Parser\n(scripts/compile_sysml_v2.py)"]
+        AST_Parser["LALR(1) / ANTLR4 AST Parser - scripts/compile_sysml_v2.py"]
         Semantic_DAG["In-Memory Semantic Graph DAG"]
-        Safety_Annotation["Safety Annotation Binding Engine\n(@TriggersHazard, @SafetyRealises, @Layer)"]
+        Safety_Annotation["Safety Annotation Binding Engine - TriggersHazard, SafetyRealises, Layer"]
     end
 
     subgraph "Dual-Pipeline Projection & Synthesis"
@@ -37,10 +37,10 @@ flowchart TD
     end
 
     subgraph "Targets & Compliance"
-        GitHub_Tracker["GitHub Agile Backlog\n(Epics, Features, User Stories, Use Cases)"]
+        GitHub_Tracker["GitHub Agile Backlog - Epics, Features, User Stories, Use Cases"]
         MBD_Artifacts["Simulink slreq.ReqSet, Stateflow .sfx, Simulink.Bus"]
-        Safety_Code["Safety-Critical Code\n(SPARK Ada 2014, MISRA-C:2012, ROS2 C++)"]
-        Parity_Gate["AST Parity Auditor & Compliance Gate\n(tests/test_sysml_v2_traceability.py)"]
+        Safety_Code["Safety-Critical Code - SPARK Ada 2014, MISRA-C:2012, ROS2 C++"]
+        Parity_Gate["AST Parity Auditor & Compliance Gate - tests/test_sysml_v2_traceability.py"]
     end
 
     SysML_Text --> AST_Parser
@@ -75,9 +75,9 @@ The core ingestion entrypoint is implemented by `scripts/compile_sysml_v2.py`. T
 flowchart LR
     Source[".sysml Text File"] --> Lexer["Lexical Analyzer & Tokenizer"]
     Lexer --> Parser["LALR(1) Grammar Parser"]
-    Parser --> AST["Abstract Syntax Tree (AST)"]
+    Parser --> AST["Abstract Syntax Tree - AST"]
     AST --> Annotator["Annotation & Metadata Binder"]
-    Annotator --> DAG["Semantic Graph DAG (SysMLNode / SysMLEdge)"]
+    Annotator --> DAG["Semantic Graph DAG - SysMLNode and SysMLEdge"]
 ```
 
 ### 2.1 Grammar & Primitive Extraction
@@ -154,17 +154,17 @@ The Dual-Pipeline Agile Backlog Projection Engine deterministically maps the in-
 flowchart TD
     subgraph "SysML v2 Model Nodes"
         Pkg["package: FlightControlSubsystem"]
-        Req["requirement: REQ-ALT-001 (Altitude Hold)"]
+        Req["requirement: REQ-ALT-001 - Altitude Hold"]
         Part["part def: AltitudeSensorUnit"]
         Act["action: ProcessAltitudeSample"]
-        Haz["@TriggersHazard(id='HAZ-ALT-01', severity='Hazardous')"]
+        Haz["TriggersHazard - id='HAZ-ALT-01', severity='Hazardous'"]
     end
 
     subgraph "Backlog Projection Rules"
-        Rule_Epic["Package -> Epic Mapping"]
-        Rule_Feat["Requirement / Part -> Feature Mapping"]
-        Rule_Story["Action / State / Hazard -> BDD User Story"]
-        Rule_UC["System Interaction -> System Use Case"]
+        Rule_Epic["Package to Epic Mapping"]
+        Rule_Feat["Requirement or Part to Feature Mapping"]
+        Rule_Story["Action or State or Hazard to BDD User Story"]
+        Rule_UC["System Interaction to System Use Case"]
     end
 
     subgraph "GitHub Backlog Issues"
@@ -217,19 +217,19 @@ flowchart TD
     end
 
     subgraph "MATLAB / Simulink Integration Adapter"
-        Req_Exporter["Simulink Requirements Exporter\n(slreq.ReqSet API)"]
+        Req_Exporter["Simulink Requirements Exporter - slreq.ReqSet API"]
         SFX_Exporter["Stateflow .sfx Chart Generator"]
         Bus_Exporter["Simulink.Bus Definition Generator"]
     end
 
     subgraph "Tier-1 Commercial Deliverables"
-        SlReq_File["ReqSet File (.slreqx / .json)"]
-        Stateflow_Chart["Stateflow Chart (.sfx / .slx)"]
-        Simulink_Bus["Simulink Bus Objects (m-script / MAT)"]
+        SlReq_File["ReqSet File - .slreqx and .json"]
+        Stateflow_Chart["Stateflow Chart - .sfx and .slx"]
+        Simulink_Bus["Simulink Bus Objects - m-script and MAT"]
     end
 
     subgraph "Secondary Safety Exporters"
-        Medini["Ansys Medini Analyze (FMEA / FTA Worksheets)"]
+        Medini["Ansys Medini Analyze - FMEA and FTA Worksheets"]
         Windchill["PTC Windchill Quality Solutions"]
         EA["Enterprise Architect Safety Profiles"]
     end
@@ -346,11 +346,11 @@ Continuous compliance and structural parity are verified by `tests/test_sysml_v2
 ```mermaid
 sequenceDiagram
     autonumber
-    participant SysML as SysML v2 Source (.sysml)
-    participant Parser as AST Parser (compile_sysml_v2.py)
+    participant SysML as SysML v2 Source - .sysml
+    participant Parser as AST Parser - compile_sysml_v2.py
     participant Backlog as GitHub Backlog Engine
     participant Synthesizer as Code Synthesizer
-    participant Gate as AST Parity Auditor (pytest)
+    participant Gate as AST Parity Auditor - pytest
 
     SysML->>Parser: Parse textual model files
     Parser->>Backlog: Generate Epics, Features, User Stories
@@ -381,7 +381,7 @@ gantt
     title SysML v2 Ingestion Engine Phased Implementation Roadmap
     dateFormat  YYYY-MM-DD
     section Phase 1: Parser & DAG
-    AST Parser & Lexer (scripts/compile_sysml_v2.py) :p1a, 2026-08-15, 10d
+    AST Parser & Lexer - scripts/compile_sysml_v2.py :p1a, 2026-08-15, 10d
     Safety Annotation Extractor                      :p1b, after p1a, 5d
     section Phase 2: MATLAB Adapter
     Simulink slreq.ReqSet Exporter                   :p2a, after p1b, 7d
@@ -390,7 +390,7 @@ gantt
     Dual-Pipeline Backlog Projector                 :p3a, after p2b, 7d
     GitHub Issue Sync Integration                    :p3b, after p3a, 5d
     section Phase 4: Parity Gate
-    AST Parity Auditor (tests/test_sysml_v2_traceability.py) :p4a, after p3b, 7d
+    AST Parity Auditor - tests/test_sysml_v2_traceability.py :p4a, after p3b, 7d
     CI/CD Quality Gate Pipeline                      :p4b, after p4a, 5d
 ```
 
