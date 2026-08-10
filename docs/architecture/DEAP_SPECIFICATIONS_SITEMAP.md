@@ -12,7 +12,7 @@
 
 ### Authoritative Architecture & Blueprint Documents (Full URLs):
 - **Master Specifications Sitemap**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/DEAP_SPECIFICATIONS_SITEMAP.md
-- **Architecture Sitemap**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/SITEMAP.md
+- **Architecture Sitemap**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/DEAP_SPECIFICATIONS_SITEMAP.md
 - **Safety-Critical Real-Time UI Framework Blueprint**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/blueprints/SAFETY_CRITICAL_REALTIME_UI_FRAMEWORK.md
 - **Civil Avionic Safety Concept Paper**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/blueprints/DEAP_FLIGHT_SYSTEMS_SAFETY_CONCEPT_PAPER.md
 - **UAS Infrastructure Safety Concept Paper**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/blueprints/DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md

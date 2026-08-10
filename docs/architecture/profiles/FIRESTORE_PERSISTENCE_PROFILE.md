@@ -3,7 +3,7 @@
 ## 1. Context & Architectural Goals
 This document details the concrete implementation design for the **Firestore Persistence Adapter** profile. 
 
-This profile acts as one of the swappable backends under the abstract architecture defined in [feat-decoupled-persistence-layout-engine-design.md](file:///Users/perkunas/digital-pipeline-repo/docs/feat-decoupled-persistence-layout-engine-design.md). It satisfies the following goals:
+This profile acts as one of the swappable backends under the abstract architecture defined in [feat-domain-decoupling-solution.md](../../designs/feat-domain-decoupling-solution.md). It satisfies the following goals:
 1. **Decoupled Firestore Integration:** All Firestore SDK dependencies and client credentials are fully encapsulated inside the adapter module, with zero leaks into the presentation layer.
 2. **Document to Domain Model Translation:** Translating Firestore Document snapshots into agnostic, UI-bound Domain Models.
 3. **Local Standalone Run Capability:** Enabling local execution using the native Firestore emulator (port `8080`) with automated mock data seeding, requiring no internet connectivity or cloud credentials.

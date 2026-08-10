@@ -147,11 +147,11 @@ The core DEAP master architecture remains 100% domain-neutral and standard-agnos
 
 | Core Blueprint | Target Subsystem / Focus | Document Reference |
 | :--- | :--- | :--- |
-| **Pipeline 0 Solution Blueprint** | Front-End Systems & Safety Modeling Master Architecture | [`DEAP_PIPELINE_0_FRONTEND_SYSTEMS_SAFETY_BLUEPRINT.md`](file:///Users/perkunas/jail/DEAP-spec-core/docs/architecture/blueprints/DEAP_PIPELINE_0_FRONTEND_SYSTEMS_SAFETY_BLUEPRINT.md) |
-| **Persistence Architecture Blueprint** | Offline-First Local Database & Storage Synchronization | [`PERSISTENCE_ARCHITECTURE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/PERSISTENCE_ARCHITECTURE.md) |
-| **Runtime Metadata Engine Blueprint** | Dynamic Schema Locator & Metadata Rendering Engine | [`RUNTIME_METADATA_ENGINE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/RUNTIME_METADATA_ENGINE.md) |
-| **SpecKit Native Integration Blueprint** | SpecKit Specification Extraction & Code Realization Engine | [`SPECKIT_NATIVE_INTEGRATION.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/SPECKIT_NATIVE_INTEGRATION.md) |
-| **SysML v2 Ingestion Engine Blueprint** | SysML v2 AST Parser, Dual-Pipeline Agile Backlog Projection & 3-Layer Code Synthesis Engine | [`DEAP_SYSML_V2_INGESTION_ENGINE_BLUEPRINT.md`](file:///Users/perkunas/jail/DEAP-spec-core/docs/architecture/blueprints/DEAP_SYSML_V2_INGESTION_ENGINE_BLUEPRINT.md) |
+| **Pipeline 0 Solution Blueprint** | Front-End Systems & Safety Modeling Master Architecture | [`DEAP_PIPELINE_0_FRONTEND_SYSTEMS_SAFETY_BLUEPRINT.md`](../blueprints/DEAP_PIPELINE_0_FRONTEND_SYSTEMS_SAFETY_BLUEPRINT.md) |
+| **Persistence Architecture Blueprint** | Offline-First Local Database & Storage Synchronization | [`PERSISTENCE_ARCHITECTURE.md`](../blueprints/PERSISTENCE_ARCHITECTURE.md) |
+| **Runtime Metadata Engine Blueprint** | Dynamic Schema Locator & Metadata Rendering Engine | [`RUNTIME_METADATA_ENGINE.md`](../blueprints/RUNTIME_METADATA_ENGINE.md) |
+| **SpecKit Native Integration Blueprint** | SpecKit Specification Extraction & Code Realization Engine | [`SPECKIT_NATIVE_INTEGRATION.md`](../blueprints/SPECKIT_NATIVE_INTEGRATION.md) |
+| **SysML v2 Ingestion Engine Blueprint** | SysML v2 AST Parser, Dual-Pipeline Agile Backlog Projection & 3-Layer Code Synthesis Engine | [`DEAP_SYSML_V2_INGESTION_ENGINE_BLUEPRINT.md`](../blueprints/DEAP_SYSML_V2_INGESTION_ENGINE_BLUEPRINT.md) |
 
 ---
 

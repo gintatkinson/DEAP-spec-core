@@ -9,7 +9,7 @@ This report compiles the exhaustive findings from the three specialized sub-agen
 
 ### Root Cause 1: Lack of Parent-Child Nesting Mandate in UML Class Diagrams
 * **Observation**: In `feat-06-rateOfChange-vector.md` and other features, Class Diagrams show isolated classes (e.g. `rateOfChange` or `GeometrySystem` in `feat-02`) with no relationships.
-* **Why**: The Class Diagram template and guidelines in [schema-specification-engineering/SKILL.md](../../skills/schema-specification-engineering/SKILL.md) only instruct translating the immediate container class. They do not explicitly require showing parent-child composition (e.g. `geo-location *-- rateOfChange`) or cross-container associations (e.g. `rateOfChange`'s dependency on `reference-frame`).
+* **Why**: The Class Diagram template and guidelines in [schema-specification-engineering/SKILL.md](../../../skills/schema-specification-engineering/SKILL.md) only instruct translating the immediate container class. They do not explicitly require showing parent-child composition (e.g. `geo-location *-- rateOfChange`) or cross-container associations (e.g. `rateOfChange`'s dependency on `reference-frame`).
 * **Fix**: Update the `SKILL.md` UML Class Diagram guidelines to explicitly mandate that the diagram **must** show the class's nesting relationship to its parent container (up to the root container) and any dependencies on other containers.
 
 ### Root Cause 2: Underspecified "Test Data Shape"
@@ -29,7 +29,7 @@ This report compiles the exhaustive findings from the three specialized sub-agen
 
 ### Root Cause 1: Shallow Sequence Diagrams
 * **Observation**: UML Sequence Diagrams in User Stories show generic calls (e.g. `LocationProvider -> LocationRegistry -> VelocityTracker`) and do not model internal calculations, data storage flows, or validation checks.
-* **Why**: [spec-user-story-engineering/SKILL.md](../../skills/spec-user-story-engineering/SKILL.md) only mandates "dynamic interaction between the Actor and specific Domain Objects." It does not explicitly demand showing validation gates (e.g. calling a validator class), calculation blocks (e.g. calling a math utility helper), or details like parameters and return types.
+* **Why**: [spec-user-story-engineering/SKILL.md](../../../skills/spec-user-story-engineering/SKILL.md) only mandates "dynamic interaction between the Actor and specific Domain Objects." It does not explicitly demand showing validation gates (e.g. calling a validator class), calculation blocks (e.g. calling a math utility helper), or details like parameters and return types.
 * **Fix**: Update the sequence diagram requirements to explicitly show validation checks (calling a validator helper/service), business logic calculations, and parameters/returns.
 
 ### Root Cause 2: Missing Stories for Algorithmic & Derived States
@@ -45,7 +45,7 @@ This report compiles the exhaustive findings from the three specialized sub-agen
 ### Root Cause 1: Title-Only and State-Open-Only GitHub Queries in the Skill File
 * **Observation**: Use Case `uc-02-derive-rateOfChange-and-heading.md` links to User Story `us-04-track-rateOfChange-vector.md` in its realization matrix, but `us-04` contains no logic for rateOfChange and heading calculation.
 * **Why**:
-  1. In [spec-usecase-engineering/SKILL.md](../../skills/spec-usecase-engineering/SKILL.md) (Step 3), the agent is instructed to run `gh issue list --label "user-story" --state "open" --json number,title`. This only fetches the `number` and `title` of User Stories, forcing it to make matches based purely on lexical similarity of titles.
+  1. In [spec-usecase-engineering/SKILL.md](../../../skills/spec-usecase-engineering/SKILL.md) (Step 3), the agent is instructed to run `gh issue list --label "user-story" --state "open" --json number,title`. This only fetches the `number` and `title` of User Stories, forcing it to make matches based purely on lexical similarity of titles.
   2. The `--state "open"` filter prevents the agent from finding or linking to any User Stories that have already been closed/completed, even if they are the correct implementations. This leads to artificial matches where the agent maps to whichever open issues happen to be left in the queue.
 * **Fix**: 
   - Change the query in Step 3.1 to include both open and closed issues: `gh issue list --label "user-story" --state "all" --json number,title,body`.

@@ -65,9 +65,9 @@ Tier 1 operates before any file mutation or shell command execution occurs. It e
 Because hidden directories (such as `.pipeline/` and `.agents/`) are frequently bypassed by glob and index-search tools, Tier 1 mandates explicit, direct-path loading before initiating work.
 
 - **Mandatory Target Paths**:
-  - `file:///.agents/AGENTS.md` — Project-scoped agent rules, subagent dispatch rules, and Strict Planning Gate.
-  - `file:///.pipeline/constitution.md` — Platform-independent functional governance, domain constraints, zero-mocking mandates.
-  - `file:///.pipeline/profiles/<platform>.md` — Technical implementation profile (e.g. `flutter_profile.md`, `react_profile.md`).
+  - [`.agents/AGENTS.md`](../../../.agents/AGENTS.md) — Project-scoped agent rules, subagent dispatch rules, and Strict Planning Gate.
+  - [`.pipeline/constitution.md`](../../../.pipeline/constitution.md) — Platform-independent functional governance, domain constraints, zero-mocking mandates.
+  - [`.pipeline/profiles/<platform>.md`](../../../.pipeline/profiles/) — Technical implementation profile (e.g. `flutter_profile.md`, `react_profile.md`).
 
 ### 2.2 Rule Precedence Hierarchy
 
@@ -227,7 +227,7 @@ def test_repository_profile_compliance():
 
 ## 6. Source References
 
-- Verbatim Agent Rules: [AGENTS.md](file:///.agents/AGENTS.md)
-- Project Functional Constitution: [constitution.md](file:///.pipeline/constitution.md)
-- Constitution First Mandate: [constitution-first.md](file:///rules/constitution-first.md)
-- User Authorization Lock: [user-authorization-lock.md](file:///rules/user-authorization-lock.md)
+- Verbatim Agent Rules: [AGENTS.md](../../../.agents/AGENTS.md)
+- Project Functional Constitution: [constitution.md](../../../.pipeline/constitution.md)
+- Constitution First Mandate: [constitution-first.md](../../../rules/constitution-first.md)
+- User Authorization Lock: [user-authorization-lock.md](../../../rules/user-authorization-lock.md)
