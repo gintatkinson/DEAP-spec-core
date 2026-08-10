@@ -301,53 +301,53 @@ To satisfy RTCA DO-178C DAL A software requirements, each Unsafe Control Action 
 
 ##### Mathematical Derivation of Safety Constraints ($SC_1 \dots SC_{16}$)
 
-1. **$SC_1$ (Derivation from UCA-01):**  
-   $$\forall t, \left(h(t) < 500 \land V_{\mathrm{CAS}}(t) < V_{\mathrm{ref}} \land \alpha(t) > 12.0^{\circ} \land WoW = \mathrm{False}\right) \implies CA_{\mathrm{pitch-recovery}}(t) = \mathrm{ASSERTED}$$
+- **SC-01 (Derivation from UCA-01):**
+$$\forall t, \quad \left(h(t) < 500 \land V_{\text{CAS}}(t) < V_{\text{ref}} \land \alpha(t) > 12.0^{\circ} \land WoW = \text{False}\right) \implies CA_{\text{pitch-recovery}}(t) = \text{ASSERTED}$$
 
-2. **$SC_2$ (Derivation from UCA-02):**  
-   $$\forall t, \left(\alpha(t) > 14.5^{\circ} \lor V_{\mathrm{CAS}}(t) < V_{\mathrm{stall}} + 5\mathrm{~kts}\right) \implies CA_{\mathrm{pitch-up}}(t) \le 0.0^{\circ} \quad (\mathrm{Pitch~Clamp~Engaged})$$
+- **SC-02 (Derivation from UCA-02):**
+$$\forall t, \quad \left(\alpha(t) > 14.5^{\circ} \lor V_{\text{CAS}}(t) < V_{\text{stall}} + 5\text{ kts}\right) \implies CA_{\text{pitch-up}}(t) \le 0.0^{\circ} \quad (\text{Pitch Clamp Engaged})$$
 
-3. **$SC_3$ (Derivation from UCA-03):**  
-   $$\forall t, \quad t_{\mathrm{latency}}\left(CA_{\mathrm{aileron}}\right) \le 10\mathrm{~ms} \quad (\mathrm{ARINC~653~Execution~Bound})$$
+- **SC-03 (Derivation from UCA-03):**
+$$\forall t, \quad t_{\text{latency}}\left(CA_{\text{aileron}}\right) \le 10\text{ ms} \quad (\text{ARINC 653 Execution Bound})$$
 
-4. **$SC_4$ (Derivation from UCA-04):**  
-   $$\forall t, \left(Signal_{\mathrm{pilot-override}} = \mathrm{TRUE} \lor Signal_{\mathrm{ap-disengage}} = \mathrm{TRUE}\right) \implies Torque_{\mathrm{trim-drive}}(t + 5\mathrm{~ms}) = 0.0\mathrm{~Nm}$$
+- **SC-04 (Derivation from UCA-04):**
+$$\forall t, \quad \left(\text{Signal}_{\text{pilot-override}} = \text{True} \lor \text{Signal}_{\text{ap-disengage}} = \text{True}\right) \implies \text{Torque}_{\text{trim-drive}}(t + 5\text{ ms}) = 0.0\text{ Nm}$$
 
-5. **$SC_5$ (Derivation from UCA-05):**  
-   $$\forall t, \left(h(t) < 200 \land Dev_{\mathrm{glideslope}} > 1.5\mathrm{~dots} \land S_{\mathrm{phase}} = \mathrm{APPROACH}\right) \implies Mode_{\mathrm{GA-engage}}(t) = \mathrm{ASSERTED}$$
+- **SC-05 (Derivation from UCA-05):**
+$$\forall t, \quad \left(h(t) < 200 \land \text{Dev}_{\text{glideslope}} > 1.5\text{ dots} \land S_{\text{phase}} = \text{APPROACH}\right) \implies \text{Mode}_{\text{GA-engage}}(t) = \text{ASSERTED}$$
 
-6. **$SC_6$ (Derivation from UCA-06):**  
-   $$\forall t, \left(Status_{\mathrm{rad-alt}} = \mathrm{INVALID} \land h < 400\mathrm{~ft}\right) \implies Trim_{\mathrm{pitch-down}}(t) = \mathrm{INHIBITED}$$
+- **SC-06 (Derivation from UCA-06):**
+$$\forall t, \quad \left(\text{Status}_{\text{rad-alt}} = \text{INVALID} \land h < 400\text{ ft}\right) \implies \text{Trim}_{\text{pitch-down}}(t) = \text{INHIBITED}$$
 
-7. **$SC_7$ (Derivation from UCA-07):**  
-   $$\forall t, \left(Clearance_{\mathrm{ATC-altitude}} = \mathrm{FALSE}\right) \implies Mode_{\mathrm{VNAV-descent}}(t) = \mathrm{INHIBITED}$$
+- **SC-07 (Derivation from UCA-07):**
+$$\forall t, \quad \left(\text{Clearance}_{\text{ATC-altitude}} = \text{False}\right) \implies \text{Mode}_{\text{VNAV-descent}}(t) = \text{INHIBITED}$$
 
-8. **$SC_8$ (Derivation from UCA-08):**  
-   $$\forall t, \left(Mode_{\mathrm{GA}} = \mathrm{DISENGAGED}\right) \implies \left(t_{\mathrm{hold}}(CA_{\mathrm{nose-up}}) \le 0\mathrm{~ms}\right)$$
+- **SC-08 (Derivation from UCA-08):**
+$$\forall t, \quad \left(\text{Mode}_{\text{GA}} = \text{DISENGAGED}\right) \implies \left(t_{\text{hold}}(CA_{\text{nose-up}}) \le 0\text{ ms}\right)$$
 
-9. **$SC_9$ (Derivation from UCA-09):**  
-   $$\forall t, \left(V_{\mathrm{CAS}}(t) < 1.1 V_{\mathrm{stall}} \land h > 500\mathrm{~ft}\right) \implies Command_{\mathrm{thrust-increase}}(t) = \mathrm{MAX-TOGA}$$
+- **SC-09 (Derivation from UCA-09):**
+$$\forall t, \quad \left(V_{\text{CAS}}(t) < 1.1 V_{\text{stall}} \land h > 500\text{ ft}\right) \implies \text{Command}_{\text{thrust-increase}}(t) = \text{MAX-TOGA}$$
 
-10. **$SC_{10}$ (Derivation from UCA-10):**  
-    $$\forall t, \left(WoW = \mathrm{FALSE} \lor h(t) > 50\mathrm{~ft}\right) \implies Power_{\mathrm{reverser-solenoid}}(t) = \mathrm{ISOLATED} \quad (\mathrm{Hardware~Lockout})$$
+- **SC-10 (Derivation from UCA-10):**
+$$\forall t, \quad \left(WoW = \text{False} \lor h(t) > 50\text{ ft}\right) \implies \text{Power}_{\text{reverser-solenoid}}(t) = \text{ISOLATED} \quad (\text{Hardware Lockout})$$
 
-11. **$SC_{11}$ (Derivation from UCA-11):**  
-    $$\forall t, \left(h(t) > 30\mathrm{~ft~AGL}\right) \implies Thrust_{\mathrm{retard-command}}(t) = \mathrm{INHIBITED}$$
+- **SC-11 (Derivation from UCA-11):**
+$$\forall t, \quad \left(h(t) > 30\text{ ft AGL}\right) \implies \text{Thrust}_{\text{retard-command}}(t) = \text{INHIBITED}$$
 
-12. **$SC_{12}$ (Derivation from UCA-12):**  
-    $$\forall t, \left(V_{\mathrm{CAS}}(t) < 10\mathrm{~kts} \land WoW = \mathrm{TRUE}\right) \implies Reverser_{\text{actuator-drive}}(t + 500\mathrm{~ms}) = \mathrm{OFF}$$
+- **SC-12 (Derivation from UCA-12):**
+$$\forall t, \quad \left(V_{\text{CAS}}(t) < 10\text{ kts} \land WoW = \text{True}\right) \implies \text{Reverser}_{\text{actuator-drive}}(t + 500\text{ ms}) = \text{OFF}$$
 
-13. **$SC_{13}$ (Derivation from UCA-13):**  
-    $$\forall t, \left(\left|T_{\mathrm{eng1}} - T_{\mathrm{eng2}}\right| > 0.40 \land V_{\mathrm{CAS}} > V_1\right) \implies Rudder_{\mathrm{yaw-damper-comp}}(t) = \mathrm{ACTIVE}$$
+- **SC-13 (Derivation from UCA-13):**
+$$\forall t, \quad \left(\left|T_{\text{eng1}} - T_{\text{eng2}}\right| > 0.40 \land V_{\text{CAS}} > V_1\right) \implies \text{Rudder}_{\text{yaw-damper-comp}}(t) = \text{ACTIVE}$$
 
-14. **$SC_{14}$ (Derivation from UCA-14):**  
-    $$\forall t, \left(V_{\mathrm{CAS}}(t) > V_A\right) \implies \delta_{\mathrm{rudder-command}}(t) \le \delta_{\mathrm{max-safe}}\left(V_{\mathrm{CAS}}\right)$$
+- **SC-14 (Derivation from UCA-14):**
+$$\forall t, \quad \left(V_{\text{CAS}}(t) > V_A\right) \implies \delta_{\text{rudder-command}}(t) \le \delta_{\text{max-safe}}\left(V_{\text{CAS}}\right)$$
 
-15. **$SC_{15}$ (Derivation from UCA-15):**  
-    $$\forall t, \left(Timer_{\mathrm{minor-frame-partition1}} \ge 20\mathrm{~ms}\right) \implies Switch_{\mathrm{partition-context}}(t) = \mathrm{FORCED}$$
+- **SC-15 (Derivation from UCA-15):**
+$$\forall t, \quad \left(\text{Timer}_{\text{minor-frame-partition1}} \ge 20\text{ ms}\right) \implies \text{Switch}_{\text{partition-context}}(t) = \text{FORCED}$$
 
-16. **$SC_{16}$ (Derivation from UCA-16):**  
-    $$\forall t, \left(State_{\mathrm{partition1}} = \mathrm{EXECUTING-DAL-A}\right) \implies Interrupt_{\mathrm{preemption-partition4}}(t) = \mathrm{BLOCKED}$$
+- **SC-16 (Derivation from UCA-16):**
+$$\forall t, \quad \left(\text{State}_{\text{partition1}} = \text{EXECUTING-DAL-A}\right) \implies \text{Interrupt}_{\text{preemption-partition4}}(t) = \text{BLOCKED}$$
 
 ##### BDD Executable Proof Scenarios (DO-178C DAL A Verification Suite)
 
