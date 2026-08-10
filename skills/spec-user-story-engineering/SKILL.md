@@ -75,7 +75,7 @@ Create a new file in `docs/user-stories/us-[XX]-[name].md` (zero-padded, dash-se
 
 Format strictly:
 
-```markdown
+````markdown
 ---
 title: "[User Story Title]"
 type: "user-story"
@@ -148,6 +148,7 @@ stateDiagram-v2
 
 Structural Schema: [Target Schema File](link-to-schema)
 Normative Specification: [Normative Specification](link-to-specification)
+````
 
 > [!WARNING]
 > **Mermaid Block Closing Constraints & Code Fence Integrity:**

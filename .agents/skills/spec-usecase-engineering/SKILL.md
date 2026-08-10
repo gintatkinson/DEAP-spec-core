@@ -64,7 +64,7 @@ Create a new file in `docs/use-cases/uc-[XX]-[name].md` (zero-padded, dash-separ
 
 Format strictly:
 
-```markdown
+````markdown
 ---
 title: "[Use Case Title]"
 type: "use-case"
@@ -141,6 +141,7 @@ stateDiagram-v2
 ## Source References
 Structural Schema: [Target Schema File](link-to-schema)
 Normative Specification: [Normative Specification](link-to-specification)
+````
 
 > [!WARNING]
 > **Mermaid Block Closing Constraints & Code Fence Integrity:**
