@@ -29,6 +29,13 @@ Use this as the single canonical workflow for translating structural schemas and
 
 ## Step 1: Forensic Audit & Module Decomposition
 
+> [!IMPORTANT]
+> **MANDATORY PRE-EXECUTION INGESTION GATE (SysML v2)**
+> Before initiating Phase 1 decomposition, you MUST execute `sysmlv2_ingest.py` to convert input specification schemas (OMG IDL, AUTOSAR ARXML, Protobuf, OpenAPI) into canonical SysML v2 textual models and generate `.pipeline/schema-digest.json`:
+> ```bash
+> python3 skills/spec-orchestrator/scripts/sysmlv2_ingest.py --schema <schema-file-or-dir> --format auto --out schema.sysml
+> ```
+
 1. **Parse the Schema:** Read the primary structural schema file and its imports.
 2. **Categorize the Module (Utility vs. Functional)**:
    - Identify if the module contains only type helpers (`typedef`, `identity`, `grouping` definitions without concrete `container` or `list` data nodes).
@@ -142,15 +149,20 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     [High-level functional description and specification-engineering context of the schema module]
 
     ## 2. Requirements & Checklist
-    - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification and clause references)
+    - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) {{REQUIRED_JUSTIFICATION}}
 
     ### Associated Use Cases & User Stories
 
     #### Associated Use Cases
-    - [ ] #[IssueID] - [Use Case Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/use-cases/uc-XX-name.md) (semantic linkage justification and clause references)
+    - [ ] #[IssueID] - [Use Case Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/use-cases/uc-XX-name.md) {{REQUIRED_JUSTIFICATION}}
 
     #### Associated User Stories
-    - [ ] #[IssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) (semantic linkage justification and clause references)
+    - [ ] #[IssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) {{REQUIRED_JUSTIFICATION}}
+
+    > [!IMPORTANT]
+    > **EXPLICIT LINKAGE JUSTIFICATION TOKEN RULE**
+    > Subagents MUST replace all `{{REQUIRED_JUSTIFICATION}}` escape tokens with concise, context-specific semantic justifications. Leaving literal `{{REQUIRED_JUSTIFICATION}}` escape tokens or unreplaced placeholder text in generated Epic specifications is strictly prohibited and will trigger validator rejection.
+
 
     ## 3. Architecture
 
@@ -202,8 +214,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     [Verbatim schema grouping/container descriptions from the normative specification]
 
     ## 6. Source References
-    Structural Schema: [Schema File Name] (Clause: [Clause Number])
-    Normative Specification: [RFC/Standard Name] (Clause: [Clause Number])
+    {{REQUIRED_SOURCE_REF}}
     ````
 
 3. **Feature File Structure / Template:** Every feature specification markdown file MUST follow this exact section structure and ordering:
@@ -219,7 +230,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    # Feature: [Feature Title]
 
    ## Parent Epic
-   - [ ] #[EpicIssueID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) (semantic linkage justification)
+   - [ ] #[EpicIssueID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) {{REQUIRED_JUSTIFICATION}}
 
    ## Description
    [Functional description of the feature]
@@ -285,13 +296,16 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    [Raw normative specification context paragraphs]
 
    ## Source References
-   Structural Schema: [Target Schema File](link-to-schema) (Clause: [Clause Number])
-   Normative Specification: [Normative Specification](link-to-specification) (Clause: [Clause Number])
+   {{REQUIRED_SOURCE_REF}}
 
-   ## Logical UI & Layout Bindings
-   - **Target LUI Component:** [e.g. PropertyGrid, TableView, DensityTable, DataCard, TimeSeriesChart]
-   - **Target Layout Container ID:** [Specify the container ID from logical-layout.json]
-   - **Data Source Bindings:** [Specify the data source mappings from logical-layout.json]
+   ## Logical UI & Interface Bindings
+   {{REQUIRED_LUI}}
+
+   <!-- Multi-Channel (Multi-Interface) Format -->
+   | Interface Channel | Category | Target Component / Handler | Target Container / Endpoint | Data Source Binding |
+   | --- | --- | --- | --- | --- |
+   | gui | Visual GUI | StringInputField | elements_view | /schema:path |
+   | mcp | M2M API | MCPToolHandler | /mcp/tool | /schema:path |
    ````
 
    > [!WARNING]
@@ -314,51 +328,36 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    ````
    - Inject the exact absolute URLs pointing to the authoritative structural schema and normative text document provided by the user. Do not omit this.
 
-5. **Logical UI & Layout Bindings Block (MANDATORY):**
-   - Every feature specification markdown file MUST contain a `## Logical UI & Layout Bindings` section at the end of the file.
+5. **Logical UI & Interface Bindings Block (MANDATORY):**
+   - Every feature specification markdown file MUST contain a `## Logical UI & Interface Bindings` section at the end of the file (unless exempt as a non-UI feature).
+   - Features may format interface bindings as a single-channel 3-bullet locator list or as a multi-channel Multi-Interface Binding Table (`| Interface Channel | Category | Target Component / Handler | Target Container / Endpoint | Data Source Binding |`).
    - You MUST map the feature's container and leaf nodes to:
-     - The target LUI component (e.g. `PropertyGrid`, `TableView`, `DensityTable`, `DataCard`, `TimeSeriesChart`, `TelemetryFeed`).
-     - The specific target layout container ID in `logical-layout.json`.
-     - The data source bindings. **CRITICAL PATH DERIVATION RULE**: You are strictly forbidden from copy-pasting generic template or placeholder namespaces (such as `schema:generic-topology`). You MUST derive the data source path directly from the fully-qualified path of the target schema container augmented in the network inventory model (e.g. `/nwi:network-inventory/nil:locations/nil:location/nil:geo-location/nil:reference-frame` or `/nwi:network-inventory/nil:locations/nil:racks/nil:rack`).
-   - **Logical UI Binding Validation Rules**: the bindings block is checked mechanically
-     by `parity_auditor/validators/logical_ui_validator.py`. The checks below were
-     enforced before issue #304 and stated in no document, so a drafting subagent could
-     not comply with them; they are stated here because each one constrains how a Feature
-     file is written.
-     - **Layout Bindings Section Required**: every Feature MUST carry the
-       `## Logical UI & Layout Bindings` section. A Feature is exempt only if its
-       frontmatter declares an `interface_type` of `api`, `config`, `persistence`,
-       `gate`, `cli` or `backend` — a Feature with no interface at all has nothing to
-       bind. Anything else is treated as a UI Feature and must bind.
+     - The target LUI component or M2M/Hardware handler (e.g. `StringInputField`, `TableView`, `MCPToolHandler`, `RegisterBuffer`), or `Unbound (Deferred to Implementation Profile)`.
+     - The specific target layout container ID in `logical-layout.json` or API endpoint path, or `Unbound (Deferred to Implementation Profile)`.
+     - The data source bindings. **CRITICAL PATH DERIVATION RULE**: You are strictly forbidden from copy-pasting generic template or placeholder namespaces (such as `schema:generic-topology`). You MUST derive the data source path directly from the exact, authoritative schema path locator of the target schema container augmented in the network inventory model (e.g. `/nwi:network-inventory/nil:locations/nil:location/nil:geo-location/nil:reference-frame` or `/nwi:network-inventory/nil:locations/nil:racks/nil:rack`), or state `Unbound (Deferred to Implementation Profile)`. Literal placeholder strings (`#X`, `Task Y`) are strictly prohibited.
+   - **Logical UI & Interface Binding Validation Rules**: the bindings block is checked mechanically
+     by `parity_auditor/validators/logical_ui_validator.py`.
+     - **Interface Bindings Section Required**: every Feature MUST carry the
+       `## Logical UI & Interface Bindings` section. A Feature is exempt only if its
+       frontmatter declares non-UI interface types (`config`, `persistence`, `gate`, `cli`, `backend`).
      - **Feature Frontmatter Must Parse**: the YAML frontmatter MUST be well formed. It
-       carries `interface_type`, which is what decides whether the exemption above
-       applies, so a Feature whose frontmatter does not parse cannot be classified and is
-       reported rather than silently exempted.
-     - **Target Component Must Exist In The Layout**: the `Target LUI Component` MUST name
-       a component type actually instantiated in `logical-layout.json`, or be `N/A`.
-       Naming a component that the layout never instantiates specifies a binding to
-       nothing.
-     - **Target Container Must Exist In The Layout**: the `Target Layout Container ID`
-       MUST name a container `id` present in `logical-layout.json`, or be `N/A`.
+       carries `interface_type` (scalar or array e.g. `["gui", "mcp"]`) or `interface_types`.
+     - **Interface Channel Row Required**: every channel listed in the frontmatter array MUST have a corresponding row in the Multi-Interface Binding Table.
+     - **Raw N/A Fallback Strings Strictly Prohibited**: raw `N/A` fallback strings and literal placeholder strings (`#X`, `Task Y`) are strictly prohibited across all single-channel lists and multi-channel binding tables. Explicit binding or setting to `Unbound (Deferred to Implementation Profile)` MUST be used instead.
+     - **Target Component Must Exist In The Layout or State Unbound**: raw `N/A` strings and literal placeholder strings (`#X`, `Task Y`) are strictly prohibited. The `Target LUI Component` MUST name a canonical component type actually instantiated in `logical-layout.json` or canonical LUMI dictionary (e.g. `StringInputField`, `TableView`, `MCPToolHandler`, `RegisterBuffer`), or set to `Unbound (Deferred to Implementation Profile)`.
+     - **Target Container Must Exist In The Layout or State Unbound**: raw `N/A` strings and literal placeholder strings (`#X`, `Task Y`) are strictly prohibited. The `Target Layout Container ID` MUST name a container `id` present in `logical-layout.json` or target endpoint, or set to `Unbound (Deferred to Implementation Profile)`.
      - **Component Must Match Its Container Type**: where both are given, the component
-       type MUST equal the declared type of the target container. Binding a `TableView`
-       into a container the layout declares a `PropertyGrid` is a contradiction the
-       renderer resolves arbitrarily. `TopologyMap` in `topology_pane` is the one
-       sanctioned exception.
-     - **Data Source Bindings Must Be Schema Paths**: each entry MUST be `N/A`, or begin
-       with `/`, `schema:` or `provider:`, and MUST NOT contain spaces. Prose in this
-       field reads as a binding and resolves to nothing.
+       type MUST equal the declared type of the target container.
+     - **Data Source Bindings Must Be Schema Paths or State Unbound**: raw `N/A` strings and literal placeholder strings (`#X`, `Task Y`) are strictly prohibited. Each entry MUST be an exact, authoritative schema path locator beginning with `/`, `schema:` or `provider:` and MUST NOT contain spaces or placeholder strings, OR set to `Unbound (Deferred to Implementation Profile)`.
      - **Data Source Bindings Must Omit Choice And Case Nodes**: a YANG `choice` or `case`
        node is a schema-modelling construct and does not appear in the data tree, so it
-       MUST NOT appear in a data path. Bind to the node inside the case instead (allowing data paths to bind directly to target attributes within choice branches).
+       MUST NOT appear in a data path.
      - **Augmented Nodes Must Carry Their Module Prefix**: once a path enters an augmented
        subtree, every following segment MUST carry the augmenting module's prefix (e.g.
-       `nil:location`, not `location`). An un-prefixed segment resolves against the wrong
-       module or not at all.
+       `nil:location`, not `location`).
      - **Spatial Features Must Bind A Spatial Component**: a Feature whose text carries
        geodetic or spatial attributes MUST bind to `TopologyMap`, `TopographicalView`,
-       `GeoSpatialViewer`, `PropertyGrid` or `TableView`. Spatial data bound to a
-       component that cannot render position is specified and undisplayable.
+       `GeoSpatialViewer`, `PropertyGrid` or `TableView`.
    - **Geolocation & Geodetic Semantic Mapping Rules**:
      - Geolocation and geodetic attributes (such as reference-frame, geodetic-system, coordinates, velocity, geo-location, geodetic, latitude, longitude, altitude, elevation, datum, position, and spatial) represent child properties of concrete parent components.
      - You MUST map these geodetic attributes to details panels and tables (such as `PropertyGrid` with container ID `properties_view`, or `TableView` with container ID `components_table`) that are actively instantiated in the layout.

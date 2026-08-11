@@ -647,4 +647,45 @@ Standardize official product name to Digital Engineering Agent Platform (DEAP) a
 
 Non-destructive: product name updated to Digital Engineering Agent Platform (DEAP), line count preserved at 236 lines, governance rules preserved.
 
+---
+
+## AMEND-0016 — Add Downstream Single Source of Truth (SSOT) & Clean Baseline Mandate
+
+- **Date:** 2026-08-11
+- **Logged:** 2026-08-11
+- **Motivating issue:** 5-Whys Root Cause Remediation for Downstream Single Source of Truth & Clean Baseline Linters
+- **Approved by:** "PROCEED" — approved implementation plan for 5-Whys root cause remediation.
+- **Destructive:** no
+- **Line count:** 239
+- **Resulting SHA-256:** `76f73f60b1b5c2dd3be5c6327537ddd4c2fda17cabd3985b550534311a71ec56`
+
+### Change
+
+Section *Downstream Conformance Gates*, added subsection `### Downstream Single Source of Truth (SSOT) & Clean Baseline Mandate`.
+
+Before:
+
+> ### Downstream Conformance Gates
+> - Prior to integrating any downstream application implementation, the project MUST be bootstrapped and verified.
+> - The downstream project must be initialized using the configured bootstrap script.
+> - Baseline conformance must be verified using the configured verification script, which asserts that all baseline files are present, validates type compatibility, and compiles/tests the project with a clean exit code.
+
+After:
+
+> ### Downstream Conformance Gates
+> - Prior to integrating any downstream application implementation, the project MUST be bootstrapped and verified.
+> - The downstream project must be initialized using the configured bootstrap script.
+> - Baseline conformance must be verified using the configured verification script, which asserts that all baseline files are present, validates type compatibility, and compiles/tests the project with a clean exit code.
+>
+> ### Downstream Single Source of Truth (SSOT) & Clean Baseline Mandate
+> - **Single Source of Truth (SSOT)**: Master architecture blueprints (`DEAP_MASTER_ARCHITECTURE.md`, `THREE_TIER_GOVERNANCE_BLUEPRINT.md`, `DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml`) reside exclusively in the central upstream specification repository (`digital-pipeline-repo`). Downstream repositories are strictly forbidden from copying or duplicating master blueprints locally. All downstream projects MUST reference upstream specifications via URLs or relative submodule paths.
+> - **Clean Baseline & Version Control Mandate**: Every downstream repository MUST maintain a valid `.gitignore` file in its root directory. OS-generated metadata files (such as `.DS_Store`) and build artifacts are strictly forbidden from being committed or present in the working tree or git index.
+
+### Rationale
+
+Add explicit Downstream Single Source of Truth (SSOT) & Clean Baseline Mandate under `### Downstream Conformance Gates` in `.pipeline/constitution.md`, forbidding master blueprint duplication in downstream projects and requiring a root `.gitignore` file.
+
+Non-destructive: additive subsection, line count increased from 235 to 239 lines, governance rules preserved.
+
+
 

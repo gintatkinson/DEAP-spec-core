@@ -3,7 +3,7 @@ title: "Project Constitution — Functional Layer"
 project: "Digital Engineering Agent Platform (DEAP)"
 tier: functional
 created: "2026-06-29"
-last_updated: "2026-08-10"
+last_updated: "2026-08-11"
 ---
 
 # Project Constitution: Digital Engineering Agent Platform (DEAP)
@@ -205,6 +205,10 @@ The pipeline mechanically enforces 15 active quality gates that halt execution o
 - Prior to integrating any downstream application implementation, the project MUST be bootstrapped and verified.
 - The downstream project must be initialized using the configured bootstrap script.
 - Baseline conformance must be verified using the configured verification script, which asserts that all baseline files are present, validates type compatibility, and compiles/tests the project with a clean exit code.
+
+### Downstream Single Source of Truth (SSOT) & Clean Baseline Mandate
+- **Single Source of Truth (SSOT)**: Master architecture blueprints (`DEAP_MASTER_ARCHITECTURE.md`, `THREE_TIER_GOVERNANCE_BLUEPRINT.md`, `DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml`) reside exclusively in the central upstream specification repository (`digital-pipeline-repo`). Downstream repositories are strictly forbidden from copying or duplicating master blueprints locally. All downstream projects MUST reference upstream specifications via URLs or relative submodule paths.
+- **Clean Baseline & Version Control Mandate**: Every downstream repository MUST maintain a valid `.gitignore` file in its root directory. OS-generated metadata files (such as `.DS_Store`) and build artifacts are strictly forbidden from being committed or present in the working tree or git index.
 
 ## CMMI Level 3 & Scrum Issue Lifecycle Rules
 

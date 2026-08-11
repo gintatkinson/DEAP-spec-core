@@ -110,7 +110,6 @@ _EXCLUDED_DIRS = {
 _SCAN_ROOTS = [
     REPO_ROOT,
     os.path.join(REPO_ROOT, "implementation_plan.md"),
-    os.path.join(REPO_ROOT, ".pipeline", "records"),
 ]
 # This file names the forbidden construct in order to forbid it.
 _SELF = os.path.abspath(__file__)
@@ -177,11 +176,12 @@ def test_the_symlink_probe_hazard_is_documented():
 
 def test_every_realized_feature_has_governance_record():
     """Enforces that for every /// Realises: [Feat-X] tag in Dart files under app_flutter/lib/,
-    a corresponding .pipeline/records/feat-x.md file exists on disk with required sections."""
+    if .pipeline/records/ exists, a corresponding record file exists on disk with required sections."""
     lib_dir = os.path.join(REPO_ROOT, "app_flutter", "lib")
     records_dir = os.path.join(REPO_ROOT, ".pipeline", "records")
     assert os.path.isdir(lib_dir), f"{lib_dir} missing"
-    assert os.path.isdir(records_dir), f"{records_dir} missing"
+    if not os.path.isdir(records_dir):
+        return  # .pipeline/records/ has been purged from upstream governance
 
     tag_pattern = re.compile(r"///\s*Realises:\s*\[\s*(Feat-\d+|UC-\d+)", re.IGNORECASE)
     realized_features = set()
@@ -402,6 +402,36 @@ def test_no_mock_classes_in_workspace():
         f"Found class declarations starting with Mock or Fake in workspace:\n"
         + "\n".join(offending_lines)
     )
+
+
+# --------------------------------------------------------------------------- #
+# 11. Upstream .pipeline/ contains ONLY governance files (#365).
+# --------------------------------------------------------------------------- #
+
+def test_upstream_pipeline_contains_only_governance_files():
+    """Asserts that .pipeline/ contains ONLY upstream framework governance files
+    (constitution.md, constitution-amendments.md, logical-ui/, profiles/, scripts/, upstream/)
+    and no leftover domain_specs, records, or diagnostics directories.
+    """
+    pipeline_dir = os.path.join(REPO_ROOT, ".pipeline")
+    assert os.path.isdir(pipeline_dir), f"{pipeline_dir} missing"
+
+    allowed_entries = {
+        "constitution.md",
+        "constitution-amendments.md",
+        "logical-ui",
+        "profiles",
+        "scripts",
+        "upstream",
+    }
+    actual_entries = set(os.listdir(pipeline_dir))
+    
+    unexpected = actual_entries - allowed_entries
+    assert not unexpected, (
+        f".pipeline/ contains non-governance artifacts: {sorted(unexpected)}. "
+        f"Expected ONLY: {sorted(allowed_entries)}"
+    )
+
 
 
 

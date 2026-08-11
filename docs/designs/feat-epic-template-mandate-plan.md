@@ -71,7 +71,7 @@ This restores all child features, stories, and use cases to the local disk witho
        [*] --> Unconfigured
        Unconfigured --> Configured : Configure reference-frame
        Configured --> Active : Set location coordinates
-       Active --> Expired : System time > valid-until
+        Active --> Expired : "System time > valid-until"
        Active --> Configured : Clear coordinates
        Expired --> Active : Update valid-until / coordinates
    ```

@@ -71,7 +71,7 @@ def test_pipeline_dirs_staged_after_setup(tmp_path):
         assert found, f"Directory not staged: {d}"
 
 
-def test_hooks_removed_by_setup(tmp_path):
+def test_hooks_configured_by_setup(tmp_path):
     script = _make_repo(tmp_path, init_git=False)
     hooks_dir = tmp_path / ".git" / "hooks"
 
@@ -84,7 +84,8 @@ def test_hooks_removed_by_setup(tmp_path):
     result = _run_script(script, tmp_path)
     assert result.returncode == 0, result.stderr
 
-    assert not pre_commit.exists(), "pre-commit hook was not removed"
+    assert pre_commit.exists(), "pre-commit hook was not installed"
+    assert "verify_subagent_output.py" in pre_commit.read_text()
     assert not pre_push.exists(), "pre-push hook was not removed"
 
 

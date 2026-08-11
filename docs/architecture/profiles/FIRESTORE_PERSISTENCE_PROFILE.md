@@ -55,10 +55,10 @@ To persist the geometry models, data is stored in two root collections: `nodes` 
   ```json
   {
     "uuid": "node-01",
-    "name": "Tokyo-Gateway-01",
-    "type": "ROUTER",
+    "name": "NODE_INSTANCE_01",
+    "type": "PRIMARY_TYPE",
     "referenceFrame": {
-      "astronomicalBody": "earth",
+      "referenceSystem": "SYSTEM_PRIMARY",
       "geometrySystem": {
         "datum": "geometry",
         "coordAccuracy": 1.5,
@@ -168,7 +168,7 @@ connectFirestoreEmulator(db, '127.0.0.1', 8080);
 
 async function seed() {
   await setDoc(doc(db, 'nodes', 'node-01'), {
-    name: "Tokyo-Gateway-01",
+    name: "NODE_INSTANCE_01",
     dim_0: 35.6762,
     dim_1: 139.6503,
     dim_2: 40.5

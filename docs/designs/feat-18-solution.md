@@ -22,11 +22,11 @@ This document summarizes the changes, codebase adjustments, and verification det
 
 | Feature Component | Realization Tag | File Path | Properties & Realized Behavior |
 | :--- | :--- | :--- | :--- |
-| Argument Parsing | N/A (Script Enhancement) | [verify_downstream_baseline.py](scripts/verify_downstream_baseline.py) | Added `--no-domain` flag to the command parser. |
-| React Baseline Adjustments | N/A (Script Enhancement) | [verify_downstream_baseline.py](scripts/verify_downstream_baseline.py) | Conditionally removes `src/types.ts` from mandated list if `--no-domain` is active. |
-| Flutter Baseline Adjustments | N/A (Script Enhancement) | [verify_downstream_baseline.py](scripts/verify_downstream_baseline.py) | Conditionally removes `lib/domain/types.dart` from mandated list if `--no-domain` is active. |
-| Domain Validation Bypass | N/A (Script Enhancement) | [verify_downstream_baseline.py](scripts/verify_downstream_baseline.py) | Bypasses loading of mandated classes and checks on types file structure if `--no-domain` is active. |
-| Compliance Documentation | N/A (Documentation Update) | [README.md](README.md) | Documented the option under "Running Compliance Verification Gates" in README. |
+| Argument Parsing | N/A (Script Enhancement) | [verify_downstream_baseline.py](../../scripts/verify_downstream_baseline.py) | Added `--no-domain` flag to the command parser. |
+| React Baseline Adjustments | N/A (Script Enhancement) | [verify_downstream_baseline.py](../../scripts/verify_downstream_baseline.py) | Conditionally removes `src/types.ts` from mandated list if `--no-domain` is active. |
+| Flutter Baseline Adjustments | N/A (Script Enhancement) | [verify_downstream_baseline.py](../../scripts/verify_downstream_baseline.py) | Conditionally removes `lib/domain/types.dart` from mandated list if `--no-domain` is active. |
+| Domain Validation Bypass | N/A (Script Enhancement) | [verify_downstream_baseline.py](../../scripts/verify_downstream_baseline.py) | Bypasses loading of mandated classes and checks on types file structure if `--no-domain` is active. |
+| Compliance Documentation | N/A (Documentation Update) | [README.md](../../README.md) | Documented the option under "Running Compliance Verification Gates" in README. |
 
 ---
 

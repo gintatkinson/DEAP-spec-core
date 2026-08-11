@@ -9,7 +9,7 @@ spec_source: "Project Constitution"
 # Feature: Automated Self-Documentation and UML Traceability Verification Gate
 
 ## Parent Epic
-- [x] #310 - [Epic 28](https://github.com/gintatkinson/digital-pipeline-repo/blob/master/docs/epics/epic-28-traceability-gate.md)
+- [x] #310 - Epic 28
 
 
 ## UML Class Diagram

@@ -128,8 +128,8 @@ This logic contains a **major loophole**:
 ```mermaid
 graph TD
     A[Start Behavioral Audit] --> B[Parse Schema Nodes]
-    B --> C{Contains any of Dim_0/Dim_1/Dim_2/etc.?}
-    C -- No --> D[Pass/Skip Trigger]
+    B --> C{"Contains any of Dim_0/Dim_1/Dim_2/etc.?"}
+    C -- No --> D["Pass/Skip Trigger"]
     C -- Yes --> E[Scan User Stories Directory]
     E --> F[Check user-story-1.md]
     F --> G{Contains sequenceDiagram + stopPropagation?}

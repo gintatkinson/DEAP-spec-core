@@ -1,6 +1,6 @@
 ---
 title: "Implementation Profile — Flutter"
-project: "Digital Engineering Agentic Pipeline (DEAP)"
+project: "Digital Engineering Agent Platform (DEAP)"
 tier: implementation
 platform: flutter
 created: "2026-06-29"
@@ -104,4 +104,15 @@ meaningless on another platform — see `rules/platform-independence.md`
 - Auth provider: Authentication is injected at the DataSource layer. The abstract `DataSource` interface does not prescribe an auth mechanism. Concrete implementations may use token-based, certificate-based, or unauthenticated access as appropriate.
 - Data protection: All database files stored in the platform's application support directory. No sensitive data stored without encryption. Transport security (TLS) enforced for all remote data source connections.
 - Logging: Structured logging via `dart:developer` in debug builds only. No personally identifiable information (PII) may be logged.
+
+## LUI Resolution Guidelines
+Micro-task implementers MUST follow these guidelines to resolve unbound specification bindings (`Unbound (Deferred to Implementation Profile)`) into concrete Flutter UI components during implementation profile execution:
+1. *Layout Manifest Resolution*: Inspect `.pipeline/logical-ui/logical-layout.json` (or `app_flutter/assets/logical-layout.json`) to determine the target container ID and component structure.
+2. *Unbound Binding Resolution*:
+   - If a specification sets `Target Interface Component` or `Target Container / Endpoint` to `Unbound (Deferred to Implementation Profile)`, the micro-task implementer is responsible for mapping the feature data fields to concrete UI widgets.
+   - Key-value attributes and schema properties MUST map to `PropertyGrid` or `ConfigurationForm` inside containers such as `details_and_relations_tab`, `properties_view`, or `elements_view`.
+   - Tabular, multi-item, or collection data fields MUST map to `TableView` or `DensityTable` inside containers such as `elements_view` or `components_table`.
+   - Numeric inputs, ranges, or bounded parameters MUST map to `NumericSpinBox` or specialized numeric input controls.
+3. *Data Source Binding Resolution*: Authoritative schema paths (e.g. `/nwi:network-inventory/...` or `schema:...`) specified in the feature MUST be bound directly to the corresponding Flutter ViewModel properties and widget controllers.
+
 

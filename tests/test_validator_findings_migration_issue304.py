@@ -69,6 +69,8 @@ MIGRATED = (
     "uml.py",
     "docstring_validator.py",
     "profile_compliance_validator.py",
+    "dispatch_preamble_validator.py",
+    "plan_validator.py",
 )
 
 # Migrated, but deliberately NOT wired into AGGREGATING_VALIDATORS. Each entry states
@@ -282,8 +284,11 @@ def test_the_remainder_is_empty_because_migration_is_complete_issue304():
     )
 
 
-@pytest.mark.parametrize("filename,expected", sorted(NOT_YET_MIGRATED.items()))
+@pytest.mark.parametrize("filename,expected", sorted(NOT_YET_MIGRATED.items()) or [("__none__", 0)])
 def test_unmigrated_site_count_is_recorded_issue304(filename, expected):
+    if filename == "__none__":
+        assert expected == 0
+        return
     actual = len(_emission_sites(_parse(filename)))
     assert actual == expected, (
         f"{filename}: {actual} emission sites, ledger says {expected}. If sites were "

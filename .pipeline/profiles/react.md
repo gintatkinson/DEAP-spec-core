@@ -1,6 +1,6 @@
 ---
 title: "Implementation Profile — React Platform"
-project: "Digital Engineering Agentic Pipeline (DEAP)"
+project: "Digital Engineering Agent Platform (DEAP)"
 tier: implementation
 platform: "react"
 version: "1.0.0"
@@ -114,3 +114,14 @@ last_updated_time: "2026-06-20T13:13:00+08:00"
   - **ONLY public-facing keys** (such as Firebase client keys that have domain/IP origin restrictions configured on the provider console) are permitted to be compiled into client-side bundles.
   - **Administrative secrets** (such as database write passwords, service account private keys, or API private keys) must **never** be compiled into the frontend. They must be managed via a secure backend vault (like GCP Secret Manager) and accessed through secure backend endpoints with proper IAM controls.
 - **CORS/CSP:** Hosted deployments must configure strict server CORS headers and Content Security Policies. HTTPS is mandatory for all network connections.
+
+## LUI Resolution Guidelines
+Micro-task implementers MUST follow these guidelines to resolve unbound specification bindings (`Unbound (Deferred to Implementation Profile)`) into concrete React UI components during implementation profile execution:
+1. *Layout Manifest Resolution*: Inspect `.pipeline/logical-ui/logical-layout.json` to determine the target layout container ID and component hierarchy.
+2. *Unbound Binding Resolution*:
+   - If a specification sets `Target Interface Component` or `Target Container / Endpoint` to `Unbound (Deferred to Implementation Profile)`, the micro-task implementer is responsible for mapping the feature data fields to concrete React components.
+   - Key-value attributes and schema properties MUST map to `PropertyGrid` inside containers such as `details_and_relations_tab`, `properties_view`, or `elements_view`.
+   - Tabular, collection, or multi-item data fields MUST map to `TableView` or `DensityTable` inside workspace split containers such as `elements_view` or `components_table`.
+   - Numeric inputs or bounded scalar values MUST map to `NumericSpinBox` or specialized numeric input controls.
+3. *Data Source Binding Resolution*: Authoritative schema paths (e.g. `/nwi:network-inventory/...` or `schema:...`) specified in the feature MUST be bound directly to the corresponding React component props, state hooks, and repository adapters.
+

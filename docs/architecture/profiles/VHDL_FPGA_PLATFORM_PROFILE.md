@@ -16,8 +16,8 @@ At the hardware description level, we implement the software adapter/repository 
 ```mermaid
 flowchart LR
     subgraph Core_Logic ["Internal Processing Logic (Agnostic Domain)"]
-        DSP_Core[DSP / Logic Processing Core]
-        Reg_Map[Internal Register Map BRAM/Registers]
+        DSP_Core["DSP / Logic Processing Core"]
+        Reg_Map["Internal Register Map BRAM/Registers"]
     end
 
     subgraph Interface_Wrappers ["Heterogeneous Bus-Wrappers (Adapters)"]
@@ -30,11 +30,11 @@ flowchart LR
         TB_Stim[Testbench Stimulus Vector File]
     end
 
-    DSP_Core <-->|Reads/Writes via Local Addresses| Reg_Map
-    Reg_Map <-->|Shared Register Access| Interface_Wrappers
+    DSP_Core ---|"Reads/Writes via Local Addresses"| Reg_Map
+    Reg_Map ---|"Shared Register Access"| Interface_Wrappers
     TB_Stim -->|Feeds Signals| SPI_Wrap
-    AXI_Lite <-->|AXI4 Bus Signals| Host_CPU[Host CPU / Zynq ARM Core]
-    PCIe_Wrap <-->|PCIe Bus Pins| Ext_PCIe[PCIe Host Controller]
+    AXI_Lite ---|"AXI4 Bus Signals"| Host_CPU["Host CPU / Zynq ARM Core"]
+    PCIe_Wrap ---|"PCIe Bus Pins"| Ext_PCIe[PCIe Host Controller]
 ```
 
 ### Architectural Principles:

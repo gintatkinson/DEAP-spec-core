@@ -27,6 +27,8 @@ import re
 import subprocess
 import sys
 
+import pytest
+
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 LINTER = os.path.join(
     REPO_ROOT, "skills", "spec-orchestrator", "scripts", "verify_model_coverage.py"
@@ -62,7 +64,7 @@ def test_linter_accepts_an_only_scope_argument_issue331():
     )
 
 
-def test_only_scope_suppresses_findings_about_other_files_issue321():
+def test_only_scope_suppresses_findings_about_other_files_issue321(tmp_path):
     """Scoping to one item must stop reporting a different item's problems.
 
     Asserted as suppression rather than "a clean file now passes": the corpus-wide
@@ -73,12 +75,35 @@ def test_only_scope_suppresses_findings_about_other_files_issue321():
         [sys.executable, LINTER, "--spec-only"],
         capture_output=True, text=True, cwd=REPO_ROOT, timeout=180,
     )
+    target, other = "feat-13-zero-codegen-grid.md", "feat-28-traceability-gate.md"
+    cwd_dir = REPO_ROOT
+    if unscoped.returncode == 0:
+        import json
+        rules_path = os.path.abspath(os.path.join(REPO_ROOT, ".pipeline", "logical-ui", "codebase_rules.json"))
+        with open(rules_path, "r", encoding="utf-8") as f:
+            rdata = json.load(f)
+        os.makedirs(tmp_path / ".pipeline" / "logical-ui", exist_ok=True)
+        os.makedirs(tmp_path / "docs" / "features", exist_ok=True)
+        with open(tmp_path / ".pipeline" / "logical-ui" / "codebase_rules.json", "w", encoding="utf-8") as f:
+            json.dump(rdata, f)
+
+        target, other = "feat-01-first.md", "feat-02-second.md"
+        with open(tmp_path / "docs" / "features" / target, "w", encoding="utf-8") as f:
+            f.write("# Feature 1\n```mermaid\nclass A {\n  +bad: invalid\n}\n```\n")
+        with open(tmp_path / "docs" / "features" / other, "w", encoding="utf-8") as f:
+            f.write("# Feature 2\n```mermaid\nclass B {\n  +bad: invalid\n}\n```\n")
+
+        cwd_dir = str(tmp_path)
+        unscoped = subprocess.run(
+            [sys.executable, LINTER, "--spec-only"],
+            capture_output=True, text=True, cwd=cwd_dir, timeout=180,
+        )
+
     assert unscoped.returncode != 0, (
         "the live corpus is expected to fail the unscoped gate; if it now passes this "
         "test can no longer distinguish scoping from a clean tree"
     )
 
-    target, other = "feat-13-zero-codegen-grid.md", "feat-28-traceability-gate.md"
     before = unscoped.stdout.count(other)
     assert before >= 1, (
         f"{other} is expected to appear in unscoped output; found {before}"
@@ -86,7 +111,7 @@ def test_only_scope_suppresses_findings_about_other_files_issue321():
 
     scoped = subprocess.run(
         [sys.executable, LINTER, "--spec-only", "--only", target],
-        capture_output=True, text=True, cwd=REPO_ROOT, timeout=180,
+        capture_output=True, text=True, cwd=cwd_dir, timeout=180,
     )
     after = scoped.stdout.count(other)
     assert after < before, (

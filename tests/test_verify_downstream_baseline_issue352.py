@@ -39,7 +39,7 @@ def test_verify_downstream_baseline_detects_both_flutter_and_react_from_root(tmp
         })
         return
 
-    def mock_tag_restoration_point():
+    def mock_tag_restoration_point(repo_root=None):
         return True
 
     def mock_cleanup_workspace(dest):
@@ -73,5 +73,11 @@ def test_tag_restoration_point_unborn_head():
 
         result = verify_downstream_baseline.tag_restoration_point()
         assert result is True
-        mock_run.assert_called_once_with(["git", "rev-parse", "HEAD"], capture_output=True, text=True)
+        mock_run.assert_called_once_with(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            cwd=None,
+            timeout=verify_downstream_baseline.GIT_TIMEOUT_SECONDS,
+        )
 

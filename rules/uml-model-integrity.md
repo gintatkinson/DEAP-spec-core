@@ -93,6 +93,7 @@ those are.
 - **Specifications Must Not Contain Unresolved Registration Tokens**: unresolved
   identifier tokens such as `#[EpicID]` must be replaced with the registered issue number
   before the document is published. Every referenced item must be explicitly registered.
+- **Epic Prohibit Unreplaced Placeholder Text**: Epic specifications must not contain literal '(semantic linkage justification)' or '[POPULATE:' placeholder tokens. All placeholders must be replaced with concise justifications.
 
 ## Sequence diagrams
 
@@ -194,6 +195,8 @@ those are.
   because this file is the normative home for the constraints `cardinality_validator.py`
   and `uml.py` enforce; it was previously anchored to a heading in `implementation_plan.md`
   that no longer exists, leaving the rule enforced and undocumented.
+- **SysML Models Must Be Readable**: a SysML v2 model file must exist in the schemas directory and be readable as UTF-8 text for cardinality validation.
+- **SysML Feature Specifications Must Be Readable**: feature specification markdown files must be readable as UTF-8 text when validating SysML model extraction coverage.
 
 ## Why
 

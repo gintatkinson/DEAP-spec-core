@@ -28,9 +28,17 @@ pip install -r requirements.txt
 
 ---
 
-## 2. Direct Copy Installation Workflow
+## 2. Turnkey One-Line Installation Workflow (Recommended)
 
-Copy the pipeline directories into your active project repository workspace:
+Run the turnkey automated installer directly in your project root:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/gintatkinson/digital-pipeline-repo/main/scripts/install_pipeline.sh | bash
+```
+
+### Manual / Direct Copy Installation Workflow
+
+Alternatively, copy the pipeline directories manually into your active project repository workspace:
 
 ```bash
 # Refuse to run inside the pipeline repository itself. The cleanup steps below are

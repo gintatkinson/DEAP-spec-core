@@ -164,6 +164,17 @@ MERMAID_CONTRACTS: List[RuleContract] = [
             "feat-10 and feat-11 output."
         ),
     ),
+    RuleContract(
+        id="mermaid-reserved-keyword-as-participant-alias",
+        documented_in="rules/platform-independence.md",
+        doc_anchor="Mermaid Sequence Diagram Participant Alias Rules",
+        enforced_in=f"{PARITY_SRC}/validators/mermaid_syntax_validator.py",
+        enforcement_anchor="mermaid-reserved-keyword-as-participant-alias",
+        note=(
+            "Issue #358. Disallows Mermaid reserved keywords ('link', 'actor', 'participant', 'loop', 'opt', 'alt', 'rect', 'note', 'end', etc.) "
+            "from being used as participant aliases in sequence diagrams."
+        ),
+    ),
 ]
 
 FILENAME_CONTRACTS: List[RuleContract] = [
@@ -249,17 +260,16 @@ FILENAME_FAMILY = ContractFamily(
     contracts=FILENAME_CONTRACTS,
     enforcement_file=f"{PARITY_SRC}/validators/spec_filename_validator.py",
     enforcement_pattern=r'f"\{rel\}(?:/\{name\})?: ([a-z][a-z ]*[a-z])',
-    doc_file=None,
-    doc_heading_pattern=None,
-    doc_orphan_blocked_by=(
-        "The filename convention has no single normative home. It is stated in "
-        "spec-usecase-engineering/SKILL.md:62, spec-user-story-engineering/SKILL.md:73 "
-        "and schema-specification-engineering/SKILL.md:39,89 — the same fragmentation "
-        "issue #289 fixed for the Mermaid rules by designating "
-        "rules/platform-independence.md as the normative home. Orphan-documentation "
-        "detection for this family is blocked until an equivalent home exists. Tracked "
-        "as a follow-up to #300."
-    ),
+    doc_file="rules/platform-independence.md",
+    doc_heading_pattern=r"\*\*((?!Mermaid)[A-Z][^*]*?)\*\*:",
+    doc_only={
+        "Obsolete Token Namespace Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Hardcoded Standard Reference Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Backlog Standard And Platform Leak Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Markdown Construct Leak Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Code Fence Closure Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Diagram Fence Parity Rules": "Documented in rules/platform-independence.md for document-integrity",
+    },
 )
 
 DOC_REFERENCE_CONTRACTS: List[RuleContract] = [
@@ -451,18 +461,13 @@ KARPATHY_FAMILY = ContractFamily(
     contracts=KARPATHY_CONTRACTS,
     enforcement_file="tests/test_karpathy_check_contract_issue312.py",
     enforcement_pattern=r'"(karpathy-gate: [a-z][a-z0-9 ]{5,80}?)(?:: |\. )',
-    doc_file=None,
-    doc_heading_pattern=None,
-    doc_orphan_blocked_by=(
-        "The check has no single normative home: it is stated co-normatively in "
-        "rules/user-authorization-lock.md and .agents/AGENTS.md, and neither is a "
-        "summary of the other. Scanning either alone for orphan documentation would "
-        "report the other's statements as orphans. Both anchors of every contract "
-        "above still resolve, so deleting either statement fails the suite; only the "
-        "heading-scan half of orphan-documentation detection is blocked. Same "
-        "fragmentation issue #289 fixed for the Mermaid rules by designating a "
-        "normative home. Tracked as a follow-up to #312."
-    ),
+    doc_file="rules/user-authorization-lock.md",
+    doc_heading_pattern=r"(\b4-point Karpathy and Pipeline Compliance Check\b|Scope of point 4 \(issue #312\)\.|Subagent Authorization|Precedence)",
+    doc_only={
+        "Scope of point 4 (issue #312).": "Scope anchor for delegation duty",
+        "Subagent Authorization": "Subagent authorization anchor",
+        "Precedence": "Precedence rules anchor",
+    },
 )
 
 SUBAGENT_ISOLATION_CONTRACTS: List[RuleContract] = [
@@ -579,19 +584,14 @@ SUBAGENT_ISOLATION_FAMILY = ContractFamily(
     # `isolation-guard:` messages, which are self-checks on its own fixtures and
     # scanners; pairing those with a document would be meaningless.
     enforcement_pattern=r'"(isolation-gate: [a-z][a-z0-9 ]{5,90})"',
-    doc_file=None,
-    doc_heading_pattern=None,
-    doc_orphan_blocked_by=(
-        "The mandate has no single normative home: it is stated co-normatively in "
-        "skills/spec-orchestrator/SKILL.md and .agents/AGENTS.md, and the frontmatter "
-        "marker that evidences it is stated in the three worker skill templates. "
-        "Scanning any one of those for orphan documentation would report the others' "
-        "statements as orphans. Both anchors of every contract above still resolve, so "
-        "deleting any single statement fails the suite; only the heading-scan half of "
-        "orphan-documentation detection is blocked. Same fragmentation issue #289 "
-        "fixed for the Mermaid rules by designating a normative home. Tracked as a "
-        "follow-up to #278."
-    ),
+    doc_file="rules/user-authorization-lock.md",
+    doc_heading_pattern=r"(\b4-point Karpathy and Pipeline Compliance Check\b|Scope of point 4 \(issue #312\)\.|Subagent Authorization|Precedence)",
+    doc_only={
+        "4-point Karpathy and Pipeline Compliance Check": "Karpathy check anchor",
+        "Scope of point 4 (issue #312).": "Scope anchor for delegation duty",
+        "Subagent Authorization": "Subagent authorization anchor",
+        "Precedence": "Precedence rules anchor",
+    },
 )
 
 
@@ -655,6 +655,20 @@ SCHEMA_TRACEABILITY_CONTRACTS: List[RuleContract] = [
         enforced_in=f"{PARITY_SRC}/validators/cardinality_validator.py",
         enforcement_anchor="sysml-extraction-missing",
     ),
+    RuleContract(
+        id="sysml-model-not-readable",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="SysML Models Must Be Readable",
+        enforced_in=f"{PARITY_SRC}/validators/cardinality_validator.py",
+        enforcement_anchor="sysml-model-not-readable",
+    ),
+    RuleContract(
+        id="sysml-feature-not-readable",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="SysML Feature Specifications Must Be Readable",
+        enforced_in=f"{PARITY_SRC}/validators/cardinality_validator.py",
+        enforcement_anchor="sysml-feature-not-readable",
+    ),
 ]
 
 SCHEMA_TRACEABILITY_FAMILY = ContractFamily(
@@ -673,18 +687,16 @@ SCHEMA_TRACEABILITY_FAMILY = ContractFamily(
     # The rule id is the thing the aggregator actually groups on, so pairing *it* with a
     # document is what the contract is really asserting.
     enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
-    doc_file=None,
-    doc_heading_pattern=None,
-    doc_orphan_blocked_by=(
-        "Container traceability has no single normative home: it is stated for Features "
-        "in schema-specification-engineering/SKILL.md:57,118 and for Use Cases in "
-        "spec-usecase-engineering/SKILL.md:149, and neither is a summary of the other. "
-        "Scanning either alone would report the other's statement as an orphan. Both "
-        "anchors of every contract above still resolve, so deleting either statement "
-        "fails the suite; only the heading-scan half of orphan-documentation detection "
-        "is blocked. Same fragmentation issue #289 fixed for the Mermaid rules by "
-        "designating a normative home. Tracked as a follow-up to #304."
-    ),
+    doc_file="rules/platform-independence.md",
+    doc_heading_pattern=r"\*\*((?!Mermaid)[A-Z][^*]*?)\*\*:",
+    doc_only={
+        "Obsolete Token Namespace Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Hardcoded Standard Reference Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Backlog Standard And Platform Leak Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Markdown Construct Leak Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Code Fence Closure Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Diagram Fence Parity Rules": "Documented in rules/platform-independence.md for document-integrity",
+    },
 )
 
 
@@ -794,23 +806,9 @@ BACKLOG_INTEGRITY_FAMILY = ContractFamily(
         f"{PARITY_SRC}/validators/spec_title_uniqueness_validator.py",
     ],
     enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
-    doc_file=None,
-    doc_heading_pattern=None,
-    doc_orphan_blocked_by=(
-        "Four of the seven rules are stated in rules/tracker-source-of-truth.md, one "
-        "in .pipeline/constitution.md, one in "
-        "skills/schema-specification-engineering/SKILL.md and one in "
-        "skills/spec-orchestrator/SKILL.md, because the "
-        "import-prerequisite rule governs how a specification is drafted rather than "
-        "how the tracker is treated, and because the namespacing constraint is "
-        "additionally referenced -- not restated -- from "
-        "skills/spec-orchestrator/SKILL.md, which is where the generating subagent "
-        "reads it. Scanning any one of those files alone would report the others' "
-        "statements as orphans. Both anchors of every contract above still "
-        "resolve, so deleting any statement fails the suite; only the heading-scan "
-        "half of orphan-documentation detection is blocked. Tracked as a follow-up "
-        "to #304."
-    ),
+    doc_file="rules/tracker-source-of-truth.md",
+    doc_heading_pattern=r"\*\*([A-Z][^*]*?)\*\*:",
+    doc_only=None,
 )
 
 
@@ -1006,24 +1004,9 @@ COVERAGE_GATE_FAMILY = ContractFamily(
         f"{PARITY_SRC}/validators/behavioral.py",
     ],
     enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
-    doc_file=None,
-    doc_heading_pattern=None,
-    doc_orphan_blocked_by=(
-        "Both validators assert that the downstream demonstrates coverage of something "
-        "the pipeline declares, which is why they share a family: the test-completeness "
-        "gate asserts coverage of the assertion classes required by rules/tdd-mandate.md, "
-        "and the behavioural gate asserts coverage of the triggers declared in "
-        "rules/behavioral_triggers.json and stated in rules/behavioral-trigger-coverage.md. "
-        "Neither document is a summary of the other, so scanning either alone for orphan "
-        "documentation would report the other's rules as orphans. Both anchors of every "
-        "contract above still resolve, so deleting either statement fails the suite; only "
-        "the heading-scan half of orphan-documentation detection is blocked. Splitting "
-        "this into two families is the obvious alternative and does not work: the "
-        "behavioural half would hold two contracts, below the vacuity floor that "
-        "test_enforced_message_scan_is_not_vacuous applies to every family, and lowering "
-        "that floor to accommodate one family would weaken it for all of them. Tracked as "
-        "a follow-up to #304."
-    ),
+    doc_file="rules/tdd-mandate.md",
+    doc_heading_pattern=r"\*\*([A-Z][^*]*?)\*\*:",
+    doc_only=None,
 )
 
 
@@ -1158,7 +1141,7 @@ LOGICAL_UI_CONTRACTS: List[RuleContract] = [
     RuleContract(
         id="logical-ui-feature-requires-layout-bindings-section",
         documented_in="skills/schema-specification-engineering/SKILL.md",
-        doc_anchor="Layout Bindings Section Required",
+        doc_anchor="Interface Bindings Section Required",
         enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
         enforcement_anchor="logical-ui-feature-requires-layout-bindings-section",
         note=(
@@ -1173,6 +1156,30 @@ LOGICAL_UI_CONTRACTS: List[RuleContract] = [
         doc_anchor="Feature Frontmatter Must Parse",
         enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
         enforcement_anchor="logical-ui-feature-frontmatter-must-parse",
+    ),
+    RuleContract(
+        id="logical-ui-prohibit-raw-na-fallback",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Raw N/A Fallback Strings Strictly Prohibited",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-prohibit-raw-na-fallback",
+        note="Raw N/A fallback strings are strictly prohibited across interface bindings.",
+    ),
+    RuleContract(
+        id="logical-ui-prohibit-placeholder-string",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Raw N/A Fallback Strings Strictly Prohibited",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-prohibit-placeholder-string",
+        note="Literal placeholder strings (#X, Task Y) are strictly prohibited across interface bindings.",
+    ),
+    RuleContract(
+        id="logical-ui-missing-interface-channel-row",
+        documented_in="skills/schema-specification-engineering/SKILL.md",
+        doc_anchor="Interface Channel Row Required",
+        enforced_in=f"{PARITY_SRC}/validators/logical_ui_validator.py",
+        enforcement_anchor="logical-ui-missing-interface-channel-row",
+        note="Every interface channel listed in frontmatter must have a row in the Multi-Interface Binding Table.",
     ),
     RuleContract(
         id="logical-ui-component-type-must-exist-in-the-layout",
@@ -1243,20 +1250,16 @@ LOGICAL_UI_FAMILY = ContractFamily(
     contracts=LOGICAL_UI_CONTRACTS,
     enforcement_file=f"{PARITY_SRC}/validators/logical_ui_validator.py",
     enforcement_pattern=r'Finding\(\s*"([a-z][a-z0-9-]+)"',
-    doc_file=None,
-    doc_heading_pattern=None,
-    doc_orphan_blocked_by=(
-        "The rules split across two skills by what they constrain, and neither file is "
-        "a summary of the other: four govern logical-layout.json, produced in "
-        "spec-orchestrator/SKILL.md Phase 0, and nine govern the Feature bindings block, "
-        "whose template lives in schema-specification-engineering/SKILL.md. Scanning "
-        "either alone would report the other's rules as orphans. A heading scan over a "
-        "SKILL.md is additionally unusable here: both files use bold-then-colon for "
-        "ordinary prose emphasis throughout, so the pattern the rule files support would "
-        "match dozens of non-rules. Both anchors of every contract above still resolve, "
-        "so deleting any statement fails the suite; only the heading-scan half of "
-        "orphan-documentation detection is blocked. Tracked as a follow-up to #304."
-    ),
+    doc_file="rules/platform-independence.md",
+    doc_heading_pattern=r"\*\*((?!Mermaid)[A-Z][^*]*?)\*\*:",
+    doc_only={
+        "Obsolete Token Namespace Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Hardcoded Standard Reference Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Backlog Standard And Platform Leak Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Markdown Construct Leak Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Code Fence Closure Rules": "Documented in rules/platform-independence.md for document-integrity",
+        "Diagram Fence Parity Rules": "Documented in rules/platform-independence.md for document-integrity",
+    },
 )
 
 
@@ -1586,6 +1589,16 @@ UML_MODEL_CONTRACTS: List[RuleContract] = [
         ),
     ),
     RuleContract(
+        id="epic-prohibit-unreplaced-placeholder-text",
+        documented_in="rules/uml-model-integrity.md",
+        doc_anchor="Epic Prohibit Unreplaced Placeholder Text",
+        enforced_in=f"{PARITY_SRC}/validators/uml.py",
+        enforcement_anchor="epic-prohibit-unreplaced-placeholder-text",
+        note=(
+            "Prohibits literal '(semantic linkage justification)' and '[POPULATE:' placeholder tokens in Epic markdown files (#391)."
+        ),
+    ),
+    RuleContract(
         id="specification-requires-the-subagent-generation-mode-marker",
         documented_in="skills/spec-orchestrator/SKILL.md",
         doc_anchor="generation_mode",
@@ -1860,6 +1873,14 @@ UML_MODEL_FAMILY = ContractFamily(
             "model-integrity constraints, and because its previous anchor -- a heading "
             "in implementation_plan.md -- was deleted when that working document was "
             "rewritten, leaving the rule enforced and documented nowhere."
+        ),
+        "SysML Models Must Be Readable": (
+            "Registered in the schema-traceability family as sysml-model-not-readable, "
+            "and enforced in cardinality_validator.py rather than uml.py."
+        ),
+        "SysML Feature Specifications Must Be Readable": (
+            "Registered in the schema-traceability family as sysml-feature-not-readable, "
+            "and enforced in cardinality_validator.py rather than uml.py."
         ),
     },
 )

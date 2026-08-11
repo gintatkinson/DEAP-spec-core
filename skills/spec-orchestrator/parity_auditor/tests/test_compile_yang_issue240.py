@@ -101,7 +101,7 @@ def test_resolve_type_with_typedef_chain():
     assert res["pattern"] == "[0-9]+"
 
 
-def test_build_lui_json_uses_normative_names_and_nested_splitters():
+def test_build_lui_json_uses_normative_names_and_flattened_splitters():
     from compile_yang import build_lui_json
 
     res = build_lui_json([])
@@ -116,20 +116,17 @@ def test_build_lui_json_uses_normative_names_and_nested_splitters():
     workspace = layout["children"][1]
     assert workspace["type"] == "ResizableSplitter"
     assert workspace["id"] == "workspace_split"
+    assert workspace["props"]["axis"] == "vertical"
 
     top_pane = workspace["children"][0]
     assert top_pane["type"] == "TopologyMap"
     assert top_pane["id"] == "topology_pane"
 
-    lower_splitter = workspace["children"][1]
-    assert lower_splitter["type"] == "ResizableSplitter"
-    assert lower_splitter["id"] == "lower_split"
-
-    elements_table = lower_splitter["children"][0]
+    elements_table = workspace["children"][1]
     assert elements_table["type"] == "DensityTable"
     assert elements_table["id"] == "elements_view"
 
-    tabbed_container = lower_splitter["children"][1]
+    tabbed_container = workspace["children"][2]
     assert tabbed_container["type"] == "TabbedContainer"
     assert tabbed_container["id"] == "details_and_relations_tab"
 

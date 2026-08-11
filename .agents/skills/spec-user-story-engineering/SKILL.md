@@ -142,6 +142,19 @@ stateDiagram-v2
 - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
 - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
 
+## Logical UI & Interface Bindings
+*(Required for UI/LUMI features. Raw 'N/A' fallback strings and literal placeholder strings ('#X', 'Task Y') are strictly prohibited.)*
+<!-- Single-Channel (Visual GUI) Format -->
+- **Target LUI Component:** [Specify canonical LUI component e.g. StringInputField, TableView, PropertyGrid, OR 'Unbound (Deferred to Implementation Profile)']
+- **Target Layout Container ID:** [Specify container ID from logical-layout.json, OR 'Unbound (Deferred to Implementation Profile)']
+- **Data Source Bindings:** [Specify exact, authoritative schema path locator e.g. /nwi:network-inventory/nil:locations/nil:location/nil:geo-location/nil:reference-frame, OR 'Unbound (Deferred to Implementation Profile)']
+
+<!-- OR Multi-Channel (Multi-Interface) Format -->
+| Interface Channel | Category | Target Component / Handler | Target Container / Endpoint | Data Source Binding |
+| --- | --- | --- | --- | --- |
+| gui | Visual GUI | StringInputField | elements_view | /schema:path |
+| mcp | M2M API | MCPToolHandler | /mcp/tool | /schema:path |
+
 ## Source References
 > [!IMPORTANT]
 > **Dynamic Schema Locator**: You MUST inspect the active workspace directories (e.g. `schema/`) to build schema locators dynamically. Do NOT hardcode legacy paths like `standard/ietf/RFC/`.

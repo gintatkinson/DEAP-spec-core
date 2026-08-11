@@ -321,7 +321,7 @@ def build_lui_json(data_defs, schema_name='unknown', yang_source=''):
                         'type': 'ResizableSplitter',
                         'id': 'workspace_split',
                         'props': {
-                            'axis': 'horizontal',
+                            'axis': 'vertical',
                             'resizable': True,
                         },
                         'children': [
@@ -330,23 +330,13 @@ def build_lui_json(data_defs, schema_name='unknown', yang_source=''):
                                 'id': 'topology_pane',
                             },
                             {
-                                'type': 'ResizableSplitter',
-                                'id': 'lower_split',
-                                'props': {
-                                    'axis': 'horizontal',
-                                    'resizable': True,
-                                },
-                                'children': [
-                                    {
-                                        'type': 'DensityTable',
-                                        'id': 'elements_view',
-                                    },
-                                    {
-                                        'type': 'TabbedContainer',
-                                        'id': 'details_and_relations_tab',
-                                        'children': details_tabs,
-                                    },
-                                ],
+                                'type': 'DensityTable',
+                                'id': 'elements_view',
+                            },
+                            {
+                                'type': 'TabbedContainer',
+                                'id': 'details_and_relations_tab',
+                                'children': details_tabs,
                             },
                         ],
                     },

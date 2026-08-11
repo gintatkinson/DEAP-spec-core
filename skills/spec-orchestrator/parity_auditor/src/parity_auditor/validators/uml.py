@@ -32,6 +32,8 @@ ALWAYS_INVALID_PLACEHOLDER_PATTERNS = [
      "unpopulated template title"),
     (re.compile(r"\(\s*semantic linkage justification[^)]*\)", re.I),
      "template text left in place of a written linkage justification"),
+    (re.compile(r"\[POPULATE:", re.I),
+     "unreplaced [POPULATE:] placeholder token"),
     (re.compile(r"\b(?:epic|feat|us|uc)-XX-name\b", re.I), "placeholder file path"),
 ]
 
@@ -699,10 +701,27 @@ class UmlValidator(IValidator):
         # the live corpus carried entirely unpopulated '## Parent Epic' sections and
         # still passed validation (issue #281).
         for lineno, label, line_text in find_unresolved_placeholders(content):
-            errors.append(
-                Finding("specification-must-not-contain-template-placeholders", f"{doc_type} {filename}:{lineno} contains {label}: '{line_text}'. "
-                f"Specification templates must be populated before registration.", location=filename)
-            )
+            if doc_type == "Epic" and (
+                re.search(r"\(\s*semantic linkage justification", line_text, re.I)
+                or re.search(r"\[POPULATE:", line_text, re.I)
+            ):
+                errors.append(
+                    Finding(
+                        "epic-prohibit-unreplaced-placeholder-text",
+                        f"Epic {filename}:{lineno} contains unreplaced placeholder text '{line_text}'. "
+                        f"Epic specifications must replace all placeholder tokens with concise semantic justifications.",
+                        location=filename,
+                    )
+                )
+            else:
+                errors.append(
+                    Finding(
+                        "specification-must-not-contain-template-placeholders",
+                        f"{doc_type} {filename}:{lineno} contains {label}: '{line_text}'. "
+                        f"Specification templates must be populated before registration.",
+                        location=filename,
+                    )
+                )
 
         # Conditional stubs. Gated exactly as before, preserving issue #239: an Epic
         # may legitimately say "*(None registered)*" when no Use Cases or User Stories

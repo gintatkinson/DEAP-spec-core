@@ -25,6 +25,7 @@
 - **Mermaid Subgraph Title Quoting Rules**: A `subgraph` title containing spaces or hyphens MUST be enclosed in double quotes (e.g. `subgraph "System Boundary"`). Unquoted, Mermaid reads only the first word as the title and the remainder as syntax it cannot parse.
 - **Mermaid Quote Balance Rules**: Double quotes inside a diagram line MUST be balanced. An unclosed quote swallows the remainder of the line — and often the following lines — into a single string literal, so the diagram either fails to parse or renders with silently missing elements. This is the failure mode the three quoting rules above create when applied halfway.
 - **Mermaid Class Member Brace Rules**: Curly braces (`{` `}`) are strictly prohibited inside Mermaid class member lines (e.g., do not write `+Decimal64 dim_0 {range = "-90.0..90.0"}`), as they crash GitHub and Mermaid CLI renderers. Use parentheses or simple brackets instead, e.g., `(default earth)` or `[default earth]`.
+- **Mermaid Sequence Diagram Participant Alias Rules**: Mermaid reserved keywords (`link`, `links`, `actor`, `participant`, `loop`, `opt`, `alt`, `rect`, `note`, `end`, `par`, `and`, `critical`, `option`, `break`, `activate`, `deactivate`, `autonumber`, `box`, `create`, `destroy`) MUST NOT be used as participant aliases or IDs in sequence diagrams (e.g. `participant link as Link Service` or `actor link as Link Interface`). The parser interprets reserved keywords as structural sequence grammar, breaking diagram rendering.
 
 ## Document integrity constraints
 

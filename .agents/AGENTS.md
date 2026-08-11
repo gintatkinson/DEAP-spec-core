@@ -144,3 +144,8 @@ is found, HALT and escalate as a blocker. Do not substitute direct coordinator w
 - **Exit code 0 is NEVER sufficient proof of success.**
 - After modifying or publishing any GitHub issue or document, the agent MUST run `gh issue view <ID>` or `gh api` to fetch the live published payload and inspect links, Mermaid headers, and syntax.
 - **Optimism bias is prohibited**: agents must cite empirical output of live payload inspection before declaring completion.
+
+## Downstream Single Source of Truth (SSOT) & Clean Baseline Mandate
+- **No Master Blueprint Duplication**: Downstream projects MUST NOT duplicate or copy master core blueprint files (`DEAP_MASTER_ARCHITECTURE.md`, `THREE_TIER_GOVERNANCE_BLUEPRINT.md`, `DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml`). Central specification blueprints belong exclusively in the upstream specification repository (`digital-pipeline-repo`).
+- **Mandatory Repository `.gitignore`**: All downstream projects and workspace repositories MUST include a root `.gitignore` file.
+- **Zero `.DS_Store` Policy**: OS artifact metadata files (`.DS_Store`) are strictly forbidden in git index and working tree across all repositories. Automated cleanup and linter gates enforce zero `.DS_Store` presence.

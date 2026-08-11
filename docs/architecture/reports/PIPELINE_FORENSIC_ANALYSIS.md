@@ -50,7 +50,7 @@ This report compiles the exhaustive findings from the three specialized sub-agen
 * **Fix**: 
   - Change the query in Step 3.1 to include both open and closed issues: `gh issue list --label "user-story" --state "all" --json number,title,body`.
   - Explicitly instruct the agent to inspect the content/scenarios of the User Stories to perform semantic mapping rather than name-only matches.
-  - Require the agent to add a brief semantic justification to each checkbox link in the matrix (e.g., `- [ ] #41 - [User Story Title](url) - Implements Basic Flow Step 3: Validator Check`).
+  - Require the agent to add a brief semantic justification to each checkbox link in the matrix (e.g., `- [ ] #41 - [User Story Title](https://github.com/example/url) - Implements Basic Flow Step 3: Validator Check`).
 
 ### Root Cause 2: Insufficient Template Granularity for Alternate/Exception Flows
 * **Observation**: Alternate/exception flows in use cases are thin, single-line summaries.

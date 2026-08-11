@@ -17,9 +17,9 @@ This document summarizes the changes, components implemented, and verification d
 
 | UML Element | Realization Tag | File Path | Properties & Realized Behavior |
 | :--- | :--- | :--- | :--- |
-| `YangCompiler` | `@realizes UML::YangCompiler` | [compile_yang.py](file:///Users/perkunas/digital-pipeline-repo/scripts/compile_yang.py) | Parses YANG AST, extracts leaves/constraints, and merges compiled array into `logical-layout.json` |
-| `PropertyGrid` | `@realizes UML::PropertyGrid` | [property_grid.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/components/property_grid.dart) | Instantiated dynamically with AttributeDefinition configurations parsed from the JSON schema |
-| `FormFieldFactory` | `@realizes UML::FormFieldFactory` | [property_grid.dart](file:///Users/perkunas/digital-pipeline-repo/app_flutter/lib/components/property_grid.dart) | Generates and binds text fields, number inputs, or dropdown form widgets based on type configurations |
+| `YangCompiler` | `@realizes UML::YangCompiler` | [compile_yang.py](../../scripts/compile_yang.py) | Parses YANG AST, extracts leaves/constraints, and merges compiled array into `logical-layout.json` |
+| `PropertyGrid` | `@realizes UML::PropertyGrid` | [property_grid.dart](../../app_flutter/lib/components/property_grid.dart) | Instantiated dynamically with AttributeDefinition configurations parsed from the JSON schema |
+| `FormFieldFactory` | `@realizes UML::FormFieldFactory` | [property_grid.dart](../../app_flutter/lib/components/property_grid.dart) | Generates and binds text fields, number inputs, or dropdown form widgets based on type configurations |
 
 ---
 

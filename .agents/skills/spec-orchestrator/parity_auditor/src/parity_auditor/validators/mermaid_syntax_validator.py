@@ -87,6 +87,35 @@ _DIAGRAM_KINDS = (
     "graph", "flowchart", "erdiagram", "gantt", "pie", "gitgraph", "c4context"
 )
 
+MERMAID_SEQUENCE_RESERVED_KEYWORDS = {
+    "link",
+    "links",
+    "actor",
+    "participant",
+    "loop",
+    "opt",
+    "alt",
+    "rect",
+    "note",
+    "end",
+    "par",
+    "and",
+    "critical",
+    "option",
+    "break",
+    "activate",
+    "deactivate",
+    "autonumber",
+    "box",
+    "create",
+    "destroy",
+}
+
+_SEQUENCE_PARTICIPANT = re.compile(
+    r"^\s*(?:participant|actor)\s+(?P<alias>\"[^\"]+\"|[^\s:]+)",
+    re.I
+)
+
 # No directories are excluded from the default scan.
 #
 # An earlier revision skipped `decisions/` and `designs/` to keep the linter green on
@@ -299,6 +328,19 @@ def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
                         f"{source}:{lineno}: unquoted special characters in node label "
                         f"({label!r}). Node labels containing slashes, colons, parentheses, or brackets MUST be enclosed in double quotes."
                     , location=f"{source}"))
+
+            if kind == "sequencediagram":
+                part_match = _SEQUENCE_PARTICIPANT.match(line_strip)
+                if part_match:
+                    raw_alias = part_match.group("alias")
+                    clean_alias = raw_alias.strip('"').lower()
+                    if clean_alias in MERMAID_SEQUENCE_RESERVED_KEYWORDS:
+                        errors.append(Finding(
+                            "mermaid-reserved-keyword-as-participant-alias",
+                            f"{source}:{lineno}: reserved keyword '{clean_alias}' used as sequence diagram participant alias/ID "
+                            f"({line_strip!r}). Using reserved keywords like 'link', 'actor', 'participant', 'loop', 'opt', 'alt', 'rect', 'note', 'end' as participant aliases breaks Mermaid rendering. Rename the participant alias.",
+                            location=f"{source}"
+                        ))
 
             # --- semicolons in Note statements and message text ---------------
             payload: Optional[str] = None

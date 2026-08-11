@@ -68,16 +68,29 @@ def setup_git_hooks():
     hooks_dir = os.path.join(git_dir, "hooks")
     errored = False
 
-    for path in [os.path.join(hooks_dir, name) for name in ("pre-commit", "pre-push")]:
-        if os.path.exists(path):
-            try:
-                os.remove(path)
-                print(f"Successfully removed Git hook: {path}")
-            except Exception as e:
-                print(f"Error removing Git hook {path}: {e}", file=sys.stderr)
-                errored = True
-        else:
-            print(f"Git hook not present: {path}")
+    pre_commit_path = os.path.join(hooks_dir, "pre-commit")
+    pre_commit_script = (
+        "#!/bin/sh\n"
+        "# Pre-commit hook: Subagent Output Integrity & Escape Tokens Gate (Mechanism 3 & 4)\n"
+        "python3 scripts/verify_subagent_output.py --dir docs\n"
+    )
+    try:
+        with open(pre_commit_path, "w", encoding="utf-8") as f:
+            f.write(pre_commit_script)
+        os.chmod(pre_commit_path, 0o755)
+        print(f"Successfully installed Git pre-commit hook: {pre_commit_path}")
+    except Exception as e:
+        print(f"Error setting pre-commit hook: {e}", file=sys.stderr)
+        errored = True
+
+    pre_push_path = os.path.join(hooks_dir, "pre-push")
+    if os.path.exists(pre_push_path):
+        try:
+            os.remove(pre_push_path)
+            print(f"Successfully removed pre-push hook: {pre_push_path}")
+        except Exception as e:
+            print(f"Error removing Git hook {pre_push_path}: {e}", file=sys.stderr)
+            errored = True
 
     if errored:
         sys.exit(1)

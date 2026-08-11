@@ -204,3 +204,106 @@ def test_skill_numbered_lists_have_no_duplicate_ordinals():
         "numbered lists contain repeated ordinals, so an inserted step did not "
         f"renumber its successors: {offenders}"
     )
+
+
+# --------------------------------------------------------------------------- #
+# #388 - Constructor integrity invariant and cross-cutting field preservation
+# --------------------------------------------------------------------------- #
+
+FEATURE_DRIVEN_IMPL = os.path.join(REPO_ROOT, "skills", "feature-driven-implementation", "SKILL.md")
+
+
+def test_feature_driven_implementation_has_cross_cutting_field_preservation_invariant_issue388():
+    content = _read(FEATURE_DRIVEN_IMPL)
+    assert "Cross-Cutting Field Preservation" in content, (
+        "feature-driven-implementation/SKILL.md Step 3.7 Invariants must contain "
+        "'Cross-Cutting Field Preservation' mandate"
+    )
+    assert re.search(r"Cross-Cutting Field Preservation.*constructors.*copyWith.*valueWriters", content, re.S | re.I), (
+        "feature-driven-implementation/SKILL.md Step 3.7 Invariants must mandate that "
+        "all constructors, copyWith, and valueWriters preserve new fields when extending domain models"
+    )
+
+
+def test_feature_driven_implementation_has_model_integrity_check_spec_review_issue388():
+    content = _read(FEATURE_DRIVEN_IMPL)
+    assert "Model Integrity Check" in content, (
+        "feature-driven-implementation/SKILL.md Step 3.3 Stage 1 Spec Compliance Review must contain "
+        "'Model Integrity Check'"
+    )
+    assert re.search(r"Model Integrity Check.*constructor.*copyWith.*valueWriter", content, re.S | re.I), (
+        "feature-driven-implementation/SKILL.md Step 3.3 Stage 1 Spec Compliance Review must verify that "
+        "every constructor, copyWith, and valueWriter in the diff includes or passes through new fields"
+    )
+
+
+def test_feature_driven_implementation_has_constructor_integrity_regression_assertions_issue388():
+    content = _read(FEATURE_DRIVEN_IMPL)
+    assert re.search(r"Assertion-Based Automation.*regression assertions.*constructor.*copyWith.*valueWriter", content, re.S | re.I), (
+        "feature-driven-implementation/SKILL.md Step 4.1 Assertion-Based Automation must mandate "
+        "regression assertions on existing tests verifying field preservation through every constructor/copyWith/valueWriter path"
+    )
+
+
+# --------------------------------------------------------------------------- #
+# #390 - Prohibit raw N/A strings in Logical UI & Layout Bindings
+# --------------------------------------------------------------------------- #
+
+SCHEMA_SPEC_ENG = os.path.join(REPO_ROOT, "skills", "schema-specification-engineering", "SKILL.md")
+SPEC_USER_STORY_ENG = os.path.join(REPO_ROOT, "skills", "spec-user-story-engineering", "SKILL.md")
+FLUTTER_PROFILE = os.path.join(REPO_ROOT, ".pipeline", "profiles", "flutter.md")
+REACT_PROFILE = os.path.join(REPO_ROOT, ".pipeline", "profiles", "react.md")
+
+
+def test_schema_spec_eng_prohibits_raw_na_lui_bindings_issue390():
+    content = _read(SCHEMA_SPEC_ENG)
+    assert ", or be `N/A`" not in content and ", or be N/A" not in content, (
+        "schema-specification-engineering/SKILL.md must not allow ', or be N/A' as a valid binding option"
+    )
+    assert "MUST be `N/A`" not in content and "MUST be N/A" not in content, (
+        "schema-specification-engineering/SKILL.md must not allow 'MUST be N/A' as a valid binding option"
+    )
+
+
+def test_spec_skills_mandate_unbound_deferred_lui_bindings_and_prohibit_placeholders():
+    for path, name in ((SCHEMA_SPEC_ENG, "schema-specification-engineering"), (SPEC_USER_STORY_ENG, "spec-user-story-engineering")):
+        content = _read(path)
+        assert "Unbound (Deferred to Implementation Profile)" in content, (
+            f"{name}/SKILL.md must mandate 'Unbound (Deferred to Implementation Profile)'"
+        )
+        assert "Deferred to Feature #X Task Y" not in content, (
+            f"{name}/SKILL.md must not contain template placeholder string 'Deferred to Feature #X Task Y'"
+        )
+        assert "literal placeholder strings" in content or "prohibited" in content, (
+            f"{name}/SKILL.md must instruct spec workers that literal placeholder strings are prohibited"
+        )
+
+
+
+def test_implementation_profiles_contain_lui_resolution_guidelines():
+    for path, name in ((FLUTTER_PROFILE, "flutter.md"), (REACT_PROFILE, "react.md")):
+        assert os.path.isfile(path), f"Profile file not found: {path}"
+        content = _read(path)
+        assert "## LUI Resolution Guidelines" in content, (
+            f"{name} must contain '## LUI Resolution Guidelines' section"
+        )
+        assert "PropertyGrid" in content and "TableView" in content and "NumericSpinBox" in content, (
+            f"{name} LUI Resolution Guidelines must instruct how to map to PropertyGrid, TableView, and NumericSpinBox"
+        )
+
+
+# --------------------------------------------------------------------------- #
+# #391 - Replace literal Epic template placeholder with explicit token
+# --------------------------------------------------------------------------- #
+
+def test_schema_spec_eng_replaces_semantic_linkage_justification_placeholder_issue391():
+    content = _read(SCHEMA_SPEC_ENG)
+    assert "(semantic linkage justification)" not in content, (
+        "schema-specification-engineering/SKILL.md must not contain literal '(semantic linkage justification)' placeholder"
+    )
+    assert '{{REQUIRED_JUSTIFICATION}}' in content or '[POPULATE:' in content, (
+        "schema-specification-engineering/SKILL.md must contain explicit token '{{REQUIRED_JUSTIFICATION}}' or '[POPULATE:]'"
+    )
+    assert "EXPLICIT LINKAGE JUSTIFICATION TOKEN RULE" in content or "prohibiting literal placeholder text" in content or "replace all `[POPULATE:" in content or "replace all `{{REQUIRED_JUSTIFICATION}}`" in content, (
+        "schema-specification-engineering/SKILL.md must contain explicit skill rule mandating subagents replace all justification tokens"
+    )

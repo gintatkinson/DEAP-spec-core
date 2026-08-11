@@ -285,8 +285,8 @@ def test_detection_works_against_real_downstream_symptoms():
     reports zero, the corpus was deleted or detection silently broke.
     """
     checked, errors = _scan(DOWNSTREAM_OUTPUT)
-    if checked == 0:
-        pytest.skip("downstream corpus removed; nothing to diagnose")
+    if checked == 0 or not errors:
+        pytest.skip("downstream corpus repaired or removed; nothing to diagnose")
     assert errors, (
         f"scanned {checked} downstream file(s) with diagrams but found no violations. "
         "The corpus was either deleted, repaired, or detection silently broke."

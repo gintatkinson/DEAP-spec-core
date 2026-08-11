@@ -106,8 +106,33 @@ The implementer receives ONLY (Prompt Payload Template):
 - Relevant file contents (read and provided by the coordinator)
 - Project conventions (TDD mandate, typing rules, docstring mandate, drill-down navigation rule, etc.)
 - The driving test specification
-- Mandatory Implementation Profile Read: Explicit prompt instruction requiring the subagent to read `.pipeline/profiles/flutter.md` (or target platform profile under `.pipeline/profiles/`) by explicit path as its very first step.
+- Mandatory Skill and Profile Read: Explicit prompt instruction requiring the subagent to execute view_file on both (1) the active SKILL.md file by explicit path (e.g., `skills/feature-driven-implementation/SKILL.md`) and (2) `.pipeline/profiles/<platform>.md` (e.g., `.pipeline/profiles/flutter.md`) as its very first steps.
+- Preamble Integrity Sentinel: Mandatory sentinel token line (e.g. `---GOVERNANCE-END---`) terminating the governance preamble block. The subagent MUST verify the sentinel token before executing and report BLOCKED if missing due to preamble truncation.
 - Mandatory Docstring & Traceability Requirement: Prompt instruction requiring that every generated class, interface, method, function, and public property MUST include full docstrings (DartDoc `///`, JSDoc `/** */`, Python `"""`), and attach UML traceability tags (`/// Realises: [SpecName/ClassName]`) to every public class header.
+- **Mandatory Governance Acknowledgment**: Before executing any code writes, the subagent MUST echo back a structured summary of the governance rules received, declaring that it has read and will honor:
+  (a) `.pipeline/constitution.md` Section 1.9 Zero-Mocking Live Persistence Mandate
+  (b) The 3-layer LUI Definition of Done: DomainModel, ViewModel, LUI Widget Binding
+  (c) The target platform profile (`.pipeline/profiles/<platform>.md`)
+  (d) TDD RED-GREEN-REFACTOR cycle mandate
+  The coordinator MUST validate acknowledgment receipt before the subagent proceeds to code generation. If the acknowledgment does not arrive or omits any of the four items, the coordinator MUST re-dispatch the subagent with the full preamble and log a governance delivery failure.
+
+**Mandatory Subagent Prompt Governance Preamble**:
+Every subagent prompt transmitted by the coordinator MUST begin with the complete, un-degraded Subagent Prompt Governance Preamble containing all mandatory verbatim governance markers:
+1. **Skill / Constitution Reference**: `Adopt the feature-driven-implementation skill` (referencing `.pipeline/constitution.md`).
+2. **First Step Mandate**: `view_file on skills/feature-driven-implementation/SKILL.md as step 1`.
+3. **Zero-Mocking Mandate**: `Section 1.9 Zero-Mocking Live Persistence Mandate`.
+4. **3-Layer DoD**: `3-Layer Definition of Done (DoD)`.
+5. **TDD Mandate**: `RED-GREEN-REFACTOR`.
+6. **Build/Test Verification Commands**: `flutter analyze (0 issues), flutter test (all pass)` (or platform profile equivalents).
+7. **Preamble Integrity Sentinel Token**: `---GOVERNANCE-END---` (terminating line).
+
+The coordinator is strictly forbidden from truncating, abbreviating, or stripping this preamble across sequential feature executions regardless of prior subagent success or failures.
+
+**Subagent Failure Protocol**:
+If a subagent returns an empty result, fails unexpectedly, or stalls:
+1. **First Failure**: Upon an empty result or transient error, re-dispatch a fresh subagent with the identical, un-degraded preamble and full payload intact.
+2. **Two Consecutive Failures**: If two consecutive failures occur with identical preamble payloads, HALT immediately and escalate to human operator with the failure log.
+3. **Governance Invariant**: Never strip governance under any circumstances — empty result -> re-dispatch with identical preamble -> two consecutive failures -> escalate to human. Never strip governance.
 
 The implementer MUST NOT receive the full session history or prior task context.
 
@@ -127,10 +152,20 @@ Configure the dispatch method dynamically based on the current agent orchestrato
 - **COMMIT:** Commit the passing micro-task with a descriptive message.
 - **SELF-REVIEW:** Implementer reviews own changes before handing back.
 
+**A.2 Output Integrity Verification**
+
+After the subagent returns and BEFORE evaluating status, verify dispatch integrity:
+1. Confirm the subagent output contains a test file (RED phase output) or explicit test code.
+2. Confirm the subagent output contains implementation code (GREEN phase output) or a build/compile result.
+3. If either is missing or the output is truncated (abrupt end, incomplete docstrings, or invisible dispatch failure), treat as `NEEDS_CONTEXT` and increment `subagent_dispatch_retry`.
+4. **Bounded Retry Limit & Escalation Guard:** Track `subagent_dispatch_retry` for each micro-task dispatch. If `subagent_dispatch_retry` reaches 2 retries (max 2 retries on invisible/truncated/unexpected subagent output), HALT immediately and escalate to human via "The Grill" (`RETRY_LIMIT_EXCEEDED`).
+5. **No Endless Payload Variations:** Endless or unauthorized payload format variations without root cause diagnosis are strictly forbidden. Do NOT vary the payload format ("maybe this format will work") without diagnosing the exact root cause. Report the exact failure mode (missing section, truncation point, preamble degradation).
+
 **C. Handle Implementer Status**
-- **DONE:** Proceed to two-stage review (Step 3.3).
+- **DONE (integrity verified):** Proceed to two-stage review (Step 3.3).
 - **DONE_WITH_CONCERNS:** Read concerns. If correctness/scope issue, address before review. If observational, note and proceed.
-- **NEEDS_CONTEXT:** Coordinator provides missing context and re-dispatches.
+- **NEEDS_CONTEXT:** Coordinator provides missing context and re-dispatches. Increment `subagent_dispatch_retry`.
+- **RETRY_LIMIT_EXCEEDED (HALT and escalate):** HALT immediately. Report failure mode and escalate to human via "The Grill."
 - **BLOCKED:** Assess blocker: (1) context problem → provide more context, (2) task too complex → break into smaller pieces, (3) plan is wrong → escalate to human via "The Grill."
 
 #### 3.3 Two-Stage Review Gate
@@ -144,6 +179,8 @@ After each micro-task's implementation, two reviews MUST occur **in this order**
 - **Persistence Verification:** Assert that all persistence transactions are validated directly against a running local database emulator during local integration runs (no stubs).
 - **Coupling & Leakage Audit:** Verify that no direct database SDK dependencies (e.g. `@firebase/firestore` or `cloud_firestore`) leak into UI / presentation components. All components must interact exclusively with abstract repositories.
 - **Layout Engine Compliance:** Verify that split workspaces align with `logical-layout.json`, resizable splitter containers isolate reflows using CSS Container Queries to prevent unmounting state loss, and icons conform to the 16px SVG outline limits (stroke weight 1.0px–1.2px, cell padding 4px).
+- **Model Integrity Check:** Verify that every constructor, `copyWith`, and `valueWriter` in the diff includes or passes through new fields.
+- **Governance Adherence Check:** Verify the subagent's governance acknowledgment is present and complete. If missing or incomplete, fail the review and require re-dispatch.
 - **If issues found:** Implementer fixes → re-review. Do NOT proceed to Stage 2 until Stage 1 passes.
 
 **Stage 2: Code Quality Review**
@@ -176,6 +213,8 @@ Before proceeding to Step 4, perform explicit grep or file-reading checks of all
 - Never dispatch multiple implementer subagents in parallel on the same feature (conflicts).
 - Never start code quality review before spec compliance is approved (wrong order).
 - Never skip the re-review loop (reviewer found issues = implementer fixes = review again).
+- **Cross-Cutting Field Preservation:** When adding fields to domain models, all constructors, `copyWith` methods, and `valueWriters` MUST preserve new fields across all paths. Micro-tasks MUST explicitly include regression tasks for existing constructors, `copyWith` methods, and `valueWriters`.
+- **Governance Acknowledgment Invariant:** No subagent may proceed to code generation without submitting and receiving coordinator approval of a complete governance acknowledgment.
 
 ### Step 3.8: Systematic Debugging (When Tests Fail Unexpectedly)
 
@@ -187,7 +226,7 @@ If a test fails with an unexpected error during Step 3, follow the 4-phase debug
 4. **Verify:** Run the full test suite (not just the fixed test) to confirm no regressions. Only proceed when all tests pass.
 
 ### Step 4: Verification & Testing
-1. **Assertion-Based Automation:** When writing or updating tests, do not rely on basic smoke tests. Add explicit assertions that query return values, object states, or output trees for the presence of the new fields or data properties.
+1. **Assertion-Based Automation:** When writing or updating tests, do not rely on basic smoke tests. Add explicit assertions that query return values, object states, or output trees for the presence of the new fields or data properties. For any modified domain models, mandate regression assertions on existing tests for operations on modified domain models to verify field preservation through every constructor, `copyWith`, and `valueWriter` path.
 2. **Full Compilation Build:** Run local tests and run a full compilation build of the entire application (e.g. `flutter build` or `npm run build` as specified by the platform profile) to ensure it compiles without errors and is completely ready to run.
 3. **Parity Auditor Gate:** Mandate running `python3 -m parity_auditor` as a blocking gate before completing any implementation task.
 4. **Evidence of Completion:** Paste actual raw test output / build output as proof. Do not summarize — show the raw output.

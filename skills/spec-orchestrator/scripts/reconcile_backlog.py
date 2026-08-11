@@ -455,9 +455,30 @@ def deduplicate_markdown_sections(content):
 def rewrite_header_repository_urls(content, active_repo):
     if not content or not active_repo:
         return content
-    pattern = r'https://github\.com/[^/]+/[^/]+/blob/'
-    replacement = f'https://github.com/{active_repo}/blob/'
-    return re.sub(pattern, replacement, content)
+    parts = active_repo.split('/')
+    active_name = parts[-1].lower()
+    active_owner = parts[0].lower() if len(parts) > 1 else ""
+
+    def replacer(match):
+        full_url = match.group(0)
+        url_owner = match.group(1)
+        url_repo = match.group(2)
+        url_owner_lower = url_owner.lower()
+        url_repo_lower = url_repo.lower()
+
+        is_target_repo = (
+            (url_owner_lower == active_owner and url_repo_lower == active_name) or
+            (url_repo_lower == active_name) or
+            (url_repo_lower == "digital-pipeline-repo") or
+            ("pipeline-repo" in url_repo_lower)
+        )
+
+        if is_target_repo:
+            return f"https://github.com/{active_repo}/blob/"
+        return full_url
+
+    pattern = r'https://github\.com/([^/]+)/([^/]+)/blob/'
+    return re.sub(pattern, replacer, content)
 
 def sanitize_source_references(content, workspace_dir=None, rules=None):
     if not content:

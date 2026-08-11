@@ -50,6 +50,9 @@ ALLOWED_AGENTS_PREFIX = {
 }
 
 
+REQUIRED_SCAN_ROOTS = {"skills", "rules", ".agents", ".pipeline"}
+
+
 def _governance_docs():
     found = []
     for base in SCAN_ROOTS:
@@ -64,6 +67,33 @@ def _governance_docs():
     return found
 
 
+def _assert_corpus_covers_all_roots():
+    """Every declared scan root must contribute at least one document, and key required files must exist."""
+    missing_declared = REQUIRED_SCAN_ROOTS - set(SCAN_ROOTS)
+    assert not missing_declared, (
+        f"SCAN_ROOTS is missing mandatory roots: {sorted(missing_declared)}. "
+        "This is the #305/#362 blind spot; do not fix it by lowering the guard."
+    )
+    docs = _governance_docs()
+    rels = {os.path.relpath(p, REPO_ROOT) for p in docs}
+    missing_docs = [
+        base
+        for base in SCAN_ROOTS
+        if not any(r == base or r.startswith(base + os.sep) for r in rels)
+    ]
+    assert not missing_docs, (
+        f"scan roots contributed no documents: {missing_docs}. This is the #305/#362 blind "
+        "spot; do not fix it by lowering the guard."
+    )
+    for required in (".agents/AGENTS.md", ".pipeline/constitution.md"):
+        assert required in rels, (
+            f"{required} is missing from the scanned corpus — a SCAN_ROOTS regression. "
+            "This is the #305/#362 blind spot; do not fix it by lowering the guard."
+        )
+    return docs
+
+
+
 def _read(path):
     with open(path, "r", encoding="utf-8", errors="replace") as fh:
         return fh.read()
@@ -74,32 +104,33 @@ def test_governance_docs_are_discoverable():
 
     The count alone is a weak guard — it cleared comfortably on ``skills/`` and
     ``rules/`` alone while the hidden roots were missing entirely (#305). The
-    membership assertions are the real check: they name one document from each hidden
-    root, so dropping a scan root fails here loudly instead of silently shrinking
-    what the suite examines.
+    root coverage and membership assertions are the real check: they verify every
+    root in SCAN_ROOTS contributes documents and check required documents, so dropping
+    a scan root fails loudly.
     """
-    docs = _governance_docs()
-    rels = {os.path.relpath(p, REPO_ROOT) for p in docs}
-
+    docs = _assert_corpus_covers_all_roots()
     assert len(docs) >= 28, (
         f"expected the skill, rule and hidden governance documents, found {len(docs)}"
     )
-    for required in (".agents/AGENTS.md", ".pipeline/constitution.md"):
-        assert required in rels, (
-            f"{required} is missing from the scanned corpus — a SCAN_ROOTS regression. "
-            "This is the #305 blind spot; do not fix it by lowering the guard."
-        )
 
 
 def test_no_document_uses_the_agents_skills_prefix_issue285():
     offenders = []
-    for path in _governance_docs():
+    scanned = 0
+    for path in _assert_corpus_covers_all_roots():
+        scanned += 1
         rel = os.path.relpath(path, REPO_ROOT)
         if rel in ALLOWED_AGENTS_PREFIX:
             continue
         for lineno, line in enumerate(_read(path).splitlines(), 1):
             if ".agents/skills" in line:
                 offenders.append(f"{rel}:{lineno}")
+    assert ".agents/skills" in "see .agents/skills/create_issue.sh", (
+        "the prefix-ban detector no longer matches '.agents/skills'"
+    )
+    assert scanned >= len(SCAN_ROOTS), (
+        f"only {scanned} documents scanned; expected at least {len(SCAN_ROOTS)} scan roots"
+    )
     assert not offenders, (
         "documents reference paths through the '.agents/skills/' symlink. Use the "
         "repository-relative 'skills/' prefix so resolution does not depend on the "
@@ -115,25 +146,34 @@ def test_referenced_skill_paths_resolve_on_disk_issue285():
     pattern = re.compile(r"(?<![\w-])((?:\./)?(?:\.agents/)?skills/[A-Za-z0-9_./-]+)")
     offenders = []
     checked = 0
-    for path in _governance_docs():
+    skipped_placeholders = []
+    unclassified = []
+    for path in _assert_corpus_covers_all_roots():
         rel = os.path.relpath(path, REPO_ROOT)
         for lineno, line in enumerate(_read(path).splitlines(), 1):
             for match in pattern.finditer(line):
                 candidate = match.group(1).rstrip(".,;:)`\"'")
+                raw = line[match.end(1):match.end(1)+1]
                 if candidate.startswith("./"):
                     candidate = candidate[2:]
                 # skip glob/placeholder forms that cannot be resolved literally
-                if any(ch in candidate for ch in "<>*[]") or candidate.endswith("/"):
+                if raw in "<>*[]" or candidate.endswith("/") or any(ch in candidate for ch in "<>*[]"):
+                    skipped_placeholders.append(f"{rel}:{lineno} -> {candidate} (raw: {raw!r})")
                     continue
-                if "spec-orchestrator/scripts" in candidate or candidate.endswith(
-                    (".md", ".py", ".sh", ".json")
+                if (
+                    "spec-orchestrator/scripts" in candidate
+                    or "parity_auditor" in candidate
+                    or candidate.endswith((".md", ".py", ".sh", ".json"))
                 ):
                     checked += 1
                     if not os.path.exists(os.path.join(REPO_ROOT, candidate)):
                         offenders.append(f"{rel}:{lineno} -> {candidate}")
+                else:
+                    unclassified.append(f"{rel}:{lineno} -> {candidate} (raw: {raw!r})")
     assert checked >= 10, (
         f"only {checked} concrete skill paths examined; the scan is close to vacuous"
     )
+    assert not unclassified, f"Unclassified skill path candidates silently dropped: {unclassified}"
     assert not offenders, f"governance documents reference paths that do not exist: {offenders}"
 
 
@@ -147,7 +187,7 @@ _CITE_STEP_THEN_NAME = re.compile(r"Step (\d+(?:\.\d+)?) of `?([a-z0-9-]+)`?")
 def _cited_steps():
     """(citing_doc, skill_name, step) for every resolvable cross-document citation."""
     found = []
-    for path in _governance_docs():
+    for path in _assert_corpus_covers_all_roots():
         rel = os.path.relpath(path, REPO_ROOT)
         # Citations wrap across lines in pipeline-tooling.md, so scan the whole text
         # with newlines flattened rather than line by line.
@@ -176,7 +216,7 @@ def test_step_citations_resolve_issue307():
             continue  # not a skill reference, or anaphoric — nothing to resolve
         checked += 1
         heading = re.compile(
-            r"^#{1,6}\s*Step\s+" + re.escape(step) + r"\b", re.MULTILINE
+            r"^#{1,6}\s*Step\s+" + re.escape(step) + r"(?![\d.])", re.MULTILINE
         )
         if not heading.search(_read(target)):
             offenders.append(f"{rel} cites `{name}` Step {step}, which has no heading")
@@ -185,6 +225,19 @@ def test_step_citations_resolve_issue307():
         f"only {checked} cross-document step citations examined; the scan is near-vacuous"
     )
     assert not offenders, f"governance documents cite steps that do not exist: {offenders}"
+
+
+def test_step_citation_matcher_rejects_substep_heading_issue363():
+    """Confirm that Step 5 citation matcher rejects a document whose only heading is ### Step 5.5."""
+    step = "5"
+    heading_pattern = r"^#{1,6}\s*Step\s+" + re.escape(step) + r"(?![\d.])"
+    heading = re.compile(heading_pattern, re.MULTILINE)
+    sample_doc = "### Step 5.5 — Sub-step heading\nSome text"
+    assert not heading.search(sample_doc), (
+        "Citation matcher for Step 5 incorrectly accepted '### Step 5.5'"
+    )
+
+
 
 
 # A concrete subagent dispatch/lifecycle tool identifier: an action verb joined to
@@ -212,7 +265,7 @@ def test_no_document_names_a_runtime_dispatch_tool_issue312():
     runtime is meant to be reflected.
     """
     offenders = []
-    for path in _governance_docs():
+    for path in _assert_corpus_covers_all_roots():
         rel = os.path.relpath(path, REPO_ROOT)
         for lineno, line in enumerate(_read(path).splitlines(), 1):
             if rel == ".agents/AGENTS.md" and line.lstrip().startswith("|"):
@@ -227,7 +280,6 @@ def test_no_document_names_a_runtime_dispatch_tool_issue312():
         "invoke_subagent",
         "manage_subagents",
     ], "the dispatch-tool pattern no longer matches the names issue #312 removed"
-    assert len(_governance_docs()) >= 28, "governance corpus not scanned"
 
     assert not offenders, (
         "governance documents name concrete dispatch tools: "
@@ -235,3 +287,45 @@ def test_no_document_names_a_runtime_dispatch_tool_issue312():
         "dispatch table in .agents/AGENTS.md, so a change of runtime cannot make the "
         "sentence unexecutable."
     )
+
+
+def test_root_coverage_validator_fails_when_roots_dropped_issue362(monkeypatch):
+    """Confirm that _assert_corpus_covers_all_roots raises AssertionError if SCAN_ROOTS drops hidden roots."""
+    import pytest
+    import sys
+
+    mod = sys.modules[__name__]
+    with monkeypatch.context() as m:
+        m.setattr(mod, "SCAN_ROOTS", ("skills", "rules"))
+        with pytest.raises(AssertionError) as exc_info:
+            _assert_corpus_covers_all_roots()
+        assert "SCAN_ROOTS is missing mandatory roots" in str(exc_info.value)
+
+
+def test_unreachable_placeholder_filter_detects_unclassified_or_wildcard_issue364():
+    """Confirm raw trailing character inspection catches wildcards and unclassified candidates."""
+    pattern = re.compile(r"(?<![\w-])((?:\./)?(?:\.agents/)?skills/[A-Za-z0-9_./-]+)")
+    line_wildcard = "Refer to skills/my-skill/* for details"
+    match = list(pattern.finditer(line_wildcard))[0]
+    candidate = match.group(1).rstrip(".,;:)`\"'")
+    raw = line_wildcard[match.end(1):match.end(1)+1]
+    assert candidate == "skills/my-skill/"
+    assert raw == "*"
+    assert raw in "<>*[]" or candidate.endswith("/")
+
+    line_unclassified = "Refer to skills/my-skill/unknown_file_type for details"
+    match_unc = list(pattern.finditer(line_unclassified))[0]
+    candidate_unc = match_unc.group(1).rstrip(".,;:)`\"'")
+    raw_unc = line_unclassified[match_unc.end(1):match_unc.end(1)+1]
+    assert candidate_unc == "skills/my-skill/unknown_file_type"
+    assert raw_unc == " "
+    assert not (
+        "spec-orchestrator/scripts" in candidate_unc
+        or "parity_auditor" in candidate_unc
+        or candidate_unc.endswith((".md", ".py", ".sh", ".json"))
+    )
+
+
+
+
+

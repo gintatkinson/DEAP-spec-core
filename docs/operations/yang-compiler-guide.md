@@ -479,7 +479,7 @@ The Flutter app consumes the generated file in two ways:
 
 ### 6.3. Working with SQLite and TypeDescriptors
 
-Per the [Runtime Metadata Architecture Blueprint](../architecture/runtime-metadata-blueprint.md),
+Per the [Runtime Metadata Architecture Blueprint](../architecture/blueprints/RUNTIME_METADATA_ENGINE.md),
 the app also supports runtime schema discovery via `DataSource.discoverTypes()`.
 When using the SQLite-backed `SqliteDataSource`, the metadata tables
 (`type_definitions`, `type_attributes`, `type_relations`) must be populated.

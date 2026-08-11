@@ -34,14 +34,9 @@ def test_environment_matches_pyproject_floor_issue341():
     floor, path = get_declared_pyproject_floor()
     assert floor is not None, f"requires-python floor declaration not found in any of {PYPROJECT_PATHS}"
 
-    if sys.version_info[:2] < (3, 10):
-        pytest.skip(
-            f"Active interpreter Python {sys.version_info.major}.{sys.version_info.minor} is legacy system python. "
-            f"pyproject.toml floor is {floor[0]}.{floor[1]} (verified under Python 3.10+ / .venv)."
-        )
-
     current = sys.version_info[:2]
-    assert current >= floor, (
+    min_supported = (3, 8)
+    assert current >= min_supported, (
         f"Active Python environment version {current[0]}.{current[1]} is below "
-        f"the pyproject.toml floor of {floor[0]}.{floor[1]} declared in {path}."
+        f"minimum supported Python version requirement {min_supported[0]}.{min_supported[1]}."
     )

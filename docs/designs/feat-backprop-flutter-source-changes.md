@@ -1,6 +1,6 @@
 # Solution Walkthrough: Back-propagation of Flutter Application Source Changes
 
-This document details the back-propagation of downstream enhancements and features for the Flutter application codebase located under [app_flutter/](app_flutter/).
+This document details the back-propagation of downstream enhancements and features for the Flutter application codebase located under [app_flutter/](../../app_flutter/).
 
 ---
 
@@ -10,38 +10,38 @@ The back-propagation brings over the core geospatial 3D visualization capabiliti
 
 ### Key New Files
 
-* **[app_flutter/lib/domain/cesium_3d/](app_flutter/lib/domain/cesium_3d/)**:
-  - [camera_controller.dart](app_flutter/lib/domain/cesium_3d/camera_controller.dart): Manages the virtual camera's coordinates (dim_0, dim_1, dim_2) and orientation angles (heading, pitch, roll), providing methods for dragging, rotating, zooming, and flying to focal nodes.
-  - [cesium_3d_native.dart](app_flutter/lib/domain/cesium_3d/cesium_3d_native.dart): Dart interface exposing functions executed in the native C++ library.
-  - [cesium_engine.dart](app_flutter/lib/domain/cesium_3d/cesium_engine.dart): Integrates native geocentric rendering with the Flutter viewport.
-  - [coordinate_transformer.dart](app_flutter/lib/domain/cesium_3d/coordinate_transformer.dart): Performs geometry-to-screen coordinate projections.
-  - [globe_tile_renderer.dart](app_flutter/lib/domain/cesium_3d/globe_tile_renderer.dart): Renders terrain mesh geometries, overlays map imagery textures, and performs view-frustum culling.
-  - [tile_fetcher.dart](app_flutter/lib/domain/cesium_3d/tile_fetcher.dart): Controls the asynchronous queue for fetching and caching tile layers.
-  - [virtual_camera.dart](app_flutter/lib/domain/cesium_3d/virtual_camera.dart): Encapsulates projection and view matrices representing the current viewport viewport.
-  - [native/bridge_bindings.dart](app_flutter/lib/domain/cesium_3d/native/bridge_bindings.dart), [native/error_handler.dart](app_flutter/lib/domain/cesium_3d/native/error_handler.dart), [native/native_resource.dart](app_flutter/lib/domain/cesium_3d/native/native_resource.dart): Handles FFI binding execution, runtime error translation, and finalization for native memory/resource cleanup.
+* **[app_flutter/lib/domain/cesium_3d/](../../app_flutter/lib/domain/cesium_3d/)**:
+  - [camera_controller.dart](../../app_flutter/lib/domain/cesium_3d/camera_controller.dart): Manages the virtual camera's coordinates (dim_0, dim_1, dim_2) and orientation angles (heading, pitch, roll), providing methods for dragging, rotating, zooming, and flying to focal nodes.
+  - [cesium_3d_native.dart](../../app_flutter/lib/domain/cesium_3d/cesium_3d_native.dart): Dart interface exposing functions executed in the native C++ library.
+  - [cesium_engine.dart](../../app_flutter/lib/domain/cesium_3d/cesium_engine.dart): Integrates native geocentric rendering with the Flutter viewport.
+  - [coordinate_transformer.dart](../../app_flutter/lib/domain/cesium_3d/coordinate_transformer.dart): Performs geometry-to-screen coordinate projections.
+  - [globe_tile_renderer.dart](../../app_flutter/lib/domain/cesium_3d/globe_tile_renderer.dart): Renders terrain mesh geometries, overlays map imagery textures, and performs view-frustum culling.
+  - [tile_fetcher.dart](../../app_flutter/lib/domain/cesium_3d/tile_fetcher.dart): Controls the asynchronous queue for fetching and caching tile layers.
+  - [virtual_camera.dart](../../app_flutter/lib/domain/cesium_3d/virtual_camera.dart): Encapsulates projection and view matrices representing the current viewport viewport.
+  - [native/bridge_bindings.dart](../../app_flutter/lib/domain/cesium_3d/native/bridge_bindings.dart), [native/error_handler.dart](../../app_flutter/lib/domain/cesium_3d/native/error_handler.dart), [native/native_resource.dart](../../app_flutter/lib/domain/cesium_3d/native/native_resource.dart): Handles FFI binding execution, runtime error translation, and finalization for native memory/resource cleanup.
 
-* **[app_flutter/integration_test/](app_flutter/integration_test/)**:
-  - [globe_camera_drag_test.dart](app_flutter/integration_test/globe_camera_drag_test.dart): Verifies panning behavior changes the camera's geometry dim_1 while leaving dim_2 constant.
-  - [globe_camera_rotation_visual_test.dart](app_flutter/integration_test/globe_camera_rotation_visual_test.dart): Confirms that Ctrl+Drag changes the camera heading and rotates 2D screen projected coordinate points.
-  - [globe_camera_reset_test.dart](app_flutter/integration_test/globe_camera_reset_test.dart): Tests camera reset/re-centering triggers.
+* **[app_flutter/integration_test/](../../app_flutter/integration_test/)**:
+  - [globe_camera_drag_test.dart](../../app_flutter/integration_test/globe_camera_drag_test.dart): Verifies panning behavior changes the camera's geometry dim_1 while leaving dim_2 constant.
+  - [globe_camera_rotation_visual_test.dart](../../app_flutter/integration_test/globe_camera_rotation_visual_test.dart): Confirms that Ctrl+Drag changes the camera heading and rotates 2D screen projected coordinate points.
+  - [globe_camera_reset_test.dart](../../app_flutter/integration_test/globe_camera_reset_test.dart): Tests camera reset/re-centering triggers.
 
-* **[app_flutter/test/cesium_3d/](app_flutter/test/cesium_3d/)**:
-  - Includes fuzzer testing ([adversarial_fuzzer_test.dart](app_flutter/test/cesium_3d/adversarial_fuzzer_test.dart)), camera collision bounds validation ([camera_collision_test.dart](app_flutter/test/cesium_3d/camera_collision_test.dart)), and unit tests for FFI bindings, zoom, and repaint updates.
+* **[app_flutter/test/cesium_3d/](../../app_flutter/test/cesium_3d/)**:
+  - Includes fuzzer testing ([adversarial_fuzzer_test.dart](../../app_flutter/test/cesium_3d/adversarial_fuzzer_test.dart)), camera collision bounds validation ([camera_collision_test.dart](../../app_flutter/test/cesium_3d/camera_collision_test.dart)), and unit tests for FFI bindings, zoom, and repaint updates.
 
 ### Key Modified Files
 
-* **[app_flutter/lib/core/theme/theme_controller.dart](app_flutter/lib/core/theme/theme_controller.dart)**:
+* **[app_flutter/lib/core/theme/theme_controller.dart](../../app_flutter/lib/core/theme/theme_controller.dart)**:
   - Added a disposal guard flag and implemented a task-serialization operation queue to eliminate race conditions and post-disposal state changes.
   - Integrated support for the newly introduced `panelOpacity` setting.
 
-* **[app_flutter/pubspec.yaml](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/pubspec.yaml)**:
+* **[app_flutter/pubspec.yaml](../../app_flutter/pubspec.yaml)**:
   - Declared `ffi: ^2.1.2` as a dependency to support C++ native integration.
 
-* **[app_flutter/lib/main.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/main.dart)**:
+* **[app_flutter/lib/main.dart](../../app_flutter/lib/main.dart)**:
   - Adjusted runtime checks to prevent executing native/desktop-only `Platform` calls under Web execution profiles (`kIsWeb`).
   - Improved test-environment detection (detecting either the `FLUTTER_TEST` environment variable or checking for a widget test binding instance type).
 
-* **[app_flutter/lib/domain/database_initializer.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/database_initializer.dart)**:
+* **[app_flutter/lib/domain/database_initializer.dart](../../app_flutter/lib/domain/database_initializer.dart)**:
   - Configured optimized index layouts on the instances schema (`idx_instances_parent_type` and `idx_instances_type_name`).
   - Added dynamic limits for seeding master database records (capping at 20 in testing context to rateOfChange up test execution, vs. 1000 in normal application runs).
   - Implemented safe database resource releases (`db.close()`) inside initializer catch blocks.
@@ -85,7 +85,7 @@ To support web deployment pipelines, platform check layers are gated by `kIsWeb`
 
 ## 3. Key Implementation Diffs
 
-### Concurrency and Safe Disposal in [ThemeController](app_flutter/lib/core/theme/theme_controller.dart)
+### Concurrency and Safe Disposal in [ThemeController](../../app_flutter/lib/core/theme/theme_controller.dart)
 
 ```diff
 @@ -21,7 +21,18 @@ class ThemeController extends ChangeNotifier {
@@ -107,7 +107,7 @@ To support web deployment pipelines, platform check layers are gated by `kIsWeb`
 +  }
 ```
 
-### Performance & Safety Updates in [DatabaseInitializer](app_flutter/lib/domain/database_initializer.dart)
+### Performance & Safety Updates in [DatabaseInitializer](../../app_flutter/lib/domain/database_initializer.dart)
 
 ```diff
 @@ -107,6 +122,12 @@ class DatabaseInitializer {
