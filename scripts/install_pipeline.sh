@@ -9,7 +9,60 @@ if [ -e ./.pipeline/upstream ]; then
   exit 1
 fi
 
-REPO_URL="https://github.com/gintatkinson/DEAP-spec-core.git"
+DEFAULT_UPSTREAM_REPO="https://github.com/gintatkinson/DEAP-spec-core.git"
+REPO_URL="${DEAP_UPSTREAM_REPO:-$DEFAULT_UPSTREAM_REPO}"
+PROFILE=""
+WITH_UI=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo)
+      if [ -n "$2" ] && [[ "$2" != --* ]]; then
+        REPO_URL="$2"
+        shift 2
+      else
+        echo "Error: Option --repo requires a non-empty URL argument."
+        exit 1
+      fi
+      ;;
+    --profile)
+      if [ -n "$2" ] && [[ "$2" != --* ]]; then
+        PROFILE="$2"
+        shift 2
+      else
+        echo "Error: Option --profile requires a profile name argument."
+        exit 1
+      fi
+      ;;
+    --with-ui)
+      WITH_UI=true
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: $0 [--repo <url>] [--profile <name>] [--with-ui]"
+      echo "Profiles: ros2_cpp, px4_module, spark_ada, embedded_c, flutter, react"
+      exit 0
+      ;;
+    *)
+      echo "Error: Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
+# Defensive Pre-Execution Validation: git CLI availability
+if ! command -v git &> /dev/null; then
+  echo "Error: git CLI is not installed or not found in PATH."
+  exit 1
+fi
+
+# Defensive Pre-Execution Validation: remote repository reachability
+echo "==> Validating remote repository reachability ($REPO_URL)..."
+if ! git ls-remote --exit-code "$REPO_URL" HEAD &> /dev/null; then
+  echo "Error: Remote repository '$REPO_URL' is unreachable or invalid."
+  exit 1
+fi
+
 TMP_DIR=".tmp-pipeline-install"
 
 echo "==> Preparing digital pipeline installation..."
@@ -17,11 +70,15 @@ echo "==> Preparing digital pipeline installation..."
 # Cleanup old temp directory if exists
 rm -rf "$TMP_DIR"
 
-echo "==> Cloning latest DEAP-spec-core..."
+echo "==> Cloning latest pipeline from $REPO_URL..."
 git clone --depth 1 "$REPO_URL" "$TMP_DIR"
 
 echo "==> Copying pipeline directories and configurations..."
 FORK_DIRS=("skills/" "rules/" ".pipeline/" ".agents/" "scripts/")
+
+if [ "$WITH_UI" = true ] || [ "$PROFILE" = "flutter" ] || [ "$PROFILE" = "react" ] || [ "$PROFILE" = "flutter_mobile" ] || [ "$PROFILE" = "react_web" ]; then
+  FORK_DIRS+=("app_flutter/" "web_react/")
+fi
 
 for dir in "${FORK_DIRS[@]}"; do
   clean_dir="${dir%/}"

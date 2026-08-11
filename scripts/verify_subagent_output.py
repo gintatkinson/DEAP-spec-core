@@ -103,6 +103,7 @@ def verify_prompt_payload(prompt_text):
     1. Asserts presence of view_file on SKILL.md by explicit path as step 1.
     2. Asserts presence of gh issue create for audit skills.
     3. Rejects summarized or truncated prompt payloads.
+    4. Forbids gh issue close in agent prompts (reserved for Product Owner review).
     
     Returns (check_result_dict, is_pass_bool)
     """
@@ -110,6 +111,7 @@ def verify_prompt_payload(prompt_text):
         'view_file_step_1': False,
         'audit_issue_create': True,
         'untruncated': True,
+        'forbid_issue_close': True,
         'reasons': []
     }
 
@@ -135,6 +137,11 @@ def verify_prompt_payload(prompt_text):
             check_result['untruncated'] = False
             check_result['reasons'].append(f"Prompt payload contains truncation/summarization indicator matching '{pat}'.")
 
+    # Forbid gh issue close in agent prompts
+    if re.search(r'\bgh\s+issue\s+close\b', prompt_text, re.IGNORECASE):
+        check_result['forbid_issue_close'] = False
+        check_result['reasons'].append("Prompt payload contains forbidden 'gh issue close' (issue closure is reserved for Product Owner review).")
+
     # Assert presence of view_file on SKILL.md by explicit path as step 1
     has_view_file = 'view_file' in prompt_text
     has_skill_md = 'SKILL.md' in prompt_text
@@ -159,7 +166,8 @@ def verify_prompt_payload(prompt_text):
     is_pass = (
         check_result['view_file_step_1'] and
         check_result['audit_issue_create'] and
-        check_result['untruncated']
+        check_result['untruncated'] and
+        check_result['forbid_issue_close']
     )
     return check_result, is_pass
 
@@ -214,6 +222,7 @@ def main():
             'view_file_step_1': p_res['view_file_step_1'],
             'audit_issue_create': p_res['audit_issue_create'],
             'untruncated': p_res['untruncated'],
+            'forbid_issue_close': p_res['forbid_issue_close'],
             'reasons': p_res['reasons']
         })
         if not is_pass:

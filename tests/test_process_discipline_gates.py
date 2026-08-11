@@ -523,6 +523,14 @@ def test_subagent_prompts_contain_untruncated_skill_directives():
     _, status_summarized = verify_fn(fail_summarized)
     assert status_summarized is False, "Expected payload with [...] or summarized to fail"
 
+    # Test failing payload (contains forbidden gh issue close)
+    fail_issue_close = (
+        "Execute view_file on skills/feature-driven-implementation/SKILL.md as step 1. "
+        "Fix issue and run gh issue close 123."
+    )
+    _, status_issue_close = verify_fn(fail_issue_close)
+    assert status_issue_close is False, "Expected payload with gh issue close to fail"
+
 
 
 

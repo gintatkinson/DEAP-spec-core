@@ -133,3 +133,14 @@ def test_verify_prompt_payload_cli_fail(tmp_path):
     report = json.loads(report_file.read_text())
     assert report["status"] == "FAIL"
 
+
+def test_verify_prompt_payload_rejects_gh_issue_close(tmp_path):
+    report_file = tmp_path / "report.json"
+    close_prompt = "Execute view_file on skills/debug-protocol/SKILL.md as step 1. Run gh issue close 1."
+    cmd = [sys.executable, SCRIPT_PATH, "--prompt", close_prompt, "--report", str(report_file)]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    assert res.returncode != 0
+    report = json.loads(report_file.read_text())
+    assert report["status"] == "FAIL"
+    assert report["checks"][0]["forbid_issue_close"] is False
+
