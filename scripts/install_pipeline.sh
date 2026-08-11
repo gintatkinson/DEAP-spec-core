@@ -9,7 +9,7 @@ if [ -e ./.pipeline/upstream ]; then
   exit 1
 fi
 
-REPO_URL="https://github.com/gintatkinson/digital-pipeline-repo.git"
+REPO_URL="https://github.com/gintatkinson/DEAP-spec-core.git"
 TMP_DIR=".tmp-pipeline-install"
 
 echo "==> Preparing digital pipeline installation..."
@@ -17,27 +17,17 @@ echo "==> Preparing digital pipeline installation..."
 # Cleanup old temp directory if exists
 rm -rf "$TMP_DIR"
 
-echo "==> Cloning latest digital-pipeline-repo..."
+echo "==> Cloning latest DEAP-spec-core..."
 git clone --depth 1 "$REPO_URL" "$TMP_DIR"
 
 echo "==> Copying pipeline directories and configurations..."
-FORK_DIRS=("skills/" "rules/" ".pipeline/" ".agents/" "scripts/" "app_flutter/" "web_react/")
+FORK_DIRS=("skills/" "rules/" ".pipeline/" ".agents/" "scripts/")
 
 for dir in "${FORK_DIRS[@]}"; do
   clean_dir="${dir%/}"
   if [ -d "$TMP_DIR/$clean_dir" ]; then
     mkdir -p "$clean_dir"
-    if [ "$clean_dir" = ".pipeline" ]; then
-      for item in "$TMP_DIR/$clean_dir/"* "$TMP_DIR/$clean_dir/".*; do
-        [ -e "$item" ] || continue
-        base="$(basename "$item")"
-        if [ "$base" != "." ] && [ "$base" != ".." ] && [ "$base" != "upstream" ]; then
-          cp -R "$item" "$clean_dir/"
-        fi
-      done
-    else
-      cp -R "$TMP_DIR/$clean_dir/." "$clean_dir/" 2>/dev/null || cp -R "$TMP_DIR/$clean_dir/"* "$clean_dir/"
-    fi
+    (cd "$TMP_DIR/$clean_dir" && tar --exclude="./upstream" -cf - .) | (cd "$clean_dir" && tar xf -)
   fi
 done
 

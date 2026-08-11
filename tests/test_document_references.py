@@ -376,8 +376,8 @@ def test_product_name_standardization_enforcement():
                 if not in_before_block:
                     filtered.append(line)
             check_content = "\n".join(filtered)
-        elif tf.endswith("README.md"):
-            # Exclude deprecation/archive banner block pointing to DEAP-spec-core
+        elif tf.endswith("README.md") or tf.endswith("install_pipeline.sh"):
+            # Exclude REPO_URL and deprecation/archive banner blocks pointing to DEAP-spec-core repo URL
             lines = content.splitlines()
             filtered = [l for l in lines if "THIS REPOSITORY IS FROZEN & ARCHIVED" not in l and "DEAP-spec-core" not in l]
             check_content = "\n".join(filtered)
