@@ -1,6 +1,12 @@
 <!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
 
+> [!CAUTION]
+> **THIS REPOSITORY IS FROZEN & ARCHIVED**
+> All active development, assets, and governance have migrated to [`gintatkinson/DEAP-spec-core`](https://github.com/gintatkinson/DEAP-spec-core).
+> Please use [`https://github.com/gintatkinson/DEAP-spec-core`](https://github.com/gintatkinson/DEAP-spec-core) for the latest specification engineering assets, rules, skills, and documentation.
+
 # Digital Engineering Agent Platform (DEAP) (Builders Project)
+
 
 Welcome to the Digital Engineering Agent Platform (DEAP). This repository contains a suite of autonomous AI Agent "Skills" designed to:
 
