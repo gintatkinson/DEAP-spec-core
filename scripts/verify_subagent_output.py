@@ -98,10 +98,77 @@ def verify_file(file_path):
     return check_result, is_pass
 
 
+def verify_prompt_payload(prompt_text):
+    """Validates prompt text payloads for untruncated skill directives:
+    1. Asserts presence of view_file on SKILL.md by explicit path as step 1.
+    2. Asserts presence of gh issue create for audit skills.
+    3. Rejects summarized or truncated prompt payloads.
+    
+    Returns (check_result_dict, is_pass_bool)
+    """
+    check_result = {
+        'view_file_step_1': False,
+        'audit_issue_create': True,
+        'untruncated': True,
+        'reasons': []
+    }
+
+    if not prompt_text or not isinstance(prompt_text, str):
+        check_result['untruncated'] = False
+        check_result['reasons'].append("Prompt payload is empty or not a string.")
+        return check_result, False
+
+    # Check for truncation / summarization indicators
+    truncation_patterns = [
+        r'\[\s*\.\.\.\s*\]',
+        r'\[\s*summarized?\s*\]',
+        r'\[\s*truncated?\s*\]',
+        r'\bsummarized\s+(?:prompt|instructions?|directives?|payload)\b',
+        r'\btruncated\s+(?:prompt|instructions?|directives?|payload)\b',
+        r'\bsummary\s+of\s+skill\b',
+        r'\bshortcut\b',
+        r'\bsee\s+skill\s+for\s+details\b',
+        r'\bsee\s+SKILL\.md\s+for\s+details\b',
+    ]
+    for pat in truncation_patterns:
+        if re.search(pat, prompt_text, re.IGNORECASE):
+            check_result['untruncated'] = False
+            check_result['reasons'].append(f"Prompt payload contains truncation/summarization indicator matching '{pat}'.")
+
+    # Assert presence of view_file on SKILL.md by explicit path as step 1
+    has_view_file = 'view_file' in prompt_text
+    has_skill_md = 'SKILL.md' in prompt_text
+    step1_match = re.search(
+        r'(?:step\s*1|very\s*first\s*step|first\s*step|as\s*its\s*very\s*first\s*step).*view_file.*SKILL\.md|view_file.*SKILL\.md.*(?:step\s*1|very\s*first\s*step|first\s*step|as\s*its\s*very\s*first\s*step)',
+        prompt_text,
+        re.IGNORECASE | re.DOTALL
+    )
+    if has_view_file and has_skill_md and step1_match:
+        check_result['view_file_step_1'] = True
+    else:
+        check_result['reasons'].append("Prompt payload missing explicit view_file on SKILL.md as step 1.")
+
+    # Asserts presence of gh issue create for audit skills
+    if re.search(r'\baudits?\b|\bauditor\b', prompt_text, re.IGNORECASE):
+        if 'gh issue create' in prompt_text:
+            check_result['audit_issue_create'] = True
+        else:
+            check_result['audit_issue_create'] = False
+            check_result['reasons'].append("Audit skill prompt missing 'gh issue create'.")
+
+    is_pass = (
+        check_result['view_file_step_1'] and
+        check_result['audit_issue_create'] and
+        check_result['untruncated']
+    )
+    return check_result, is_pass
+
+
 def main():
     parser = argparse.ArgumentParser(description="Verify subagent output artifacts integrity.")
     parser.add_argument("--files", nargs="*", help="List of file paths to verify")
     parser.add_argument("--dir", help="Directory containing files to verify")
+    parser.add_argument("--prompt", "--prompts", nargs="*", help="List of prompt strings or file paths containing prompt text to verify")
     parser.add_argument("--report", help="Path to write JSON report")
     args = parser.parse_args()
 
@@ -114,8 +181,12 @@ def main():
                 if f.endswith('.md'):
                     target_files.append(os.path.join(root, f))
 
-    if not target_files:
-        print("No files specified for verification.")
+    prompt_inputs = []
+    if args.prompt:
+        prompt_inputs.extend(args.prompt)
+
+    if not target_files and not prompt_inputs:
+        print("No files or prompts specified for verification.")
         sys.exit(0)
 
     checks = []
@@ -132,6 +203,22 @@ def main():
         if not is_pass:
             overall_status = "FAIL"
 
+    for p_in in prompt_inputs:
+        p_text = p_in
+        if os.path.isfile(p_in):
+            with open(p_in, 'r', encoding='utf-8', errors='replace') as pf:
+                p_text = pf.read()
+        p_res, is_pass = verify_prompt_payload(p_text)
+        checks.append({
+            'prompt_input': p_in,
+            'view_file_step_1': p_res['view_file_step_1'],
+            'audit_issue_create': p_res['audit_issue_create'],
+            'untruncated': p_res['untruncated'],
+            'reasons': p_res['reasons']
+        })
+        if not is_pass:
+            overall_status = "FAIL"
+
     report = {
         'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'status': overall_status,
@@ -144,12 +231,13 @@ def main():
             json.dump(report, rf, indent=2)
 
     if overall_status == "PASS":
-        print(f"Subagent output verification PASSED ({len(target_files)} files verified).")
+        print(f"Subagent output verification PASSED ({len(target_files)} files, {len(prompt_inputs)} prompts verified).")
         sys.exit(0)
     else:
-        print(f"Subagent output verification FAILED ({len(target_files)} files checked).")
+        print(f"Subagent output verification FAILED ({len(target_files)} files, {len(prompt_inputs)} prompts checked).")
         sys.exit(42)
 
 
 if __name__ == "__main__":
     main()
+

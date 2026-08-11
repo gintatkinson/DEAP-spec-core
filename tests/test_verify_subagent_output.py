@@ -109,3 +109,27 @@ classDiagram
     cmd = [sys.executable, SCRIPT_PATH, "--files", str(bad_mermaid), "--report", str(report_file)]
     res = subprocess.run(cmd, capture_output=True, text=True)
     assert res.returncode != 0
+
+
+def test_verify_prompt_payload_cli_pass(tmp_path):
+    report_file = tmp_path / "report.json"
+    valid_prompt = (
+        "Execute view_file on skills/feature-driven-implementation/SKILL.md as step 1. "
+        "Perform full implementation without truncation."
+    )
+    cmd = [sys.executable, SCRIPT_PATH, "--prompt", valid_prompt, "--report", str(report_file)]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    assert res.returncode == 0, f"Prompt verification failed: {res.stderr}\n{res.stdout}"
+    report = json.loads(report_file.read_text())
+    assert report["status"] == "PASS"
+
+
+def test_verify_prompt_payload_cli_fail(tmp_path):
+    report_file = tmp_path / "report.json"
+    invalid_prompt = "Do audit task using audit skill."
+    cmd = [sys.executable, SCRIPT_PATH, "--prompts", invalid_prompt, "--report", str(report_file)]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    assert res.returncode != 0
+    report = json.loads(report_file.read_text())
+    assert report["status"] == "FAIL"
+

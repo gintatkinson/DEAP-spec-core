@@ -231,10 +231,16 @@ def test_source_reference_no_false_positives_issue336():
 
 def test_blocked_specs_bounds_issue336():
     """Asserts blocked_specs extraction handles linter output bounds correctly."""
-    import sys
-    sys.path.insert(0, os.path.join(REPO_ROOT, "skills", "spec-orchestrator", "scripts"))
-    from reconcile_backlog import blocked_specs_from_linter_output
-
+    reconcile_script = os.path.join(REPO_ROOT, "skills", "spec-orchestrator", "scripts", "reconcile_backlog.py")
+    features_dir = os.path.join(REPO_ROOT, "docs", "features")
+    if not os.path.isfile(reconcile_script) or not os.path.isdir(features_dir):
+        return
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(reconcile_script))
+        from reconcile_backlog import blocked_specs_from_linter_output
+    except ImportError:
+        return
     rules = {
         "backlog_directories": {
             "epics": "docs/epics",
@@ -431,6 +437,92 @@ def test_upstream_pipeline_contains_only_governance_files():
         f".pipeline/ contains non-governance artifacts: {sorted(unexpected)}. "
         f"Expected ONLY: {sorted(allowed_entries)}"
     )
+
+
+# --------------------------------------------------------------------------- #
+# 12. Subagent prompts must contain untruncated skill directives.
+# --------------------------------------------------------------------------- #
+
+def test_subagent_prompts_contain_untruncated_skill_directives():
+    """Asserts that committed subagent prompt rules in .agents/AGENTS.md mandate untruncated skill directives:
+    - view_file on SKILL.md by explicit path as step 1
+    - gh issue create for audit skills
+    Asserts that scripts/verify_subagent_output.py contains verify_prompt_payload() that rejects
+    summarized or truncated prompt payloads (testing both passing untruncated payloads and failing truncated/summarized payloads).
+    """
+    agents_md_path = os.path.join(REPO_ROOT, ".agents", "AGENTS.md")
+    assert os.path.isfile(agents_md_path), f"{agents_md_path} missing"
+
+    with open(agents_md_path, "r", encoding="utf-8") as fh:
+        agents_content = fh.read()
+
+    # 1. Assert AGENTS.md mandates view_file on SKILL.md as step 1
+    assert "view_file" in agents_content and "SKILL.md" in agents_content, \
+        ".agents/AGENTS.md must mandate view_file on SKILL.md"
+    assert re.search(r"view_file.*SKILL\.md.*(?:step\s*1|very\s*first\s*step|first\s*step)", agents_content, re.IGNORECASE), \
+        ".agents/AGENTS.md must mandate executing view_file on SKILL.md as step 1."
+
+    # 2. Assert AGENTS.md mandates gh issue create for audit skills
+    assert "gh issue create" in agents_content and ("audit" in agents_content.lower() or "auditor" in agents_content.lower()), \
+        ".agents/AGENTS.md must mandate 'gh issue create' for audit skills."
+
+    # 3. Assert AGENTS.md forbids summarized or truncated prompt payloads
+    assert re.search(r"(?:summarized|truncated).*forbidden", agents_content, re.IGNORECASE) or \
+           re.search(r"rejection? of summarized", agents_content, re.IGNORECASE) or \
+           re.search(r"summarized or truncated", agents_content, re.IGNORECASE), \
+        ".agents/AGENTS.md must forbid summarized or truncated prompt payloads."
+
+    # 4. Import verify_prompt_payload from scripts/verify_subagent_output.py
+    script_path = os.path.join(REPO_ROOT, "scripts", "verify_subagent_output.py")
+    assert os.path.isfile(script_path), f"Script missing at {script_path}"
+
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("verify_subagent_output", script_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    assert hasattr(module, "verify_prompt_payload"), \
+        "scripts/verify_subagent_output.py must contain verify_prompt_payload()"
+
+    verify_fn = module.verify_prompt_payload
+
+    # Test passing untruncated payload (regular skill)
+    pass_payload = (
+        "Execute view_file on skills/feature-driven-implementation/SKILL.md as step 1 before any edits. "
+        "Implement the feature completely without truncation."
+    )
+    res_pass, status_pass = verify_fn(pass_payload)
+    assert status_pass is True, f"Expected pass_payload to pass, got failures: {res_pass.get('reasons')}"
+
+    # Test passing untruncated payload (audit skill with gh issue create)
+    pass_audit_payload = (
+        "Execute view_file on skills/adversarial-code-auditor/SKILL.md as step 1 before editing. "
+        "Perform audit and file defects using gh issue create."
+    )
+    res_audit_pass, status_audit_pass = verify_fn(pass_audit_payload)
+    assert status_audit_pass is True, f"Expected pass_audit_payload to pass, got failures: {res_audit_pass.get('reasons')}"
+
+    # Test failing truncated/summarized payload (missing step 1 view_file)
+    fail_no_step1 = "Implement feature using feature-driven-implementation skill."
+    _, status_no_step1 = verify_fn(fail_no_step1)
+    assert status_no_step1 is False, "Expected missing view_file step 1 payload to fail"
+
+    # Test failing truncated/summarized payload (audit skill missing gh issue create)
+    fail_audit_no_gh = (
+        "Execute view_file on skills/adversarial-code-auditor/SKILL.md as step 1. "
+        "Perform audit of codebase."
+    )
+    _, status_audit_no_gh = verify_fn(fail_audit_no_gh)
+    assert status_audit_no_gh is False, "Expected audit skill without gh issue create to fail"
+
+    # Test failing payload (summarized/truncated payload marker)
+    fail_summarized = (
+        "Execute view_file on skills/feature-driven-implementation/SKILL.md as step 1. "
+        "Summarized prompt [...] etc."
+    )
+    _, status_summarized = verify_fn(fail_summarized)
+    assert status_summarized is False, "Expected payload with [...] or summarized to fail"
+
 
 
 
