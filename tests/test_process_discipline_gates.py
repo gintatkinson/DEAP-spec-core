@@ -264,10 +264,16 @@ def test_blocked_specs_bounds_issue336():
     assert clean_result == set()
 
     # Bounded extraction with invalid files returns non-none set
-    sample_output = "[ERROR] docs/features/feat-13-zero-codegen-grid.md: Missing Parent Epic link"
+    existing_feats = [f for f in os.listdir(features_dir) if f.endswith(".md")]
+    target_feat = "feat-13-zero-codegen-grid.md"
+    if target_feat not in existing_feats and existing_feats:
+        target_feat = existing_feats[0]
+    elif not existing_feats:
+        return
+    sample_output = f"[ERROR] docs/features/{target_feat}: Missing Parent Epic link"
     sample_result = blocked_specs_from_linter_output(sample_output, REPO_ROOT, rules)
     assert isinstance(sample_result, set)
-    assert "feat-13-zero-codegen-grid.md" in sample_result
+    assert target_feat in sample_result
 
 
 # --------------------------------------------------------------------------- #

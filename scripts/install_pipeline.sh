@@ -111,6 +111,13 @@ if ! grep -q ".tmp-pipeline-install" .gitignore 2>/dev/null; then
   echo ".tmp-pipeline-install" >> .gitignore
 fi
 
+echo "==> Initializing clean downstream docs directory structure..."
+DOCS_SUBDIRS=("epics" "features" "use-cases" "user-stories" "architecture" "decisions" "reports" "requirements")
+for subdir in "${DOCS_SUBDIRS[@]}"; do
+  mkdir -p "docs/$subdir"
+  touch "docs/$subdir/.gitkeep"
+done
+
 echo "==> Setting up git hooks and tracker labels..."
 if [ -f scripts/setup_git_hooks.py ]; then
   python3 scripts/setup_git_hooks.py || true

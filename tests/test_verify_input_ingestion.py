@@ -8,6 +8,10 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 GENERATE_DIGEST_SCRIPT = os.path.join(REPO_ROOT, "skills", "spec-orchestrator", "scripts", "generate_input_digest.py")
 VERIFY_INGESTION_SCRIPT = os.path.join(REPO_ROOT, "scripts", "verify_input_ingestion.py")
 BLUEPRINT_DOC = os.path.join(REPO_ROOT, "docs", "designs", "input-validation-architecture-blueprint.md")
+if not os.path.exists(BLUEPRINT_DOC):
+    ssot_blueprint = os.path.join(os.path.dirname(REPO_ROOT), "DEAP-spec-core", "docs", "designs", "input-validation-architecture-blueprint.md")
+    if os.path.exists(ssot_blueprint):
+        BLUEPRINT_DOC = ssot_blueprint
 
 
 def test_scripts_and_doc_exist():

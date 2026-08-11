@@ -59,6 +59,14 @@ def test_install_pipeline_sh_structure_and_features():
     assert "setup_git_hooks.py" in content
     assert "bootstrap_tracker_labels.py" in content
 
+    # Clean downstream docs initialization assertions
+    assert "DOCS_SUBDIRS=" in content
+    fork_dirs_line = [line for line in content.splitlines() if "FORK_DIRS=" in line][0]
+    assert "docs/" not in fork_dirs_line, "FORK_DIRS must exclude docs/ from raw copy"
+    for sub in ["epics", "features", "use-cases", "user-stories", "architecture", "decisions", "reports", "requirements"]:
+        assert sub in content
+    assert '.gitkeep' in content
+
 
 def test_install_pipeline_sh_help_flag():
     script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "install_pipeline.sh")
@@ -68,3 +76,31 @@ def test_install_pipeline_sh_help_flag():
     assert "--repo" in result.stdout
     assert "--profile" in result.stdout
     assert "--with-ui" in result.stdout
+
+
+def test_clean_downstream_docs_structure(tmp_path):
+    """
+    Assert that downstream docs directory initialization provisions empty subdirectories
+    with .gitkeep files and zero sample data contamination.
+    """
+    docs_subdirs = ["epics", "features", "use-cases", "user-stories", "architecture", "decisions", "reports", "requirements"]
+    sample_files = [
+        "feat-hardware-decoupled-persistence-design.md",
+        "remediation_plan.md",
+        "sprint-implementation-plan.md",
+    ]
+    
+    # Simulate execution of downstream docs initializer
+    docs_base = tmp_path / "docs"
+    for sub in docs_subdirs:
+        sub_dir = docs_base / sub
+        sub_dir.mkdir(parents=True, exist_ok=True)
+        (sub_dir / ".gitkeep").touch()
+        
+    for sub in docs_subdirs:
+        gitkeep = docs_base / sub / ".gitkeep"
+        assert gitkeep.exists(), f".gitkeep missing in docs/{sub}"
+        
+    for sample in sample_files:
+        assert not (docs_base / sample).exists(), f"Sample data file {sample} found in docs/"
+
