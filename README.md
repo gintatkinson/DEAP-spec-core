@@ -130,9 +130,9 @@ These rules live in the rules directory (e.g. `rules/`) and are packaged into th
 
 ---
 
-## Installation
+## 5. Installation & Developer Quick-Start Guide
 
-### Prerequisites & Python 3.12 Setup
+### 5.1 Prerequisites & Python 3.12 Setup
 
 The pipeline requires **Python 3.12+**, the configured tracker CLI, and git. Python scripts require `PyYAML` to parse configuration and issue frontmatter.
 
@@ -152,7 +152,7 @@ The pipeline requires **Python 3.12+**, the configured tracker CLI, and git. Pyt
   pip install -r requirements.txt
   ```
 
-### Turnkey One-Line Installation (Recommended)
+### 5.2 Turnkey One-Line Installation (Recommended)
 
 Run the turnkey automated installer directly in your project root:
 
@@ -161,7 +161,7 @@ curl -sSL https://raw.githubusercontent.com/gintatkinson/digital-pipeline-repo/m
 ```
 
 
-### Direct Copy / Manual Installation
+### 5.3 Direct Copy / Manual Installation
 
 Alternatively, copy the pipeline directories and (optionally) the application templates into your project repository.
 
@@ -204,7 +204,7 @@ Then point your agent at the `skills/` directory. This is a one-time copy -- you
 
 ---
 
-### Setup for Google Antigravity / Gemini CLI
+### 5.4 Setup for Google Antigravity / Gemini CLI
 
 After copying the pipeline, configure Gemini to load the skills and rules:
 
@@ -214,33 +214,35 @@ After copying the pipeline, configure Gemini to load the skills and rules:
    Read the files in ./skills/ and ./rules/ directories.
    ```
 
-2. **AGENTS.md (recommended).** Create an `AGENTS.md` file in your project root that tells Gemini (and any other agent) where to find the pipeline:
+2. **Subagent dispatch.** Gemini CLI supports subagent tool calls with curated context. The `feature-driven-implementation` skill includes Gemini-specific dispatch instructions in Step 3.
 
-   ```markdown
-   # Agent Instructions
+### 5.5 AGENTS.md Setup
 
-   ## Pipeline Skills
-   This project uses the Digital Engineering Agent Platform (DEAP).
-   - Skills: read all SKILL.md files in the configured skills directory (e.g., `skills/`)
-   - Rules: read all files in the configured rules directory (e.g., `rules/`) -- these are mandatory constraints that apply to every task
-   - Constitution: read the constitution file (e.g. `<pipeline_dir>/constitution.md`) before any task
-   - Implementation profiles: read the implementation profile (e.g. `<pipeline_dir>/profiles/<platform>.md`) before implementing features
-   ```
+Ensure `AGENTS.md` exists in your project root to instruct initializing AI agents:
 
-3. **Subagent dispatch.** Gemini CLI supports subagent tool calls with curated context. The `feature-driven-implementation` skill includes Gemini-specific dispatch instructions in Step 3.
+```markdown
+# Agent Instructions
 
-### Setup for Claude Code
+## Pipeline Skills
+This project uses the Digital Engineering Agent Platform (DEAP).
+- Skills: read all SKILL.md files in the configured skills directory (e.g., `skills/`)
+- Rules: read all files in the configured rules directory (e.g., `rules/`) -- these are mandatory constraints that apply to every task
+- Constitution: read the constitution file (e.g. `<pipeline_dir>/constitution.md`) before any task
+- Implementation profiles: read the implementation profile (e.g. `<pipeline_dir>/profiles/<platform>.md`) before implementing features
+```
+
+### 5.6 Setup for Claude Code
 
 ```bash
 # Add to CLAUDE.md:
 echo "Read all SKILL.md files in skills/ and all rule files in rules/ before starting any task." >> CLAUDE.md
 ```
 
-### Setup for Cursor / Windsurf / Cascade
+### 5.7 Setup for Cursor / Windsurf / Cascade
 
 Create `.cursor/rules/pipeline.mdc` or `.windsurf/rules/pipeline.md` referencing the `skills/` and `rules/` directories.
 
-### Downstream Baseline Verification
+### 5.8 Downstream Baseline Verification
 
 The verification script (`scripts/verify_downstream_baseline.py`) acts as a post-implementation compliance gate. It is **not** run manually on install when nothing has been implemented yet. Instead, it is run after the **Feature Implementation Agent** runs its implementation loop (or in CI/CD pull request gates) to verify that the generated code conforms to the Project Constitution.
 
@@ -261,7 +263,7 @@ python3 scripts/verify_downstream_baseline.py --no-domain
 
 ---
 
-## Supported Runtimes
+### 5.9 Supported Runtimes Table
 
 The skills are runtime-agnostic markdown files. The `feature-driven-implementation` skill includes runtime-specific dispatch instructions:
 
