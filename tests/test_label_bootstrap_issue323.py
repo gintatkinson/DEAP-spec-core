@@ -98,7 +98,7 @@ def test_install_instructions_run_the_bootstrap_issue323():
         "downstream repository still starts with an empty label filter"
     )
     # It must come after the copy step that puts the script on disk.
-    assert readme.index("cp -RP ./.tmp-pipeline/skills") < readme.index(
+    assert readme.index("cp -RP ./.tmp-pipeline/skills") < readme.rindex(
         "bootstrap_tracker_labels.py"
     ), "the bootstrap is invoked before the script has been copied into place"
 
