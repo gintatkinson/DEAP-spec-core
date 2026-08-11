@@ -171,28 +171,6 @@ Run the turnkey automated installer directly in your project root:
 curl -sSL https://raw.githubusercontent.com/gintatkinson/digital-pipeline-repo/main/scripts/install_pipeline.sh | bash
 ```
 
-### 5.2 Mandatory Post-Install Agent Initialization & Skill Loading Sequence
-
-Immediately following installation, the autonomous agent MUST execute the following 5-step initialization sequence prior to starting any task:
-
-1. **Read Functional Constitution (`.pipeline/constitution.md`)**:
-   Load `.pipeline/constitution.md` to establish universal domain rules, agent behavioral boundaries, and quality gates governing specification and implementation workflows.
-
-2. **Load Agent Skills (`skills/`)**:
-   Load all available skill instruction files from the `skills/` directory (e.g., `skills/feature-driven-implementation/SKILL.md`, `skills/spec-orchestrator/SKILL.md`). Execute `view_file` on the active `SKILL.md` before executing any phase tasks.
-
-3. **Load Mandatory Rules (`rules/`)**:
-   Incorporate all mandatory rule files from the `rules/` directory into the active agent context (e.g., `rules/user-authorization-lock.md`, `rules/serial-execution.md`, `rules/tdd-mandate.md`).
-
-4. **Load Platform Profile (`.pipeline/profiles/<platform>.md`)**:
-   Read the target platform profile (e.g., `.pipeline/profiles/flutter.md` or `.pipeline/profiles/react.md`) to establish platform-specific coding standards, architectural layer mappings, testing frameworks, and verification build commands.
-
-5. **Bootstrap Tracker Labels**:
-   Execute the tracker label bootstrap script to provision the mandatory label taxonomy up front:
-   ```bash
-   python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py
-   ```
-
 
 ### Direct Copy / Manual Installation
 
