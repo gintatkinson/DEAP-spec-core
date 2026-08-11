@@ -118,7 +118,7 @@ _SCAN_ROOTS = [
     os.path.join(REPO_ROOT, "implementation_plan.md"),
 ]
 # This file names the forbidden construct in order to forbid it.
-_SELF = os.path.abspath(__file__)
+_SELF = os.path.realpath(__file__)
 
 
 def _committed_texts():
@@ -126,15 +126,15 @@ def _committed_texts():
     scanned_paths = set()
     for root_item in _SCAN_ROOTS:
         if os.path.isfile(root_item):
-            if os.path.abspath(root_item) != _SELF and root_item.endswith(_SCAN_SUFFIXES):
-                scanned_paths.add(os.path.abspath(root_item))
+            if os.path.realpath(root_item) != _SELF and root_item.endswith(_SCAN_SUFFIXES):
+                scanned_paths.add(os.path.realpath(root_item))
         elif os.path.isdir(root_item):
             for dirpath, dirnames, filenames in os.walk(root_item):
                 dirnames[:] = [d for d in dirnames if d not in _EXCLUDED_DIRS]
                 for name in filenames:
                     if not name.endswith(_SCAN_SUFFIXES):
                         continue
-                    path = os.path.abspath(os.path.join(dirpath, name))
+                    path = os.path.realpath(os.path.join(dirpath, name))
                     if path != _SELF:
                         scanned_paths.add(path)
     for path in sorted(scanned_paths):
