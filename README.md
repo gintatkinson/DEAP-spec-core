@@ -157,7 +157,7 @@ The pipeline requires **Python 3.12+**, the configured tracker CLI, and git. Pyt
 Run the turnkey automated installer directly in your project root:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/gintatkinson/digital-pipeline-repo/main/scripts/install_pipeline.sh | bash
+curl -sSL https://raw.githubusercontent.com/gintatkinson/DEAP-spec-core/main/scripts/install_pipeline.sh | bash
 ```
 
 

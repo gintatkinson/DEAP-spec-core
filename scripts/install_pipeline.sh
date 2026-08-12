@@ -3,10 +3,18 @@ set -e
 
 # Turnkey automated installation script for digital-pipeline-repo
 
-# Refuse to run inside digital-pipeline-repo itself
-if [ -e ./.pipeline/upstream ]; then
-  echo "Error: Cannot run installer inside digital-pipeline-repo itself."
-  exit 1
+# Refuse to run inside DEAP-spec-core template root itself
+if [ "${ALLOW_UPSTREAM_INSTALL:-0}" != "1" ]; then
+  REMOTE_URL=$(git config --get remote.origin.url 2>/dev/null || git remote get-url origin 2>/dev/null || echo "")
+  CANONICAL_SLUG=$(echo "$REMOTE_URL" | sed -E 's#(git@|https://)([^/:]+)[:/]([^/]+)/([^/.]+)(\.git)?#\3/\4#')
+  REPO_NAME=$(echo "$REMOTE_URL" | sed -E 's/\.git$//; s#^.*[/:]##')
+  DIR_NAME=$(basename "$PWD")
+
+  if [[ "$CANONICAL_SLUG" == *"DEAP-spec-core"* || "$REPO_NAME" == "DEAP-spec-core" ]] || \
+     [[ -z "$REMOTE_URL" && "$DIR_NAME" == "DEAP-spec-core" ]]; then
+    echo "Error: Cannot run installer inside DEAP-spec-core template root itself."
+    exit 1
+  fi
 fi
 
 DEFAULT_UPSTREAM_REPO="https://github.com/gintatkinson/DEAP-spec-core.git"
