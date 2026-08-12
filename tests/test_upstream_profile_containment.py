@@ -62,14 +62,28 @@ def test_profile_is_not_in_the_downstream_profiles_dir():
 
 
 # --------------------------------------------------------------------------- #
-# Layer 2 -- Turnkey installer must exclude upstream-only profile
+# Layer 2 -- README Direct Copy must delete it
 # --------------------------------------------------------------------------- #
 
-def test_installer_excludes_the_upstream_dir():
-    installer = _read(os.path.join(REPO_ROOT, "scripts", "install_pipeline.sh"))
-    assert 'exclude="./upstream"' in installer or 'tar --exclude="./upstream"' in installer, (
-        "install_pipeline.sh must exclude ./upstream when copying .pipeline, "
-        "or the upstream-only profile ships downstream"
+def test_readme_direct_copy_deletes_the_upstream_dir():
+    readme = _read(README)
+    assert "cp -RP ./.tmp-pipeline/.pipeline ./" in readme, (
+        "README Direct Copy block no longer copies .pipeline as expected; "
+        "this test's assumption about the leak vector needs revisiting"
+    )
+    assert re.search(r"rm -rf \./\.pipeline/upstream", readme), (
+        "README Direct Copy Installation must remove ./.pipeline/upstream after "
+        "copying .pipeline, or the upstream-only profile ships downstream"
+    )
+
+
+def test_readme_deletion_comes_after_the_pipeline_copy():
+    readme = _read(README)
+    copy_at = readme.index("cp -RP ./.tmp-pipeline/.pipeline ./")
+    rm_match = re.search(r"rm -rf \./\.pipeline/upstream", readme)
+    assert rm_match and rm_match.start() > copy_at, (
+        "the 'rm -rf ./.pipeline/upstream' must appear AFTER the .pipeline copy, "
+        "otherwise the copy reinstates what was deleted"
     )
 
 
