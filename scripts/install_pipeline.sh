@@ -17,6 +17,15 @@ if [ "${ALLOW_UPSTREAM_INSTALL:-0}" != "1" ]; then
   fi
 fi
 
+# Refuse to run inside a nested sub-directory of another parent git repository (e.g. UAS-001)
+PARENT_GIT_DIR=$(git -C .. rev-parse --show-toplevel 2>/dev/null || echo "")
+CURRENT_GIT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+if [ -n "$PARENT_GIT_DIR" ] && [ "$PARENT_GIT_DIR" != "$CURRENT_GIT_DIR" ]; then
+  echo "Error: Cannot run installer inside a nested sub-directory of parent repository '$PARENT_GIT_DIR'."
+  echo "Please move or clone this repository to an un-nested workspace directory."
+  exit 1
+fi
+
 DEFAULT_UPSTREAM_REPO="https://github.com/gintatkinson/DEAP-spec-core.git"
 REPO_URL="${DEAP_UPSTREAM_REPO:-$DEFAULT_UPSTREAM_REPO}"
 PROFILE=""
