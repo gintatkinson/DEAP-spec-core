@@ -26,8 +26,6 @@ if [ "${ALLOW_UPSTREAM_INSTALL:-0}" != "1" ]; then
   fi
 fi
 
-
-
 DEFAULT_UPSTREAM_REPO="https://github.com/gintatkinson/DEAP-spec-core.git"
 REPO_URL="${DEAP_UPSTREAM_REPO:-$DEFAULT_UPSTREAM_REPO}"
 PROFILE=""
