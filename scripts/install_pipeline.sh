@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-# Turnkey automated installation script for DEAP-spec-core
+# Turnkey automated installation script for digital-pipeline-repo
 
 # Directory context recovery: verify getcwd / PWD validity
 if ! pwd -P &>/dev/null || [ ! -d "$PWD" ]; then
