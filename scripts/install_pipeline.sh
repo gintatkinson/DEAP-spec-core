@@ -26,25 +26,7 @@ if [ "${ALLOW_UPSTREAM_INSTALL:-0}" != "1" ]; then
   fi
 fi
 
-# Graceful recovery for nested sub-directories of parent repository
-PARENT_GIT_DIR=$(git -C .. rev-parse --show-toplevel 2>/dev/null || echo "")
-CURRENT_GIT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
-if [ -n "$PARENT_GIT_DIR" ] && [ "$PARENT_GIT_DIR" != "$CURRENT_GIT_DIR" ]; then
-  PARENT_REMOTE=$(git -C "$PARENT_GIT_DIR" config --get remote.origin.url 2>/dev/null || echo "")
-  CURRENT_REMOTE=$(git config --get remote.origin.url 2>/dev/null || echo "")
-  PARENT_NAME=$(basename "$PARENT_GIT_DIR")
-  CURRENT_NAME=$(basename "$CURRENT_GIT_DIR")
 
-  if [ "$PARENT_REMOTE" = "$CURRENT_REMOTE" ] || [ "$PARENT_NAME" = "$CURRENT_NAME" ]; then
-    echo "==> Detected nested execution inside '$CURRENT_GIT_DIR'. Recovering context to parent repository '$PARENT_GIT_DIR'..."
-    cd "$PARENT_GIT_DIR"
-    CURRENT_GIT_DIR="$PARENT_GIT_DIR"
-  else
-    echo "Error: Cannot run installer inside a nested sub-directory of parent repository '$PARENT_GIT_DIR'."
-    echo "Please move or clone this repository to an un-nested workspace directory."
-    exit 1
-  fi
-fi
 
 DEFAULT_UPSTREAM_REPO="https://github.com/gintatkinson/DEAP-spec-core.git"
 REPO_URL="${DEAP_UPSTREAM_REPO:-$DEFAULT_UPSTREAM_REPO}"
