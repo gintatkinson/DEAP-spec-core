@@ -1,132 +1,80 @@
-<!-- Copyright Gint Atkinson, gint.atkinson@gmail.com -->
+# Digital Engineering Agent Platform (DEAP) — Low-Altitude UAS Infrastructure Safety Platform
 
-> [!CAUTION]
-> **THIS REPOSITORY IS FROZEN & ARCHIVED**
-> All active development, assets, and governance have migrated to [`gintatkinson/DEAP-spec-core`](https://github.com/gintatkinson/DEAP-spec-core).
-> Please use [`https://github.com/gintatkinson/DEAP-spec-core`](https://github.com/gintatkinson/DEAP-spec-core) for the latest specification engineering assets, rules, skills, and documentation.
-
-# Digital Engineering Agent Platform (DEAP) (Builders Project)
-
-
-Welcome to the Digital Engineering Agent Platform (DEAP). This repository contains a suite of autonomous AI Agent "Skills" designed to:
-
-1. **Specification-engineer protocol standards** into deterministic, behavior-driven Agile tracking matrices in the active issue tracker.
-2. **Implement features** from those backlogs using subagent-driven TDD execution discipline with two-stage review gates.
-
-By feeding these agents a Structural Schema and its associated Normative Specification Document, the agents will automatically build your Epics, Features, User Stories, and UML Use Cases, ensuring a 100% mathematically bounded requirements pipeline mapped via UML OOA/OOD methodologies.
-
-## Documentation at: https://github.com/gintatkinson/digital-pipeline-repo
+> **Repository Identifier:** `DEAP-uas-infrastructure-safety`  
+> **Status:** `PRODUCTION-GRADE / ACTIVE`  
+> **Classification:** `Low-Altitude UAS Infrastructure Safety & Autonomous Airspace Platform`  
+> **Target Regulatory Frameworks:** `JARUS SORA v2.5 (SAIL I–VI)` | `ASTM F3269-17 RTA` | `ASTM F3411-22a Remote ID` | `RTCA DO-365B DAA`  
+> **Primary Technology Profiles:** `ROS2 C++ Real-Time` | `PX4 Autopilot Flight Module`  
 
 ---
 
-## Primary Commercial Toolchain Integration
+## 1. System Overview
 
-DEAP explicitly declares **MATLAB / Simulink / Stateflow / Embedded Coder** as the Primary Tier-1 Commercial Toolchain Integration (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada Code Generation).
+The **DEAP Low-Altitude UAS Infrastructure Safety Platform** (`DEAP-uas-infrastructure-safety`) is a standalone downstream domain platform built on the Digital Engineering Agent Platform (DEAP) architecture. It provides an end-to-end safety assurance, detect-and-avoid (DAA), run-time assurance (RTA), and Remote ID infrastructure integration platform for uncrewed aircraft systems (UAS), urban air mobility (UAM), and autonomous flight fleets operating in low-altitude airspace.
+
+By combining System-Theoretic Process Analysis (STPA) with Failure Mode, Effects, and Criticality Analysis (FMECA) tailored for autonomous robotics and airspace integration, this platform enforces strict SORA SAIL risk mitigations down to ROS2 C++ lifecycle nodes, PX4 flight controllers, and continuous test verification gates.
 
 ---
 
-## Governance: The Functional Constitution
+## 1.1 Primary Commercial Toolchain Integration
 
-This pipeline ships with a **default functional constitution** (located at the configured pipeline configuration directory, e.g., `<pipeline_dir>/constitution.md`) that governs all specification generation (Pipeline 1). It defines:
+This platform explicitly declares **MATLAB / Simulink / Stateflow / Embedded Coder** as the Primary Tier-1 Commercial Toolchain Integration (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada Code Generation).
 
-| Section | What it governs |
-|---|---|
-| **Domain Rules** | Schema compliance, data model integrity, traceability requirements, conflict resolution between normative text and schema |
-| **Specification Standards** | Epic/Feature granularity, BDD scenario format, User Story/Use Case formality, labeling taxonomy |
-| **Agent Behavior** | Commit format, branch strategy, documentation standards, idempotency, error handling |
-| **Universal Quality Gates** | Validation gates per worker phase, 100% model coverage, cross-reference integrity, human approval scope |
-| **Forbidden Practices** | No invented requirements, no platform contamination, no skipped error scenarios, no silent node drops |
+---
 
-The constitution is **read by all skills before execution**. It is the single source of truth for specification quality decisions.
+## 2. Supported Regulatory & Airspace Frameworks
 
-For implementation work (Pipeline 2), platform-specific rules live in **Implementation Profiles** (e.g., `<pipeline_dir>/profiles/<platform>.md`). These are created per-project, per-platform, and are never read by specification workers.
+| Standard | Domain & Scope | Target Assurance | DEAP Mechanical Automation |
+| :--- | :--- | :--- | :--- |
+| **JARUS SORA v2.5** | Specific Operation Risk Assessment | SAIL I to SAIL VI (Catastrophic / Urban Airspace) | Validates ground risk (GRC) and air risk (ARC) mitigations, TMS containment, and fail-safe Return-to-Launch (RTL) rules. |
+| **ASTM F3269-17** | Run-Time Assurance (RTA) for Aircraft Systems | Non-complex safety net monitor (RTA Architecture) | Enforces deterministic fail-safe switching logic between un-verified advanced control loops and certified recovery baselines. |
+| **ASTM F3411-22a** | Broadcast & Network Remote ID | Direct Broadcast & Network ASTM RID Protocol | AST linters verify 1Hz transmission frequency, location payload integrity, and cryptographic authentication tags. |
+| **RTCA DO-365B** | Detect and Avoid (DAA) Systems | Minimum Operational Performance Standards (MOPS) | Validates TCAS II / ACAS sUAS alert & guidance logic, well-clear boundary boundaries, and hazard collision avoidance. |
 
+---
+
+## 3. Platform Technology Profiles
+
+### 3.1 ROS2 C++ Profile (`.pipeline/profiles/ros2_cpp.md`)
+- **Framework:** ROS 2 (Humble / Iron / Jazzy) with `rclcpp`
+- **Execution Lifecycle:** `rclcpp_lifecycle::LifecycleNode` state machine management
+- **Real-Time Memory:** Zero allocation in active control loops (`rttest` verification)
+- **Communication Safety:** Hardened Quality of Service (QoS) profiles (`RELIABILITY_RELIABLE`, `TRANSIENT_LOCAL`)
+
+### 3.2 PX4 Autopilot Profile (`.pipeline/profiles/px4_module.md`)
+- **Autopilot Architecture:** PX4 Autopilot Firmware & uORB Messaging
+- **Fail-Safe Management:** PX4 Flight Mode Safety Gates (Geofence, Battery, Data Link Loss, Fail-Safe RTL)
+- **Interface Protocol:** MAVLink v2.0 with microRTPS / XRCE-DDS bridge
+- **Hardware Integration:** STM32 / Pixhawk flight controller hardware target constraints
+
+---
+
+## 4. Repository Structure & Canonical Specifications
+
+All architecture blueprints, concept papers, SysML v2 models, and specifications for DEAP are hosted centrally in the Single Source of Truth repository: **[DEAP-spec-core](https://github.com/gintatkinson/DEAP-spec-core)**.
+
+### Canonical Specifications (hosted in `DEAP-spec-core`):
+- **UAS Infrastructure Safety Concept Paper**: [DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md](https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/blueprints/DEAP_UAS_INFRASTRUCTURE_SAFETY_CONCEPT_PAPER.md)
+- **SysML v2 Textual Safety Model**: [DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml](https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml)
+- **SysML v2 MATLAB Export Blueprint**: [DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md](https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md)
+- **Safety-Critical Real-Time UI Framework**: [SAFETY_CRITICAL_REALTIME_UI_FRAMEWORK.md](https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/blueprints/SAFETY_CRITICAL_REALTIME_UI_FRAMEWORK.md)
+- **Master Specification Sitemap**: [DEAP_SPECIFICATIONS_SITEMAP.md](https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/DEAP_SPECIFICATIONS_SITEMAP.md)
+
+### Repository Tree:
 ```
-<pipeline_dir>/
-  constitution.md              <-- Governs Pipeline 1 (all agents read this)
-  profiles/
-    [platform].md              <-- Governs Pipeline 2 for a specific target stack
+DEAP-uas-infrastructure-safety/
+├── .agents/
+│   └── AGENTS.md                  # Project-scoped agentic governance rules & delegation gates
+├── .pipeline/
+│   ├── constitution.md            # Platform-independent functional safety governance tier
+│   └── profiles/
+│       ├── ros2_cpp.md            # ROS2 C++ Real-Time Nodes platform execution profile
+│       └── px4_module.md          # PX4 Autopilot Flight Module platform execution profile
+├── tests/
+│   └── test_uas_safety_governance.py      # Automated UAS safety compliance & MBSE test suite
+├── pyproject.toml                 # Pytest & verification configuration
+└── README.md                      # Platform master specification & usage guide
 ```
-
-> To customize: edit the constitution file directly. The constitution is human-authored, agent-enforced.
-
----
-
-## The Agent Architecture
-
-This toolchain operates on a **Master-Worker architecture** with two distinct pipelines:
-
-### Pipeline 1: Specification Generation (Orchestrator + Workers A-D)
-
-#### Orchestration Module (The Master)
-The overarching command-and-control module. It triggers workers in sequence, enforces strict validation gates between phases, and includes error recovery (halt-and-escalate on failure). Configured via the orchestration skill guides.
-
-#### Structural Spec Engineering Module (Worker A: Structure)
-Parses raw schemas. Breaks down structural models into **Epics** and **Features** with exhaustive Given-When-Then acceptance criteria, platform scoping, and verbatim spec context injection. Includes duplicate detection to ensure idempotent re-runs.
-
-#### Behavioral Spec Engineering Module (Worker B: Behavior)
-Parses operational/deployment chapters. Extracts BDD **User Stories** modeled on UML OOA/OOD principles. Builds a "Cross-Cutting Matrix" linking scenarios to Features. Includes duplicate detection.
-
-#### System Interaction Spec Engineering Module (Worker C: System Interaction)
-Extracts formal **UML System Use Cases** (Actors, Preconditions, Main Success Scenarios, Alternate Flows, Postconditions) and maps them to User Stories and Features in a Realization Matrix. Includes duplicate detection.
-
-#### Pipeline Utilities (Worker D & Coverage Check)
-* **Backlog Reconciliation Tool**: Zero-trust consistency audit. Queries the active issue tracker provider, syncs checkbox states in local markdown configuration, enforces dependency checks, and auto-closes completed Epics/Stories/Use Cases.
-* **UML Compliance Linter**: Automated UML compliance linter. Parses input schemas, builds class/sequence/use-case diagram symbol tables, mathematically verifies 100% model coverage, and asserts OMG UML 2.5.1 metamodel conformance and cross-view consistency rules.
-
-### Pipeline 2: Feature Implementation
-
-#### Governance & Persistent Memory Module
-Establishes a project's governing principles (platform constraints, coding standards, testing mandates, domain rules) as a persistent constitution file (e.g. `<pipeline_dir>/constitution.md`). All other skills read this before execution.
-
-#### Feature Implementation Module
-The execution engine. Implements features from the backlog using a disciplined, verifiable process. Includes an optional tech stack research phase (configured e.g. in `research.md` or as designated) for features involving unfamiliar or rapidly-evolving frameworks.
-
-**Core execution discipline (14 mandates):**
-
-| # | Mandate | Purpose |
-|---|---|---|
-| 1 | Serial Execution | One feature at a time, fully closed before next |
-| 2 | The Grill Approval | Interactive design review before any code |
-| 3 | Traceability | Closing comments link to solution walkthroughs |
-| 4 | Agentic Epic Closure | Auto-close Epics when all features complete |
-| 5 | No Browser Automation | Manual UI verification (unless project uses Playwright) |
-| 6 | Issue Tracker as Source of Truth | Tracker CLI, never trust local state |
-| 7 | Cumulative Walkthroughs | Append/merge, never destructive overwrite |
-| 8 | Validation Isolation | Separate subagent audit or strict self-audit fallback |
-| 9 | **TDD (RED-GREEN-REFACTOR)** | Failing test before code, always |
-| 10 | **Micro-Task Decomposition** | 2-5 min tasks with driving test + verification |
-| 11 | **Subagent-Driven Development** | Fresh isolated context per micro-task |
-| 12 | **Two-Stage Review** | Spec compliance → Code quality, both must pass |
-| 13 | **Verification-Before-Completion** | Raw proof (test output) required, no assertions |
-| 14 | **Inter-Task Code Review** | Diff against plan, log deviations |
-
-**Additional protocols:**
-- **Project Constitution:** Persistent principles file read before every execution
-- **Tech Stack Research:** Optional `research.md` phase before The Grill for unfamiliar frameworks
-- **Parallel Dispatch `[P]`:** Spec-generation phases 2 & 3 can run in parallel on multi-agent runtimes
-- **Systematic Debugging (4-phase):** Reproduce → Diagnose (stack trace, no guessing) → Fix (minimal upstream) → Verify (full suite)
-- **Data Flow Slicing Order:** Persistence → Transformation → Interface
-
----
-
-## Always-Loaded Governance Rules
-
-In addition to skills (loaded on-demand), this pipeline includes **rules** — constraints injected into every agent session regardless of which skill is active. When installed via Tessl, these rules are automatically distributed to agent-specific config files (such as `.cursor/rules/`, `CLAUDE.md`, `AGENTS.md`).
-
-| Rule | Enforcement |
-|---|---|
-| **`serial-execution`** | One feature at a time. No parallel feature work. |
-| **`tdd-mandate`** | RED-GREEN-REFACTOR cycle required. Code before test must be deleted. |
-| **`verification-required`** | Raw proof (pasted output) required. "It works" without evidence is forbidden. |
-| **`constitution-first`** | Read the constitution file (e.g. `<pipeline_dir>/constitution.md`) before any task. Spec workers must NOT read implementation profiles. |
-| **`no-browser-automation`** | No ad-hoc browser scripts. Manual verification or project E2E framework only. |
-| **`tracker-source-of-truth`** | Use the issue tracker's CLI tool resolved from configuration to query issue state. |
-| **`platform-independence`** | Specs must be functional. No framework names in features, stories, or use cases. |
-| **`role-boundary-lock`** | Enforce strict role boundaries between specification and implementation phases. |
-
-
-These rules live in the rules directory (e.g. `rules/`) and are packaged into the Tessl plugin alongside skills. Without Tessl, agents can read them directly from the configured rules directory.
 
 ---
 
@@ -134,7 +82,7 @@ These rules live in the rules directory (e.g. `rules/`) and are packaged into th
 
 ### 5.1 Prerequisites & Python 3.12 Setup
 
-The pipeline requires **Python 3.12+**, the configured tracker CLI, and git. Python scripts require `PyYAML` to parse configuration and issue frontmatter.
+The platform requires **Python 3.12+**, the configured tracker CLI, and git. Python scripts require `PyYAML` and `pytest`.
 
 #### Installing Python 3.12
 - **macOS (Homebrew)**:
@@ -152,327 +100,311 @@ The pipeline requires **Python 3.12+**, the configured tracker CLI, and git. Pyt
   pip install -r requirements.txt
   ```
 
-### 5.2 Turnkey One-Line Installation (Recommended)
+### 5.2 Turnkey 1-Line Installer (Recommended)
 
-Run the turnkey automated installer directly in your project root:
+Run the turnkey automated installer using the portable turnkey command line:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/gintatkinson/DEAP-spec-core/main/scripts/install_pipeline.sh | bash
 ```
 
+> **Note**: `install_pipeline.sh` automatically provisions `.venv`, installs Python dependencies, injects pipeline governance engine tooling, configures process discipline git hooks, bootstraps tracker labels, executes safety test verification (`pytest`), and compiles MBSE SysML v2 safety models in a single automated turnkey step.
 
-### 5.3 Direct Copy / Manual Installation
+### 5.3 Setup for Google Antigravity / Gemini CLI
 
-Alternatively, copy the pipeline directories and (optionally) the application templates into your project repository.
+After copying the pipeline, configure Gemini / Antigravity to load the skills and rules:
 
-```bash
-# Refuse to run inside the pipeline repository itself. The cleanup steps below are
-# written for a downstream project: here they delete the upstream-only profile this
-# repo owns and concatenate .gitignore onto itself. `test -e` is used rather than
-# `find -type f` because rules/document-references.md requires existence checks to
-# observe symlinks.
-if [ -e ./.pipeline/upstream ]; then
-  echo "REFUSING: this is the pipeline repository, not a downstream project." >&2
-  exit 1
-fi
-
-git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
-rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter ./web_react
-cp -RP ./.tmp-pipeline/skills ./
-cp -RP ./.tmp-pipeline/rules ./
-cp -RP ./.tmp-pipeline/.pipeline ./
-rm -rf ./.pipeline/upstream   # upstream-only tooling profile; not for downstream projects
-cp -RP ./.tmp-pipeline/.agents ./
-cp -RP ./.tmp-pipeline/scripts ./
-cp -RP ./.tmp-pipeline/app_flutter ./
-cp -RP ./.tmp-pipeline/web_react ./
-if [ -f ./.gitignore ]; then
-  cat ./.tmp-pipeline/.gitignore >> ./.gitignore
-else
-  cp ./.tmp-pipeline/.gitignore ./
-fi
-rm -rf ./.tmp-pipeline
-python3 scripts/setup_git_hooks.py
-
-# Provision the tracker label taxonomy up front, rather than letting it appear one
-# label at a time during the first orchestrator run (issue #323). Idempotent, so it
-# is also the way to repair a tracker whose labels were deleted.
-python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py
-```
-
-Then point your agent at the `skills/` directory. This is a one-time copy -- you manage updates manually.
-
----
-
-### 5.4 Setup for Google Antigravity / Gemini CLI
-
-After copying the pipeline, configure Gemini to load the skills and rules:
-
-1. **Point Gemini at the skills directory.** In your Gemini CLI session or Antigravity project config, reference the skill files:
-
+1. **Point Gemini / Antigravity at the skills directory**:
    ```
-   Read the files in ./skills/ and ./rules/ directories.
+   Read the files in ./skills/, ./.agents/skills/, and ./rules/ directories.
    ```
+2. **Mandatory Post-Install Agent Initialization Sequence**:
+   Immediately following turnkey installation, any AI agent (Antigravity, Claude Code, Gemini CLI, Cursor) initializing in this repository MUST execute the following 5-step sequence before accepting user directives or executing task implementations:
+   1. **Read Governance Constitution**: Execute `view_file` on `.pipeline/constitution.md` to ingest the platform-independent functional governance layer and zero-mocking persistence mandates.
+   2. **Load Project Skills**: Execute `view_file` on `.agents/skills/feature-driven-implementation/SKILL.md` (and any active skills under `.agents/skills/`) to initialize feature-driven implementation protocols and review gates.
+   3. **Load Governance Rules**: Ingest `.agents/AGENTS.md` to enforce project-scoped agentic rules, context-isolated subagent dispatch loops, and role boundary locks.
+   4. **Load Platform Profile**: Read the target platform execution profile (`.pipeline/profiles/ros2_cpp.md` for ROS2 C++ Real-Time Nodes or `.pipeline/profiles/px4_module.md` for PX4 Autopilot Flight Modules) to establish platform-specific build, test, and lifecycle constraints.
+   5. **Bootstrap Tracker Labels**: Verify that repository issue tracker labels are synchronized and operational by running `python3 scripts/reconcile_backlog.py` or verifying label bootstrapping status.
 
-2. **Subagent dispatch.** Gemini CLI supports subagent tool calls with curated context. The `feature-driven-implementation` skill includes Gemini-specific dispatch instructions in Step 3.
+### 5.4 AGENTS.md Setup
 
-### 5.5 AGENTS.md Setup
-
-Ensure `AGENTS.md` exists in your project root to instruct initializing AI agents:
+Ensure `.agents/AGENTS.md` exists in your project root to instruct initializing AI agents:
 
 ```markdown
 # Agent Instructions
 
-## Pipeline Skills
+## Pipeline Skills & Rules
 This project uses the Digital Engineering Agent Platform (DEAP).
-- Skills: read all SKILL.md files in the configured skills directory (e.g., `skills/`)
-- Rules: read all files in the configured rules directory (e.g., `rules/`) -- these are mandatory constraints that apply to every task
-- Constitution: read the constitution file (e.g. `<pipeline_dir>/constitution.md`) before any task
-- Implementation profiles: read the implementation profile (e.g. `<pipeline_dir>/profiles/<platform>.md`) before implementing features
+- Skills: read all SKILL.md files in `.agents/skills/` and `skills/`
+- Rules: read all files in `.agents/AGENTS.md` and `rules/`
+- Constitution: read `.pipeline/constitution.md` before any task
+- Profiles: read `.pipeline/profiles/ros2_cpp.md` or `.pipeline/profiles/px4_module.md` before implementing features
 ```
 
-### 5.6 Setup for Claude Code
+### 5.5 Setup for Claude Code
 
 ```bash
 # Add to CLAUDE.md:
-echo "Read all SKILL.md files in skills/ and all rule files in rules/ before starting any task." >> CLAUDE.md
+echo "Read all SKILL.md files in skills/ and .agents/skills/ and all rule files in rules/ before starting any task." >> CLAUDE.md
 ```
 
-### 5.7 Setup for Cursor / Windsurf / Cascade
+### 5.6 Setup for Cursor / Windsurf / Cascade
 
-Create `.cursor/rules/pipeline.mdc` or `.windsurf/rules/pipeline.md` referencing the `skills/` and `rules/` directories.
+Create `.cursor/rules/pipeline.mdc` or `.windsurf/rules/pipeline.md` referencing `.agents/skills/`, `skills/`, `.agents/AGENTS.md`, and `.pipeline/`.
 
-### 5.8 Downstream Baseline Verification
+### 5.7 Downstream Baseline Verification Gate
 
-The verification script (`scripts/verify_downstream_baseline.py`) acts as a post-implementation compliance gate. It is **not** run manually on install when nothing has been implemented yet. Instead, it is run after the **Feature Implementation Agent** runs its implementation loop (or in CI/CD pull request gates) to verify that the generated code conforms to the Project Constitution.
+The verification gate acts as a post-installation and post-implementation compliance check:
 
-#### Running the Verification Gate
-
-To verify that the project is in a conforming state, run from the project root:
 ```bash
-python3 scripts/verify_downstream_baseline.py
-```
-Or if you want to verify the workspace structure prior to implementing the domain model and validation rules:
-```bash
+python3 -m pytest tests/
 python3 scripts/verify_downstream_baseline.py --no-domain
 ```
 
-* **Auto-Detection**: The script dynamically auto-detects the platform (Flutter if it detects `pubspec.yaml`, React if it detects `package.json`). If both are present, both check suites are executed in sequence.
-* **React Verification**: Asserts the presence of core React template files (`package.json`, `tsconfig.json` / `jsconfig.json`, `src/main.tsx` / `src/index.tsx`, and the domain validation file `src/domain/validation.ts` unless `--no-domain` is specified). Runs dependencies resolution and verifies compilation/packaging via `npm run build` (skipped under `--no-domain`).
-* **Flutter Verification**: Asserts the presence of core Flutter template files (`pubspec.yaml`, `analysis_options.yaml`, `lib/main.dart`, and the database integration files `lib/domain/repository_resolver.dart` / `lib/domain/validation.dart` unless `--no-domain` is specified). Runs dependencies resolution (`flutter pub get`), static analysis (excluding fatal warning/info blocks), and the full automated test suite (skipped under `--no-domain`).
-
----
-
-### 5.9 Supported Runtimes Table
-
-The skills are runtime-agnostic markdown files. The `feature-driven-implementation` skill includes runtime-specific dispatch instructions:
+### 5.8 Supported Runtimes Table
 
 | Runtime | Subagent Dispatch | Two-Stage Review |
 |---|---|---|
 | **Claude Code** | `Task("prompt")` — native isolated subagent | Separate reviewer subagents |
-| **Gemini CLI** | Subagent tool call with curated context | Separate reviewer subagents |
-| **Cascade (Windsurf/Devin)** | Coordinator re-reads files per task to simulate isolation; user opens new chat for true isolation | Explicit self-audit documented in `task.md` |
+| **Gemini CLI / Antigravity** | Subagent tool call with curated context | Separate reviewer subagents |
+| **Cascade (Windsurf/Devin)** | Coordinator re-reads files per task to simulate isolation | Explicit self-audit documented in `task.md` |
+| **Cursor** | Context-isolated subagent prompt execution | Sequential self-audit checklist |
 
 ---
 
-## How to Run the Specification Pipeline
+## 6. Pipeline 0: Pre-Spec Safety Engineering Execution Workflow
 
-**Prerequisites:** AI agent framework capable of reading `.md` skill files + executing CLI commands required by the configured tracker (e.g. git, tracker CLI).
+Pipeline 0 (**Pre-Spec Safety Engineering Engine**) serves as the front-end systems engineering, hazard identification, and safety modeling pipeline within the Digital Engineering Agent Platform (DEAP) framework. Operating prior to downstream Agile backlog projection (Pipeline 1) and automated code synthesis (Pipeline 2), Pipeline 0 ingests unstructured customer intent, mission flight profiles, and airspace constraints to produce normative safety specifications, STPA/FMECA analysis, SORA SAIL assurance models, and SysML v2 textual AST artifacts.
 
-1. Ensure your AI agent has access to the configured skills directory.
-2. Provide your agent with the following prompt:
+### 6.1 Master-Worker Subagent Topology
 
-> **Specification Generation Prompt:**
->
-> "Adopt the specification-orchestrator skill by executing view_file on 
-> `skills/spec-orchestrator/SKILL.md` as step 1.
->
-> I want to specification-engineer [Protocol Standard, e.g., IETF / standard protocol schemas].
->
-> 1. Inputs & Paths:
->    - Structural schemas are located at: `[path to schemas]`
->    - Normative specification documents are located at: `[path to specs]`
->    - Backlog output directory: `.pipeline/domain_specs/` (and live GitHub issue tracker)
->
-> 2. Governance & Boundary Lock:
->    - Read and strictly adhere to `.pipeline/constitution.md` (Domain Rules, Specification Standards, 100% Model Coverage Gate).
->    - Enforce strict Role Boundary Lock: Specification workers are strictly forbidden from reading implementation profiles (`.pipeline/profiles/`), implementation plans, or codebase source files. Specs must remain 100% platform-independent.
->
-> 3. Execution Discipline:
->    - Run tracker label bootstrap: `python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py`.
->    - Dispatch fresh, context-isolated subagents for Phase 1 (Worker A: Structure), Phase 2 (Worker B: Behavior), and Phase 3 (Worker C: System Interaction).
->    - Instruct every subagent to target AT MOST 1 specification item per dispatch prompt and execute view_file on its respective skill `SKILL.md` as step 1.
->
-> 4. Verification & Backlog Reconciliation:
->    - Run model coverage verification: `python3 skills/spec-orchestrator/coverage_checker/src/verify_model_coverage.py`
->    - Run UML compliance linter: `python3 skills/spec-orchestrator/uml_linter/src/lint_uml_syntax.py`
->    - Execute backlog reconciliation: `python3 skills/spec-orchestrator/scripts/reconcile_backlog.py`
->    - Report raw verification results showing 100% model coverage and 0 linter errors."
+Pipeline 0 deploys three specialized, context-isolated subagent workers operating in a strict serial execution loop to prevent context bloat and memory leakage:
+
+```mermaid
+flowchart LR
+    CustomerIntent["Unstructured Intent & Flight Envelope"] --> Worker_0A["Worker 0A: CONOPS Synthesizer"]
+    Worker_0A -->|"CONOPS.md"| Worker_0B["Worker 0B: STPA / FMECA / SORA Assurer"]
+    Worker_0B -->|"STPA_MATRIX.md & SORA SAIL"| Worker_0C["Worker 0C: SysML v2 Authoring Worker"]
+    Worker_0C -->|"DEAP_MODEL.sysml & Handoff AST JSON"| Pipeline_1["Pipeline 1 Projection Engine"]
+```
+
+### 6.2 Subagent Execution Roles
+
+#### 6.2.1 Worker 0A: CONOPS & Mission Scenario Synthesizer
+- **Role Description:** Context-isolated front-end synthesizer responsible for converting raw stakeholder statements, operational concepts, and mission profiles into a structured Concept of Operations (`CONOPS.md`).
+- **Primary Inputs:**
+  - Raw natural language prompt, stakeholder requirements, and flight mission profile.
+  - Flight mission envelope parameters (altitude boundaries, speed, payload type, airspace class, population density).
+  - Stakeholder role definitions (Remote Pilot, Command Center Operator, Fleet Manager, ATC/UTM interface).
+- **Deliverables & Outputs:**
+  - `CONOPS.md`: Structured Concept of Operations detailing mission objectives, flight operational phases (Pre-Flight, Launch, Cruise, Mission Execution, Approach, Landing, Contingency RTL), system boundaries, and environmental constraints.
+
+#### 6.2.2 Worker 0B: STPA Hazard Analysis, FMECA & SORA SAIL Assurer
+- **Role Description:** Safety engineering subagent that performs System-Theoretic Process Analysis (STPA), Failure Mode, Effects, and Criticality Analysis (FMECA), and JARUS SORA v2.5 SAIL I–VI risk assessment on the system boundary defined by Worker 0A.
+- **Primary Inputs:**
+  - `CONOPS.md` generated by Worker 0A.
+  - Regulatory safety mandates (JARUS SORA v2.5 SAIL I–VI, ASTM F3269-17 RTA, RTCA DO-365B DAA).
+- **Deliverables & Outputs:**
+  - `STPA_MATRIX.md`: Comprehensive STPA hazard analysis including System Losses ($L-1..N$), System Hazards ($H-1..N$), Control Structure diagrams, Unsafe Control Actions ($UCA-1..N$), Loss Scenarios ($LS-1..N$), and mandatory Safety Constraints ($SC-1..N$).
+  - **FMECA Matrix:** Component failure modes, severity/occurrence ratings, single-point failures, and criticality scores.
+  - **SORA SAIL Risk Model:** Ground Risk Class (GRC), Air Risk Class (ARC), Specific Assurance and Integrity Level (SAIL I to SAIL VI) classification, and Operational Safety Objectives (OSOs).
+
+#### 6.2.3 Worker 0C: SysML v2 Architectural & Safety Model Author
+- **Role Description:** Systems architecture subagent that formalizes the CONOPS, STPA hazard matrices, FMECA ratings, and SORA SAIL requirements into normative SysML v2 textual code blocks and AST handoff contracts.
+- **Primary Inputs:**
+  - `CONOPS.md` from Worker 0A.
+  - `STPA_MATRIX.md` and SORA SAIL risk matrices from Worker 0B.
+- **Deliverables & Outputs:**
+  - `DEAP_MODEL.sysml`: Standard-compliant SysML v2 model containing `package`, `req` (Safety Requirements), `part` (Subsystems & Safety Controllers), `port` (Real-Time Telemetry/Command Interfaces), `state` (Run-Time Assurance & Contingency Statecharts), and `satisfy` / `verify` traceability links.
+  - `pipeline0_handoff_contract.json`: Serialized AST payload for seamless downstream projection into Pipeline 1 (Agile Epics & Features) and Pipeline 2 (ROS2 C++ & PX4 implementation).
+
+### 6.3 Pipeline 0 Command-Line Execution Prompts
+
+To execute Pipeline 0 via context-isolated subagents in your AI agent environment (Antigravity, Claude Code, Gemini CLI, Cursor), copy and execute the following standardized command-line execution prompts in sequence:
+
+#### 6.3.1 Worker 0A: CONOPS & Mission Scenario Synthesis Prompt
+
+```text
+Role: Worker 0A — CONOPS & Mission Scenario Synthesizer
+
+Primary Commercial Toolchain Integration Context:
+This project explicitly declares MATLAB / Simulink / Stateflow / Embedded Coder as the Primary Tier-1 Commercial Toolchain Integration Context (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada code generation).
+
+Directive:
+Execute front-end CONOPS synthesis for the target UAS flight mission profile. Convert raw stakeholder intent and airspace constraints into a structured Concept of Operations (`CONOPS.md`).
+
+1. Inputs & Constraints:
+   - Ingest operational mission envelope (flight altitude boundaries, max ground speed, payload configuration, population density, BVLOS vs VLOS flight operations).
+   - Identify stakeholder role definitions (Remote Pilot in Command, Fleet Operations Manager, Command Center Lead, Air Traffic Management / UTM interface).
+   - Define flight operational phases (Pre-Flight Checkout, Launch/Takeoff, En-Route Cruise, Mission Execution, Approach & Landing, Fail-Safe Contingency RTL).
+
+2. Output Requirement:
+   - Generate `CONOPS.md` under `docs/conops/CONOPS.md`.
+   - Ensure clear operational phase boundaries, system physical and functional boundaries, and environmental envelope constraints.
+   - Include MATLAB / Simulink / Stateflow model integration baseline hooks for downstream control law synthesis.
+
+PROCEED
+```
+
+#### 6.3.2 Worker 0B: STPA Hazard Analysis, FMECA & SORA SAIL Assurer Prompt
+
+```text
+Role: Worker 0B — STPA Hazard Analysis, FMECA & SORA SAIL Assurer
+
+Primary Commercial Toolchain Integration Context:
+This project explicitly declares MATLAB / Simulink / Stateflow / Embedded Coder as the Primary Tier-1 Commercial Toolchain Integration Context (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada code generation).
+
+Directive:
+Perform STPA hazard analysis, FMECA failure mode criticality evaluation, and SORA SAIL I–VI risk assessment based on `docs/conops/CONOPS.md`.
+
+1. Standards Compliance:
+   - JARUS SORA v2.5 (SAIL I through SAIL VI risk mitigations, Ground Risk Class GRC, Air Risk Class ARC, Operational Safety Objectives OSOs).
+   - ASTM F3269-17 (Run-Time Assurance Monitor Architecture).
+   - RTCA DO-365B (Detect and Avoid DAA MOPS & TCAS II / ACAS sUAS alert & guidance).
+
+2. Output Requirements:
+   - Generate `STPA_MATRIX.md` under `docs/safety/STPA_MATRIX.md` containing System Losses ($L-1..N$), System Hazards ($H-1..N$), Control Structure topology, Unsafe Control Actions ($UCA-1..N$), Loss Scenarios ($LS-1..N$), and Safety Constraints ($SC-1..N$).
+   - Formulate FMECA Matrix detailing component failure modes, severity/occurrence ratings, single-point failures, and Risk Priority Numbers (RPN).
+   - Calculate SORA SAIL classification level (SAIL I–VI) and map mandatory OSOs (OSO-01 through OSO-24).
+
+PROCEED
+```
+
+#### 6.3.3 Worker 0C: SysML v2 Architectural & Safety Model Author Prompt
+
+```text
+Role: Worker 0C — SysML v2 Architectural & Safety Model Author
+
+Primary Commercial Toolchain Integration Context:
+This project explicitly declares MATLAB / Simulink / Stateflow / Embedded Coder as the Primary Tier-1 Commercial Toolchain Integration Context (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada code generation).
+
+Directive:
+Formalize the CONOPS (`CONOPS.md`), STPA hazard matrices, FMECA ratings, and SORA SAIL requirements (`STPA_MATRIX.md`) into a normative SysML v2 textual model and serialized AST handoff contract.
+
+1. Model Engineering Mandate:
+   - Construct `DEAP_MODEL.sysml` conforming to SysML v2 textual specification standards (`package`, `req`, `part`, `port`, `state`, `satisfy`, `verify`).
+   - Define safety statecharts for Run-Time Assurance (RTA) switching logic, contingency flight modes, and fail-safe Return-to-Launch (RTL) transitions.
+   - Establish MATLAB / Simulink / Stateflow export compatibility for DO-178C C/SPARK Ada code synthesis.
+
+2. Output Requirements:
+   - Generate `DEAP_MODEL.sysml` under `docs/architecture/blueprints/DEAP_MODEL.sysml`.
+   - Generate `pipeline0_handoff_contract.json` under `.pipeline/contracts/pipeline0_handoff_contract.json` for downstream Pipeline 1 Agile projection and Pipeline 2 code generation.
+
+PROCEED
+```
+
+### 6.4 Pipeline 0 Execution Steps & Handoff Workflow
+
+```mermaid
+flowchart TD
+    Step1["Step 1: Ingest Mission Profile & Synthesize CONOPS (Worker 0A)"] --> Step2["Step 2: Execute STPA, FMECA & SORA SAIL Assessment (Worker 0B)"]
+    Step2 --> Step3["Step 3: Formalize SysML v2 Safety Model & Statecharts (Worker 0C)"]
+    Step3 --> Step4["Step 4: Compile SysML v2 AST & Generate Handoff JSON Contract"]
+    Step4 --> Downstream["Handoff to Pipeline 1 (Projection) & Pipeline 2 (Code Synthesis)"]
+```
+
+### 6.4 Pipeline 0 Handoff JSON Contract (`pipeline0_handoff_contract.json`)
+
+The interface between Pipeline 0 safety modeling, Pipeline 1 specification engineering, and Pipeline 2 ROS2/PX4 safety implementation is strictly governed by `pipeline0_handoff_contract.json`:
+
+```json
+{
+  "$schema": "https://deap.engine/schemas/pipeline0_handoff_v1.json",
+  "metadata": {
+    "identifier": "DEAP-PIPELINE-0-HANDOFF-001",
+    "timestamp": "2026-08-11T00:00:00Z",
+    "source_model": "DEAP_MODEL.sysml",
+    "governance_status": "APPROVED",
+    "regulatory_target": ["ARP4754A", "ARP4761", "JARUS SORA v2.5", "DO-178C", "DO-254", "ASTM F3269"]
+  },
+  "conops_summary": {
+    "document_path": "docs/conops/CONOPS.md",
+    "mission_type": "UAS BVLOS Urban Infrastructure Inspection",
+    "operational_phases": ["PRE_FLIGHT", "TAKEOFF", "CRUISE", "INSPECTION", "APPROACH", "LANDING", "RTA_BACKUP"]
+  },
+  "safety_matrix": {
+    "document_path": "docs/safety/STPA_MATRIX.md",
+    "system_losses": [
+      { "id": "L-1", "title": "Loss of Aircraft Control / Uncontrolled Flight Into Terrain (UFIT)" },
+      { "id": "L-2", "title": "Airspace Collision with Manned Aircraft" }
+    ],
+    "hazards": [
+      { "id": "H-1", "loss_refs": ["L-1"], "title": "Flight Controller Command Saturation during High-Wind Turbulence" },
+      { "id": "H-2", "loss_refs": ["L-2"], "title": "Loss of Remote ID & DAA Telemetry Stream" }
+    ],
+    "unsafe_control_actions": [
+      {
+        "id": "UCA-1",
+        "hazard_ref": "H-1",
+        "control_action": "Execute Pitch Command",
+        "failure_mode": "Provided Wrong / Out of Range",
+        "safety_constraint": "SC-1: Pitch command must be rate-limited and bounded by pitch envelope protection safety statechart."
+      }
+    ]
+  },
+  "sysml_ast_export": {
+    "requirements": [
+      {
+        "id": "REQ-SYS-001",
+        "name": "EnvelopeProtectionRequirement",
+        "text": "The flight control system shall enforce pitch angle limits between -15 deg and +25 deg.",
+        "stpa_ref": "SC-1",
+        "dal": "DAL A"
+      }
+    ],
+    "parts": [
+      {
+        "id": "PART-SYS-001",
+        "name": "FlightControlSystem",
+        "ports": ["p_telemetry", "p_actuator_cmd"],
+        "subparts": ["PrimaryController", "RunTimeAssuranceMonitor"]
+      }
+    ],
+    "statecharts": [
+      {
+        "name": "SafetyModeStatechart",
+        "states": ["NORMAL", "DEGRADED", "RTA_BACKUP_ENGAGED", "EMERGENCY_FAILSAFE"]
+      }
+    ]
+  }
+}
+```
 
 ---
 
-## How to Implement a Feature
+## 7. Next Steps — Developer & Agent Execution Workflows
 
-**Prerequisites:**
-- AI agent framework capable of reading `.md` skill files.
-- The target implementation profile configured (e.g. `.pipeline/profiles/react.md` or `.pipeline/profiles/flutter.md`).
-- For Firestore target profiles, the local Firestore database emulator must be running (start via: `npx firebase-tools emulators:start --only firestore`).
+Once turnkey installation is complete, select your target execution workflow:
+
+### 7.1 Option A: Run Safety Governance Verification
+Verify that all SORA SAIL risk mitigations, ROS2 C++ lifecycle parameters, and PX4 flight mode safety constraints are compliant:
+```bash
+python3 -m pytest tests/
+```
+
+### 7.2 Option B: Execute Feature Implementation (Agentic Workflow)
+Prompt your AI Agent (Antigravity, Claude Code, Gemini CLI, Cursor) to implement prioritized backlog features targeting `ros2_cpp` or `px4_module`:
 
 > **Feature Implementation Prompt:**
 >
 > "Adopt the feature-driven-implementation skill by executing view_file on 
-> `skills/feature-driven-implementation/SKILL.md` as step 1.
+> `.agents/skills/feature-driven-implementation/SKILL.md` as step 1.
 >
-> I want to implement Feature [Issue Number, e.g., #82] targeting platform [react | flutter].
+> I want to implement Feature [Issue Number, e.g. #1] targeting platform profile [.pipeline/profiles/ros2_cpp.md | .pipeline/profiles/px4_module.md].
 >
-> 1. Pre-Execution Seeding & Rules Verification:
->    - Read and adhere to the Project Constitution (`.pipeline/constitution.md`):
->      * Section 1.9 Zero-Mocking Live Persistence Mandate (no in-memory mock repositories in DI).
->      * Section 4.5 Downstream Conformance Gates.
->      * Section 5 Forbidden Practices (do NOT remove layout splitters, timeline scrubber, or focus-loss property grid).
->      * Zero-Codegen Parameter Isolation Rule (UI widgets must be driven by TypeDescriptor schemas at runtime; zero hardcoded domain attributes in platform widgets).
->    - Map dependencies from `.pipeline/domain_specs/` and repo issue tracker.
->
-> 2. Draft Implementation Plan enforcing the 3-Layer Definition of Done (DoD):
->    - Layer 1 (Domain Model): Clean domain types, schemas, validation logic.
->    - Layer 2 (ViewModel): State holder handling user actions and persistence dispatch.
->    - Layer 3 (LUI Widget Binding + BDD Acceptance Test): Responsive UI component bound to ViewModel, accompanied by a BDD User Story Widget test asserting (User Event -> ViewModel Action -> State Change -> LUI Render).
->    - Zero-Mocking Persistence: Concrete transport adapters / SQLite local emulator integration.
->    - Decompose into micro-tasks (2-5 min each, with a driving RED-GREEN test per task).
->
-> 3. Present the plan for approval.
->
-> 4. Execution Discipline:
->    - Dispatch fresh, context-isolated subagents targeting AT MOST 1 specification item per dispatch prompt.
->    - Instruct every subagent to execute view_file on `skills/feature-driven-implementation/SKILL.md` as step 1.
->    - Run TDD loops (RED-GREEN-REFACTOR) for each micro-task.
->    - Perform two-stage review after each micro-task (spec compliance, then code quality).
->
-> 5. Verification Proof:
->    - Run compliance engine: `python3 scripts/verify_downstream_baseline.py`
->    - Run test suite: `python3 -m pytest tests/` (or `flutter test` / `npm test`)
->    - Provide raw build/test output as proof of zero-regression success.
->    - Provide step-by-step human manual testing instructions.
->
-> 6. Deliver the cumulative walkthrough and update issue status to status:fixed-resolved."
+> 1. Read `.pipeline/constitution.md` and target profile rules.
+> 2. Enforce 3-Layer Definition of Done (Domain Model -> Safety Statechart/ViewModel -> ROS2/PX4 Interface Binding + BDD Test).
+> 3. Execute TDD RED-GREEN micro-tasks using context-isolated subagents.
+> 4. Verify test suite and deliver walkthrough."
 
----
-
-## Expected Outputs
-
-### Specification Pipeline
-A perfectly synchronized taxonomy on your live issue tracker board:
-
-1. **Epics (`epic`)**: High-level structural containers.
-2. **Features (`feature`)**: Granular technical building blocks with verbatim spec text and dependency links.
-3. **User Stories (`user-story`)**: Object-oriented BDD scenarios mapped to required Features.
-4. **Use Cases (`use-case`)**: Formal UML system interactions mapped down to User Stories and Features.
-
-### Implementation Pipeline
-For each delivered feature:
-
-1. **Solution Walkthrough** (`<walkthrough_dir>/feat-<Issue_Number>-solution.md` or as configured): Cumulative record of changes, testing, and verification, including a **Code Realization Table** mapping features/attributes to implemented source files, classes, and functions.
-2. **Passing test suite**: All tests green with raw output as evidence.
-3. **Closed Tracker Issue**: With direct link to the committed solution walkthrough.
-4. **Updated Epic checklist**: Feature marked `[x]`, Epic auto-closed when all features complete.
-
-*Note: Skills automatically bootstrap repository labels (epic, feature, user-story, use-case) via the configured label bootstrap command.*
-
----
-
-## Tessl Integration (Skill Registry & Evaluation)
-
-This pipeline's skills conform to the [Agent Skills specification](https://agentskills.io/specification) and are compatible with [Tessl](https://tessl.io/) — the package manager and governance platform for AI agent skills.
-
-### Install Skills via Tessl
-
-**For Stable Version (`main`):**
+### 7.3 Option C: Verify Downstream Baseline Conformance
+Run the post-implementation compliance gate:
 ```bash
-tessl init --agent claude-code --agent cursor --agent gemini
-tessl install github:gintatkinson/digital-pipeline-repo
-tessl install github:gintatkinson/digital-pipeline-repo --skill spec-orchestrator
-```
-
-**For Refactored Version (`refactor`):**
-```bash
-tessl init --agent claude-code --agent cursor --agent gemini
-tessl install github:gintatkinson/digital-pipeline-repo#refactor
-tessl install github:gintatkinson/digital-pipeline-repo#refactor --skill spec-orchestrator
-```
-
-### Publish to a Private Registry
-
-Package your organization's customized pipeline skills for team-wide distribution:
-
-```bash
-# Import a skill into Tessl plugin format
-tessl skill import skills/spec-orchestrator
-
-# Review and auto-optimize skill quality
-tessl skill review skills/spec-orchestrator --optimize
-
-# Publish to your org's private workspace
-tessl skill publish skills/spec-orchestrator --workspace your-org
-```
-
-### Evaluate Skill Quality
-
-Tessl provides three evaluation layers critical for safety-critical domains:
-
-- **Skill Review** — `tessl skill review skills/spec-orchestrator --threshold 80` scores structural quality and compliance with the Agent Skills spec. Use as a CI gate.
-- **Task Evals** — `tessl eval run` tests whether agents perform better *with* your skills vs *without*, measuring specification accuracy and compliance.
-- **Scenario Evals** — `tessl scenario generate` creates realistic evaluation scenarios from your skills to regression-test agent behavior.
-
-### MCP Integration
-
-```bash
-# Start the Tessl MCP server for structured agent access
-tessl mcp start
-```
-
-Agents pull version-locked context from the registry via MCP instead of parsing raw markdown files — preventing context-window overflow and ensuring version consistency across teams.
-
-### Tessl + This Pipeline Architecture
-
-```
-┌──────────────────────────────────────────┐
-│        TESSL REGISTRY (SaaS/Private)     │
-│  Versioned, evaluated plugin packages    │
-│  for all domain-specific pipelines       │
-└─────────────────────┬────────────────────┘
-                      │  tessl install / MCP
-                      ▼
-┌──────────────────────────────────────────┐
-│         AI AGENT (any runtime)           │
-│  Claude Code / Gemini / Cursor / Copilot │
-│  Pulls verified skills + context bundles │
-└─────────────────────┬────────────────────┘
-                      │
-          ┌───────────┴───────────┐
-          ▼                       ▼
-┌──────────────────┐  ┌──────────────────┐
-│  RULES (always)  │  │ SKILLS (on-task) │
-│  serial-exec     │  │ spec-orchestrator│
-│  tdd-mandate     │  │ Workers A/B/C    │
-│  verification    │  │ feature-impl     │
-│  constitution    │  │ constitution     │
-│  platform-indep  │  │                  │
-│  tracker-sot     │  │                  │
-│  no-browser      │  │                  │
-└──────────────────┘  └──────────────────┘
-     Always loaded       Loaded per task
+python3 scripts/verify_downstream_baseline.py --no-domain
 ```
 
 ---
 
-## Spec Kit Compatibility
+## 8. License & Governance
 
-This pipeline can also be used **alongside** [Spec Kit](https://github.com/github/spec-kit) without conflict:
-
-- **`specify init`** can bootstrap agent-specific config files (`.claude/`, `.windsurf/`, etc.) in project repos.
-- **`.specify/memory/constitution.md`** is analogous to this pipeline's constitution — use whichever convention your project prefers.
-- **This pipeline replaces** `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, and `/speckit.implement` with its own more rigorous equivalents (schema-to-spec automation, The Grill, micro-task TDD, two-stage review).
-- **This pipeline does NOT depend on Spec Kit.** All skills are pure markdown files that any agent can read directly — no CLI installation required.
-
-## Documentation at: https://github.com/gintatkinson/digital-pipeline-repo
-
+Governed under the **Digital Engineering Agent Platform (DEAP)** specification framework. All safety claims and traceability tags are mechanically validated on commit.
