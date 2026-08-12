@@ -3,6 +3,15 @@ set -e
 
 # Turnkey automated installation script for digital-pipeline-repo
 
+# Directory context recovery: verify getcwd / PWD validity
+if ! pwd -P &>/dev/null || [ ! -d "$PWD" ]; then
+  echo "==> Warning: getcwd or PWD context lost. Recovering directory context..."
+  REAL_PWD=$(git rev-parse --show-toplevel 2>/dev/null || pwd -P 2>/dev/null || echo "$PWD")
+  if [ -n "$REAL_PWD" ] && [ -d "$REAL_PWD" ]; then
+    cd "$REAL_PWD"
+  fi
+fi
+
 # Refuse to run inside DEAP-spec-core template root itself
 if [ "${ALLOW_UPSTREAM_INSTALL:-0}" != "1" ]; then
   REMOTE_URL=$(git config --get remote.origin.url 2>/dev/null || git remote get-url origin 2>/dev/null || echo "")
@@ -17,13 +26,24 @@ if [ "${ALLOW_UPSTREAM_INSTALL:-0}" != "1" ]; then
   fi
 fi
 
-# Refuse to run inside a nested sub-directory of another parent git repository (e.g. UAS-001)
+# Graceful recovery for nested sub-directories of parent repository
 PARENT_GIT_DIR=$(git -C .. rev-parse --show-toplevel 2>/dev/null || echo "")
 CURRENT_GIT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
 if [ -n "$PARENT_GIT_DIR" ] && [ "$PARENT_GIT_DIR" != "$CURRENT_GIT_DIR" ]; then
-  echo "Error: Cannot run installer inside a nested sub-directory of parent repository '$PARENT_GIT_DIR'."
-  echo "Please move or clone this repository to an un-nested workspace directory."
-  exit 1
+  PARENT_REMOTE=$(git -C "$PARENT_GIT_DIR" config --get remote.origin.url 2>/dev/null || echo "")
+  CURRENT_REMOTE=$(git config --get remote.origin.url 2>/dev/null || echo "")
+  PARENT_NAME=$(basename "$PARENT_GIT_DIR")
+  CURRENT_NAME=$(basename "$CURRENT_GIT_DIR")
+
+  if [ "$PARENT_REMOTE" = "$CURRENT_REMOTE" ] || [ "$PARENT_NAME" = "$CURRENT_NAME" ]; then
+    echo "==> Detected nested execution inside '$CURRENT_GIT_DIR'. Recovering context to parent repository '$PARENT_GIT_DIR'..."
+    cd "$PARENT_GIT_DIR"
+    CURRENT_GIT_DIR="$PARENT_GIT_DIR"
+  else
+    echo "Error: Cannot run installer inside a nested sub-directory of parent repository '$PARENT_GIT_DIR'."
+    echo "Please move or clone this repository to an un-nested workspace directory."
+    exit 1
+  fi
 fi
 
 DEFAULT_UPSTREAM_REPO="https://github.com/gintatkinson/DEAP-spec-core.git"
