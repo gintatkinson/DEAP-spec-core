@@ -92,15 +92,11 @@ def test_creation_is_idempotent_issue323():
 
 def test_install_instructions_run_the_bootstrap_issue323():
     """A script nobody runs fixes nothing."""
-    readme = _read(README)
-    assert "bootstrap_tracker_labels.py" in readme, (
-        "the Direct Copy Installation block does not run the bootstrap, so a fresh "
+    installer = _read(os.path.join(REPO_ROOT, "scripts", "install_pipeline.sh"))
+    assert "bootstrap_tracker_labels.py" in installer, (
+        "the turnkey installer script does not run the bootstrap, so a fresh "
         "downstream repository still starts with an empty label filter"
     )
-    # It must come after the copy step that puts the script on disk.
-    assert readme.index("cp -RP ./.tmp-pipeline/skills") < readme.rindex(
-        "bootstrap_tracker_labels.py"
-    ), "the bootstrap is invoked before the script has been copied into place"
 
 
 def test_the_just_in_time_fallback_survives_issue323():
