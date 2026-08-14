@@ -100,3 +100,33 @@ def test_gitattributes_marks_upstream_dir_export_ignore():
     assert re.search(r"^\.pipeline/upstream/?\s+export-ignore\s*$", content, re.M), (
         "'.pipeline/upstream/ export-ignore' must be declared in .gitattributes"
     )
+
+
+# --------------------------------------------------------------------------- #
+# Layer 4 -- Profile Tier Scoping
+# --------------------------------------------------------------------------- #
+
+def test_profile_tier_scoping_structure():
+    """Verify profiles define tier_scoping declaring tier_1_spec_core, tier_2_driver, and tier_3_domain."""
+    import yaml
+
+    profile_paths = [
+        os.path.join(REPO_ROOT, "skills", "spec-orchestrator", "profiles", "backend-api.yaml"),
+        os.path.join(REPO_ROOT, "skills", "spec-orchestrator", "profiles", "vhdl-hardware.yaml"),
+        os.path.join(REPO_ROOT, ".agents", "skills", "spec-orchestrator", "profiles", "backend-api.yaml"),
+        os.path.join(REPO_ROOT, ".agents", "skills", "spec-orchestrator", "profiles", "vhdl-hardware.yaml"),
+    ]
+
+    for path in profile_paths:
+        assert os.path.isfile(path), f"Profile file missing at {path}"
+        with open(path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+
+        assert "tier_scoping" in data, f"{path} missing required 'tier_scoping' section"
+        tier_scoping = data["tier_scoping"]
+
+        for tier in ["tier_1_spec_core", "tier_2_driver", "tier_3_domain"]:
+            assert tier in tier_scoping, (
+                f"{path} tier_scoping section missing '{tier}' boundary definition"
+            )
+
