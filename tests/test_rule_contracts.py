@@ -274,3 +274,12 @@ def test_status_transition_requires_physical_path_verification():
     assert "git status" in content
     assert "git rev-parse --show-toplevel" in content
     assert "status:fixed-resolved" in content
+
+
+def test_user_authorization_lock_contains_structural_remediation_mandate():
+    path = os.path.join(REPO_ROOT, "rules", "user-authorization-lock.md")
+    assert os.path.isfile(path)
+    content = _read(path)
+    assert "## Anti-Symptom Patching & Structural Remediation Mandate" in content
+    assert "Structural Remediation Over Mechanical Replacement" in content
+    assert "Mandatory Invariant Verification" in content
