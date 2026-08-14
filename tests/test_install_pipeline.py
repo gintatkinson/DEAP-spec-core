@@ -143,3 +143,20 @@ def test_install_pipeline_sh_downstream_user_project_execution(tmp_path):
     assert "Error: Cannot run installer inside DEAP-spec-core template root itself." not in result.stderr
     assert "Usage:" in result.stdout
 
+
+
+def test_readme_contains_no_pipe_to_bash():
+    """
+    Verify README.md contains zero curl ... | bash pipe-to-bash constructs
+    and enforces secure multi-step onboarding instructions.
+    """
+    import re
+    readme_file = os.path.join(os.path.dirname(__file__), "..", "README.md")
+    with open(readme_file, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    assert not re.search(r"curl\s+.*\|\s*bash", content), "README.md must not contain pipe-to-bash constructs like '| bash'"
+    assert "curl -sSL -o install_pipeline.sh" in content, "README.md must include curl download step"
+    assert "less install_pipeline.sh" in content, "README.md must include script inspection step"
+    assert "bash install_pipeline.sh" in content, "README.md must include script execution step"
+    assert "rm install_pipeline.sh" in content, "README.md must include script cleanup step"

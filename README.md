@@ -152,12 +152,15 @@ The pipeline requires **Python 3.12+**, the configured tracker CLI, and git. Pyt
   pip install -r requirements.txt
   ```
 
-### 5.2 Turnkey One-Line Installation (Recommended)
+### 5.2 Turnkey Automated Installation (Recommended)
 
 Run the turnkey automated installer directly in your project root:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/gintatkinson/DEAP-spec-core/main/scripts/install_pipeline.sh | bash
+curl -sSL -o install_pipeline.sh https://raw.githubusercontent.com/gintatkinson/DEAP-spec-core/main/scripts/install_pipeline.sh
+less install_pipeline.sh
+bash install_pipeline.sh
+rm install_pipeline.sh
 ```
 
 
