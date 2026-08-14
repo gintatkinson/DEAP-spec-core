@@ -37,6 +37,10 @@ required and an authorization keyword alone is explicitly insufficient.
 in `rules/constitution-first.md`. Because `.agents/` is hidden, glob and ripgrep index
 queries skip it, so it must be read directly by path.
 
+## Mandatory Empirical Physical Path Verification Gate
+
+Before transitioning any issue or task status to `status:fixed-resolved`, the agent is strictly mandated to execute empirical physical path verification using `git status` and `git rev-parse --show-toplevel` on the target workstation directory. Optimism bias or asserting resolution without empirical physical path verification is strictly prohibited.
+
 ## Why
 
 To prevent the agent from making silent assumptions, performing unapproved actions, or violating the Karpathy guidelines in response to diagnostic or analytical questions.

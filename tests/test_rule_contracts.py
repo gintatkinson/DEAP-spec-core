@@ -263,3 +263,14 @@ def test_every_emitted_rule_id_is_registered():
         "An unregistered rule id is both undocumented (#299) and invisible to "
         "cross-downstream aggregation (#301)."
     )
+
+
+def test_status_transition_requires_physical_path_verification():
+    path = os.path.join(REPO_ROOT, "rules", "user-authorization-lock.md")
+    assert os.path.isfile(path)
+    content = _read(path)
+    assert "## Mandatory Empirical Physical Path Verification Gate" in content
+    assert "empirical physical path verification" in content
+    assert "git status" in content
+    assert "git rev-parse --show-toplevel" in content
+    assert "status:fixed-resolved" in content
