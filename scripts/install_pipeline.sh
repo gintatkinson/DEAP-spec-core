@@ -109,14 +109,14 @@ if ! git ls-remote --exit-code "$REPO_URL" HEAD &> /dev/null; then
   exit 1
 fi
 
-TMP_DIR=".tmp-pipeline-install"
+TMP_DIR="${TARGET_DIR}/.tmp-pipeline-install"
 
 echo "==> Preparing digital pipeline installation..."
 
 # Cleanup old temp directory if exists
 rm -rf "$TMP_DIR"
 
-echo "==> Cloning latest pipeline from $REPO_URL..."
+echo "==> Cloning latest pipeline from $REPO_URL into target directory..."
 git clone --depth 1 "$REPO_URL" "$TMP_DIR"
 
 # Zero-nesting assertion by construction: assert no nested repository subfolder wrapper created

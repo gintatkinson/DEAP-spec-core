@@ -61,6 +61,8 @@ def test_install_pipeline_sh_structure_and_features():
 
     # Positional target parameter and zero-nesting assertions
     assert "TARGET_DIR=" in content
+    assert 'TMP_DIR="${TARGET_DIR}/.tmp-pipeline-install"' in content
+    assert 'git clone --depth 1 "$REPO_URL" "$TMP_DIR"' in content
     assert "Positional target parameter must be '.'" in content
     assert "Zero-nesting invariant violated" in content
 
