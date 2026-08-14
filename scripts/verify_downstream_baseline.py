@@ -114,8 +114,8 @@ def cleanup_workspace(destination):
                 else:
                     try:
                         os.remove(sidecar_path)
-                    except Exception:
-                        pass
+                    except OSError as e:
+                        print(f"WARNING: Failed to remove orphaned SQLite sidecar '{sidecar_path}': {e}", file=sys.stderr)
 
 
 # Mandated domain classes/interfaces to check in types.ts or types.dart

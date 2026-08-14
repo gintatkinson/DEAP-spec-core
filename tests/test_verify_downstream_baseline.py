@@ -228,6 +228,20 @@ def test_cleanup_workspace_sqlite_sidecars(tmp_path):
     assert not orphaned_journal.exists()
 
 
+def test_cleanup_workspace_sqlite_sidecar_oserror_warning(tmp_path, capsys):
+    """
+    Assert cleanup_workspace prints diagnostic warning to sys.stderr when removing orphaned SQLite sidecar fails with OSError.
+    """
+    orphaned_wal = tmp_path / "orphaned.db-wal"
+    orphaned_wal.write_text("orphaned_wal")
+
+    with mock.patch("os.remove", side_effect=OSError("Permission denied")):
+        verify_downstream_baseline.cleanup_workspace(str(tmp_path))
+
+    captured = capsys.readouterr()
+    assert f"WARNING: Failed to remove orphaned SQLite sidecar '{orphaned_wal}': Permission denied" in captured.err
+
+
 def test_tag_restoration_point_success():
     """
     Assert tag_restoration_point accepts repo_root, passes cwd=repo_root and timeout=30 to subprocess.run.
