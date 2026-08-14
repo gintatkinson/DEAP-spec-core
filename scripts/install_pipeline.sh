@@ -50,6 +50,7 @@ DEFAULT_UPSTREAM_REPO="https://github.com/gintatkinson/DEAP-spec-core.git"
 REPO_URL="${DEAP_UPSTREAM_REPO:-$DEFAULT_UPSTREAM_REPO}"
 PROFILE=""
 WITH_UI=false
+TARGET_DIR="."
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -76,13 +77,21 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -h|--help)
-      echo "Usage: $0 [--repo <url>] [--profile <name>] [--with-ui]"
+      echo "Usage: $0 [--repo <url>] [--profile <name>] [--with-ui] [.]"
       echo "Profiles: ros2_cpp, px4_module, spark_ada, embedded_c, flutter, react"
       exit 0
       ;;
+    .)
+      TARGET_DIR="."
+      shift
+      ;;
     *)
-      echo "Error: Unknown option: $1"
-      exit 1
+      if [ "$1" != "." ]; then
+        echo "Error: Positional target parameter must be '.' to prevent nested directory creation (got '$1')."
+        exit 1
+      fi
+      TARGET_DIR="."
+      shift
       ;;
   esac
 done
@@ -109,6 +118,13 @@ rm -rf "$TMP_DIR"
 
 echo "==> Cloning latest pipeline from $REPO_URL..."
 git clone --depth 1 "$REPO_URL" "$TMP_DIR"
+
+# Zero-nesting assertion by construction: assert no nested repository subfolder wrapper created
+REPO_SLUG_NAME=$(basename "$REPO_URL" .git)
+if [ -d "$TARGET_DIR/$REPO_SLUG_NAME" ] && [ "$REPO_SLUG_NAME" != "." ]; then
+  echo "Error: Zero-nesting invariant violated. Found nested repository wrapper '$TARGET_DIR/$REPO_SLUG_NAME'."
+  exit 1
+fi
 
 echo "==> Copying pipeline directories and configurations..."
 FORK_DIRS=("skills/" "rules/" ".pipeline/" ".agents/" "scripts/")

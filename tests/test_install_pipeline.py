@@ -59,6 +59,11 @@ def test_install_pipeline_sh_structure_and_features():
     assert "setup_git_hooks.py" in content
     assert "bootstrap_tracker_labels.py" in content
 
+    # Positional target parameter and zero-nesting assertions
+    assert "TARGET_DIR=" in content
+    assert "Positional target parameter must be '.'" in content
+    assert "Zero-nesting invariant violated" in content
+
     # Clean downstream docs initialization assertions
     assert "DOCS_SUBDIRS=" in content
     fork_dirs_line = [line for line in content.splitlines() if "FORK_DIRS=" in line][0]
@@ -104,3 +109,10 @@ def test_clean_downstream_docs_structure(tmp_path):
     for sample in sample_files:
         assert not (docs_base / sample).exists(), f"Sample data file {sample} found in docs/"
 
+
+
+def test_install_pipeline_sh_positional_target_enforcement():
+    script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "install_pipeline.sh")
+    result = subprocess.run([script_path, "nested_subfolder"], capture_output=True, text=True)
+    assert result.returncode != 0
+    assert "Positional target parameter must be '.' to prevent nested directory creation" in result.stderr or "Positional target parameter must be '.' to prevent nested directory creation" in result.stdout
