@@ -59,11 +59,37 @@ def test_run_bounded_called_process_error():
     mock_proc = mock.MagicMock()
     mock_proc.pid = 9999
     mock_proc.wait.return_value = 1
+    mock_proc.poll.return_value = 1
 
     with mock.patch("subprocess.Popen", return_value=mock_proc):
         with pytest.raises(subprocess.CalledProcessError) as exc_info:
             verify_downstream_baseline._run_bounded(["false"], cwd="/tmp", timeout=10, label="test false")
         assert exc_info.value.returncode == 1
+
+
+def test_run_bounded_non_timeout_exception_kills_process_group():
+    """
+    Assert _run_bounded catches non-timeout exceptions and triggers process group cleanup.
+    """
+    mock_proc = mock.MagicMock()
+    mock_proc.pid = 7777
+    mock_proc.wait.side_effect = RuntimeError("Unexpected failure")
+    mock_proc.poll.return_value = None
+
+    with mock.patch("subprocess.Popen", return_value=mock_proc) as mock_popen, \
+         mock.patch("os.getpgid", return_value=7777) as mock_getpgid, \
+         mock.patch("os.killpg") as mock_killpg:
+        
+        with pytest.raises(RuntimeError, match="Unexpected failure"):
+            verify_downstream_baseline._run_bounded(["bad_cmd"], cwd="/tmp", timeout=10, label="test exception")
+
+        mock_popen.assert_called_once_with(["bad_cmd"], cwd="/tmp", start_new_session=True)
+        mock_getpgid.assert_called_with(7777)
+        assert mock_killpg.called
+        killed_pgids = [call.args[0] for call in mock_killpg.call_args_list]
+        killed_signals = [call.args[1] for call in mock_killpg.call_args_list]
+        assert 7777 in killed_pgids
+        assert signal.SIGTERM in killed_signals or signal.SIGKILL in killed_signals
 
 
 def test_run_verification_uses_run_bounded_for_flutter(tmp_path):

@@ -17,6 +17,27 @@ import sys
 TIMEOUT_SECONDS = 600
 GIT_TIMEOUT_SECONDS = 30
 
+def _cleanup_pg(proc):
+    """Clean up process group for proc with SIGTERM then SIGKILL if needed."""
+    try:
+        pgid = os.getpgid(proc.pid)
+    except (ProcessLookupError, PermissionError, OSError):
+        pgid = None
+
+    if pgid is not None:
+        try:
+            os.killpg(pgid, signal.SIGTERM)
+            proc.wait(timeout=15)
+        except (subprocess.TimeoutExpired, ProcessLookupError, PermissionError, OSError):
+            try:
+                os.killpg(pgid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError, OSError):
+                pass
+            try:
+                proc.wait()
+            except Exception:
+                pass
+
 def _run_bounded(cmd, cwd, timeout, label):
     """Run cmd with a timeout that binds the whole process tree.
 
@@ -30,16 +51,15 @@ def _run_bounded(cmd, cwd, timeout, label):
     try:
         rc = proc.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
-        try:
-            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-            proc.wait(timeout=15)
-        except (subprocess.TimeoutExpired, ProcessLookupError, PermissionError):
-            try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-            except (ProcessLookupError, PermissionError):
-                pass
-            proc.wait()
+        _cleanup_pg(proc)
         raise subprocess.TimeoutExpired(cmd, timeout)
+    except Exception:
+        _cleanup_pg(proc)
+        raise
+    finally:
+        if proc.poll() is None:
+            _cleanup_pg(proc)
+
     if rc != 0:
         raise subprocess.CalledProcessError(rc, cmd)
 
