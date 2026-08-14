@@ -74,6 +74,9 @@ def test_install_pipeline_sh_structure_and_features():
         assert sub in content
     assert '.gitkeep' in content
 
+    # Compound boolean guard assertion
+    assert 'if [[ "$CANONICAL_SLUG" == *"DEAP-spec-core"* || "$REPO_NAME" == "DEAP-spec-core" || ( -z "$REMOTE_URL" && "$DIR_NAME" == "DEAP-spec-core" ) ]]; then' in content
+
 
 def test_install_pipeline_sh_help_flag():
     script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "install_pipeline.sh")
@@ -112,9 +115,31 @@ def test_clean_downstream_docs_structure(tmp_path):
         assert not (docs_base / sample).exists(), f"Sample data file {sample} found in docs/"
 
 
-
 def test_install_pipeline_sh_positional_target_enforcement():
     script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "install_pipeline.sh")
     result = subprocess.run([script_path, "nested_subfolder"], capture_output=True, text=True)
     assert result.returncode != 0
     assert "Positional target parameter must be '.' to prevent nested directory creation" in result.stderr or "Positional target parameter must be '.' to prevent nested directory creation" in result.stdout
+
+
+def test_install_pipeline_sh_downstream_user_project_execution(tmp_path):
+    """
+    Verify that executing install_pipeline.sh in a downstream user project directory (e.g., UAS-001)
+    does not trigger false-positive exit code 1 template root guard aborts.
+    """
+    user_project_dir = tmp_path / "UAS-001"
+    user_project_dir.mkdir()
+    
+    # Initialize a git repository with a user project remote URL
+    subprocess.run(["git", "init"], cwd=user_project_dir, check=True, capture_output=True)
+    subprocess.run(["git", "remote", "add", "origin", "https://github.com/gintatkinson/UAS-001.git"], cwd=user_project_dir, check=True, capture_output=True)
+    
+    script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "scripts", "install_pipeline.sh"))
+    
+    # Execute installer with --help in the downstream user project directory
+    result = subprocess.run([script_path, "--help"], cwd=user_project_dir, capture_output=True, text=True)
+    
+    assert result.returncode == 0
+    assert "Error: Cannot run installer inside DEAP-spec-core template root itself." not in result.stderr
+    assert "Usage:" in result.stdout
+

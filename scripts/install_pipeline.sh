@@ -19,8 +19,7 @@ if [ "${ALLOW_UPSTREAM_INSTALL:-0}" != "1" ]; then
   REPO_NAME=$(echo "$REMOTE_URL" | sed -E 's/\.git$//; s#^.*[/:]##')
   DIR_NAME=$(basename "$PWD")
 
-  if [[ "$CANONICAL_SLUG" == *"DEAP-spec-core"* || "$REPO_NAME" == "DEAP-spec-core" ]] || \
-     [[ -z "$REMOTE_URL" && "$DIR_NAME" == "DEAP-spec-core" ]]; then
+  if [[ "$CANONICAL_SLUG" == *"DEAP-spec-core"* || "$REPO_NAME" == "DEAP-spec-core" || ( -z "$REMOTE_URL" && "$DIR_NAME" == "DEAP-spec-core" ) ]]; then
     echo "Error: Cannot run installer inside DEAP-spec-core template root itself."
     exit 1
   fi
