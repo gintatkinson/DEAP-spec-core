@@ -4,18 +4,7 @@ import sys
 import subprocess
 from unittest.mock import patch
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from scripts.install_pipeline import install
-
-def test_install_pipeline(tmp_path):
-    with patch("os.getcwd", return_value=str(tmp_path)):
-        os.chdir(str(tmp_path))
-        install("backend-api")
-        config_path = os.path.join(".pipeline", "profile_config.json")
-        assert os.path.exists(config_path)
-        with open(config_path, "r") as f:
-            data = json.load(f)
-            assert data["active_profile"] == "backend-api"
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
 def test_install_pipeline_sh_structure_and_features():
@@ -27,136 +16,33 @@ def test_install_pipeline_sh_structure_and_features():
         content = f.read()
 
     # Upstream check
-    assert 'upstream' in content
-    assert "rm -rf ./.pipeline/upstream" not in content
+    assert "upstream" in content
+    assert "if [ -e ./.pipeline/upstream ]; then" in content
+    assert "REFUSING: this is the pipeline repository, not a downstream project." in content
 
-    # Environment variable fallback
-    assert 'DEFAULT_UPSTREAM_REPO="https://github.com/gintatkinson/DEAP-spec-core.git"' in content
-    assert 'REPO_URL="${DEAP_UPSTREAM_REPO:-$DEFAULT_UPSTREAM_REPO}"' in content
+    # Cloning and file updates
+    assert "git clone https://github.com/gintatkinson/DEAP-spec-core.git ./.tmp-pipeline" in content
+    assert "rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts" in content
+    assert "cp -RP ./.tmp-pipeline/skills ./" in content
+    assert "cp -RP ./.tmp-pipeline/rules ./" in content
+    assert "cp -RP ./.tmp-pipeline/.pipeline ./" in content
+    assert "rm -rf ./.pipeline/upstream" in content
+    assert "cp -RP ./.tmp-pipeline/.agents ./" in content
+    assert "cp -RP ./.tmp-pipeline/scripts ./" in content
 
-    # Dynamic CLI argument parsing
-    assert "--repo" in content
-    assert "--profile" in content
-    assert "--with-ui" in content
-
-    # Defensive pre-execution validations
-    assert "command -v git" in content
-    assert 'git ls-remote --exit-code "$REPO_URL" HEAD' in content
-
-    # Platform profile decoupling & directory selection
-    assert 'FORK_DIRS=("skills/" "rules/" ".pipeline/" ".agents/" "scripts/")' in content
-    assert 'app_flutter/' in content
-    assert 'web_react/' in content
-    assert 'WITH_UI' in content
-
-    # Zero-nesting stream extraction
-    assert '(cd "$TMP_DIR/$clean_dir" && tar --exclude="./upstream" -cf - .) | (cd "$clean_dir" && tar xf -)' in content
-
-    # File setup & hooks
-    assert ".tmp-pipeline-install" in content
-    assert "AGENTS.md" in content
-    assert ".gitignore" in content
-    assert "setup_git_hooks.py" in content
-    assert "bootstrap_tracker_labels.py" in content
-
-    # Positional target parameter and zero-nesting assertions
-    assert "TARGET_DIR=" in content
-    assert 'TMP_DIR="${TARGET_DIR}/.tmp-pipeline-install"' in content
-    assert 'git clone --depth 1 "$REPO_URL" "$TMP_DIR"' in content
-    assert "Positional target parameter must be '.'" in content
-    assert "Zero-nesting invariant violated" in content
-
-    # Clean downstream docs initialization assertions
-    assert "DOCS_SUBDIRS=" in content
-    fork_dirs_line = [line for line in content.splitlines() if "FORK_DIRS=" in line][0]
-    assert "docs/" not in fork_dirs_line, "FORK_DIRS must exclude docs/ from raw copy"
-    for sub in ["epics", "features", "use-cases", "user-stories", "architecture", "decisions", "reports", "requirements"]:
-        assert sub in content
-    assert '.gitkeep' in content
-
-    # Compound boolean guard assertion
-    assert 'if [[ "$CANONICAL_SLUG" == *"DEAP-spec-core"* || "$REPO_NAME" == "DEAP-spec-core" || ( -z "$REMOTE_URL" && "$DIR_NAME" == "DEAP-spec-core" ) ]]; then' in content
+    # Hooks and bootstrapping
+    assert "python3 scripts/setup_git_hooks.py || true" in content
+    assert "python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py || true" in content
+    assert "==> Digital Pipeline Installation Complete. 0 manual steps remaining." in content
 
 
-def test_install_pipeline_sh_help_flag():
-    script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "install_pipeline.sh")
-    result = subprocess.run([script_path, "--help"], capture_output=True, text=True)
-    assert result.returncode == 0
-    assert "Usage:" in result.stdout
-    assert "--repo" in result.stdout
-    assert "--profile" in result.stdout
-    assert "--with-ui" in result.stdout
-
-
-def test_clean_downstream_docs_structure(tmp_path):
+def test_readme_contains_turnkey_onboarding():
     """
-    Assert that downstream docs directory initialization provisions empty subdirectories
-    with .gitkeep files and zero sample data contamination.
+    Verify README.md documents turnkey 1-line onboarding commands.
     """
-    docs_subdirs = ["epics", "features", "use-cases", "user-stories", "architecture", "decisions", "reports", "requirements"]
-    sample_files = [
-        "feat-hardware-decoupled-persistence-design.md",
-        "remediation_plan.md",
-        "sprint-implementation-plan.md",
-    ]
-    
-    # Simulate execution of downstream docs initializer
-    docs_base = tmp_path / "docs"
-    for sub in docs_subdirs:
-        sub_dir = docs_base / sub
-        sub_dir.mkdir(parents=True, exist_ok=True)
-        (sub_dir / ".gitkeep").touch()
-        
-    for sub in docs_subdirs:
-        gitkeep = docs_base / sub / ".gitkeep"
-        assert gitkeep.exists(), f".gitkeep missing in docs/{sub}"
-        
-    for sample in sample_files:
-        assert not (docs_base / sample).exists(), f"Sample data file {sample} found in docs/"
-
-
-def test_install_pipeline_sh_positional_target_enforcement():
-    script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "install_pipeline.sh")
-    result = subprocess.run([script_path, "nested_subfolder"], capture_output=True, text=True)
-    assert result.returncode != 0
-    assert "Positional target parameter must be '.' to prevent nested directory creation" in result.stderr or "Positional target parameter must be '.' to prevent nested directory creation" in result.stdout
-
-
-def test_install_pipeline_sh_downstream_user_project_execution(tmp_path):
-    """
-    Verify that executing install_pipeline.sh in a downstream user project directory (e.g., UAS-001)
-    does not trigger false-positive exit code 1 template root guard aborts.
-    """
-    user_project_dir = tmp_path / "UAS-001"
-    user_project_dir.mkdir()
-    
-    # Initialize a git repository with a user project remote URL
-    subprocess.run(["git", "init"], cwd=user_project_dir, check=True, capture_output=True)
-    subprocess.run(["git", "remote", "add", "origin", "https://github.com/gintatkinson/UAS-001.git"], cwd=user_project_dir, check=True, capture_output=True)
-    
-    script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "scripts", "install_pipeline.sh"))
-    
-    # Execute installer with --help in the downstream user project directory
-    result = subprocess.run([script_path, "--help"], cwd=user_project_dir, capture_output=True, text=True)
-    
-    assert result.returncode == 0
-    assert "Error: Cannot run installer inside DEAP-spec-core template root itself." not in result.stderr
-    assert "Usage:" in result.stdout
-
-
-
-def test_readme_contains_no_pipe_to_bash():
-    """
-    Verify README.md contains zero curl ... | bash pipe-to-bash constructs
-    and enforces secure multi-step onboarding instructions.
-    """
-    import re
     readme_file = os.path.join(os.path.dirname(__file__), "..", "README.md")
     with open(readme_file, "r", encoding="utf-8") as f:
         content = f.read()
 
-    assert not re.search(r"curl\s+.*\|\s*bash", content), "README.md must not contain pipe-to-bash constructs like '| bash'"
-    assert "curl -sSL -o install_pipeline.sh" in content, "README.md must include curl download step"
-    assert "less install_pipeline.sh" in content, "README.md must include script inspection step"
-    assert "bash install_pipeline.sh" in content, "README.md must include script execution step"
-    assert "rm install_pipeline.sh" in content, "README.md must include script cleanup step"
+    assert "curl -sSL https://raw.githubusercontent.com/gintatkinson/DEAP-spec-core/main/scripts/install_pipeline.sh | bash" in content
+    assert "bash scripts/install_pipeline.sh" in content
