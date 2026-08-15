@@ -213,8 +213,12 @@ def main():
                 targets.append(web_react_dir)
 
     if not targets:
-        print(f"ERROR: Destination path '{repo_root}' does not appear to be a Flutter or React project (missing pubspec.yaml and package.json).", file=sys.stderr)
-        sys.exit(1)
+        if os.path.isdir(repo_root):
+            print(f"NOTE: Destination path '{repo_root}' is a generic downstream project. Registering root target for baseline verification.")
+            targets.append(repo_root)
+        else:
+            print(f"ERROR: Destination path '{repo_root}' does not appear to be a valid project directory.", file=sys.stderr)
+            sys.exit(1)
 
     reports = []
     for dest in targets:

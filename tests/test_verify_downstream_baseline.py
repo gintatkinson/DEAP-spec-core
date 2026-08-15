@@ -303,5 +303,23 @@ def test_tag_restoration_point_timeout(capsys):
         captured = capsys.readouterr()
         assert "WARNING: Failed to tag restoration point" in captured.err or "timed out" in captured.err
 
+def test_verify_downstream_baseline_supports_generic_projects_without_flutter_or_react(tmp_path, capsys):
+    """
+    Assert verify_downstream_baseline supports generic project directories missing pubspec.yaml and package.json
+    by falling back to registering repo_root as target instead of sys.exit(1).
+    """
+    (tmp_path / ".gitignore").write_text("build/\n")
 
+    with mock.patch("sys.argv", ["verify_downstream_baseline.py", str(tmp_path)]), \
+         mock.patch.object(verify_downstream_baseline, "_run_verification") as mock_run_verification, \
+         mock.patch.object(verify_downstream_baseline, "tag_restoration_point", return_value=True):
+        with pytest.raises(SystemExit) as exc_info:
+            verify_downstream_baseline.main()
+        assert exc_info.value.code == 0
+
+    captured = capsys.readouterr()
+    assert "is a generic downstream project. Registering root target for baseline verification." in captured.out
+    mock_run_verification.assert_called_once()
+    dest = mock_run_verification.call_args[0][1]
+    assert dest == str(tmp_path)
 
