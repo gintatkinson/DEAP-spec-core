@@ -46,3 +46,17 @@ def test_readme_contains_turnkey_onboarding():
 
     assert "curl -sSL https://raw.githubusercontent.com/gintatkinson/DEAP-spec-core/main/scripts/install_pipeline.sh | bash" in content
     assert "bash scripts/install_pipeline.sh" in content
+
+
+def test_install_pipeline_provisions_baseline_tests_directory():
+    """
+    Verify install_pipeline.sh includes logic to create tests directory and baseline test.
+    """
+    script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "install_pipeline.sh")
+    with open(script_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    assert "mkdir -p ./tests" in content
+    assert "if [ ! -f ./tests/test_baseline.py ] && [ ! -f ./tests/test_*.py ]; then" in content
+    assert "cat << 'EOF' > ./tests/test_baseline.py" in content
+    assert "def test_downstream_baseline_environment():" in content

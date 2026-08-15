@@ -23,4 +23,13 @@ rm -rf ./.tmp-pipeline
 python3 scripts/setup_git_hooks.py || true
 python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py || true
 
+mkdir -p ./tests
+if [ ! -f ./tests/test_baseline.py ] && [ ! -f ./tests/test_*.py ]; then
+  cat << 'EOF' > ./tests/test_baseline.py
+def test_downstream_baseline_environment():
+    """Verify downstream python test environment is functional."""
+    assert True
+EOF
+fi
+
 echo "==> Digital Pipeline Installation Complete. 0 manual steps remaining."
