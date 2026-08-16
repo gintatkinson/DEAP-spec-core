@@ -228,6 +228,48 @@ deap-harness ui --port 3000
 deap-harness ui --local --stream-cot --air-gapped
 ```
 
+### 6.4 VS Code & IDE Native Integration Architecture
+
+`DEAP-Harness` CLI and Web GUI are 100% usable directly inside **Visual Studio Code (VS Code)** through four native integration modes:
+
+#### 6.4.1 Integrated Terminal Execution (Zero Setup)
+Run all `deap-harness` CLI commands directly within VS Code's integrated terminal (`Cmd+\`` / `Ctrl+\``):
+```bash
+deap-harness run --schema docs/architecture/blueprints/DEAP_MODEL.sysml --profile ros2_cpp
+```
+
+#### 6.4.2 VS Code Build & Task Automation (`.vscode/tasks.json`)
+Bind `deap-harness` commands directly to VS Code build tasks (`Cmd+Shift+B` / `Ctrl+Shift+B`):
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "DEAP: Run Full Safety & Synthesis Pipeline",
+      "type": "shell",
+      "command": "deap-harness run --schema ${workspaceFolder}/docs/architecture/blueprints/DEAP_MODEL.sysml --profile ros2_cpp",
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "new" }
+    },
+    {
+      "label": "DEAP: Launch CoT Web GUI Dashboard",
+      "type": "shell",
+      "command": "deap-harness ui --port 3000 --stream-cot",
+      "isBackground": true
+    }
+  ]
+}
+```
+
+#### 6.4.3 Embedded VS Code Webview Panel
+Embed the interactive Web GUI directly inside a VS Code editor tab alongside your code using Simple Browser or the `DEAP-Harness VS Code Extension`:
+```bash
+deap-harness ui --vscode
+```
+
+#### 6.4.4 AI Agent Sidecar Protocol (Antigravity / Claude Code / Cursor / Gemini CLI)
+The `deap-harness` CLI exposes a local REST/WebSocket sidecar daemon (`http://localhost:8000`) that AI agent extensions inside VS Code call via standard process hooks to ingest `.pipeline/diagnostics/cot_audit_log.json` and execute subagent dispatches natively.
+
 ---
 
 ## 7. Downstream Integration & Maintenance Plan
