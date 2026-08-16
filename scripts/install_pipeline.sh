@@ -24,6 +24,7 @@ python3 scripts/setup_git_hooks.py || true
 python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py || true
 
 mkdir -p ./tests
+mkdir -p ./docs/conops ./docs/safety ./docs/architecture/blueprints ./docs/epics ./docs/features ./docs/user-stories ./docs/use-cases
 if [ ! -f ./tests/test_baseline.py ]; then
   cat << 'EOF' > ./tests/test_baseline.py
 """
