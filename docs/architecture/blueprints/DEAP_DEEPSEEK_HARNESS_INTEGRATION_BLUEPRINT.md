@@ -204,6 +204,30 @@ deap-harness pipeline0 --sysml docs/architecture/blueprints/DEAP_MODEL.sysml
 deap-harness export-audit --output-dir docs/safety/audit_evidence/
 ```
 
+### 6.3 Web GUI Dashboard & Interactive Command Center
+
+`DEAP-Harness` ships with an integrated, local Web GUI Dashboard (`http://localhost:3000`) for interactive pipeline monitoring, visual safety auditing, and human-in-the-loop governance:
+
+#### 6.3.1 Key Web GUI Subsystem Modules:
+1. **Live Chain-of-Thought (CoT) Streamer**:
+   Real-time WebSocket rendering of DeepSeek-R1 reasoning steps (`<think>...</think>`) side-by-side with generated artifacts (`CONOPS.md`, `STPA_MATRIX.md`, `DEAP_MODEL.sysml`).
+2. **Interactive Multi-Pipeline DAG Visualizer**:
+   Visual node graph tracking real-time progress across Pipeline 0 (Worker 0A → 0B → 0C) → Pipeline 1 (Agile Backlog Projection) → Pipeline 2 (TDD Micro-tasks).
+3. **STPA Hazard & SORA SAIL Audit Explorer**:
+   Searchable grid mapping System Hazards ($H-1..N$), Unsafe Control Actions ($UCA-1..N$), Safety Constraints ($SC-1..N$), and Operational Safety Objectives (OSOs) directly to CoT reasoning logs.
+4. **Human-in-the-Loop Review & Approval Gates**:
+   Interactive modal gates allowing Product Owners and Safety Officers to review and approve generated AST handoff contracts (`pipeline0_handoff_contract.json`) before downstream TDD code synthesis begins.
+
+#### 6.3.2 Web GUI Launch Commands:
+
+```bash
+# 1. Launch DEAP-Harness Web GUI Dashboard
+deap-harness ui --port 3000
+
+# 2. Launch Web GUI in air-gapped local mode with real-time CoT streaming
+deap-harness ui --local --stream-cot --air-gapped
+```
+
 ---
 
 ## 7. Downstream Integration & Maintenance Plan
