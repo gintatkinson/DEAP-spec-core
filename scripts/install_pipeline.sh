@@ -25,6 +25,8 @@ python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py || true
 
 mkdir -p ./tests
 mkdir -p ./docs/conops ./docs/safety ./docs/architecture/blueprints ./docs/epics ./docs/features ./docs/user-stories ./docs/use-cases
+mkdir -p ./.pipeline/contracts ./.pipeline/domain_specs ./.pipeline/profiles
+chmod +x ./scripts/*.sh ./scripts/*.py 2>/dev/null || true
 if [ ! -f ./tests/test_baseline.py ]; then
   cat << 'EOF' > ./tests/test_baseline.py
 """
