@@ -6,6 +6,7 @@ if [ -e ./.pipeline/upstream ]; then
   exit 1
 fi
 
+rm -rf ./.tmp-pipeline
 git clone https://github.com/gintatkinson/DEAP-spec-core.git ./.tmp-pipeline
 rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts
 cp -RP ./.tmp-pipeline/skills ./
