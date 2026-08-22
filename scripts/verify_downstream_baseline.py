@@ -448,13 +448,28 @@ def check_downstream_instructions_exist(repo_root):
 
     print("Success: Check 14 verified (README.md and agent instruction entrypoints exist).")
 
+def check_reconcile_backlog_tooling_exists(repo_root):
+    """Check 15: Verify scripts/reconcile_backlog.py exists, is non-empty, and is executable."""
+    reconcile_path = os.path.join(repo_root, "scripts", "reconcile_backlog.py")
+    if not os.path.isfile(reconcile_path):
+        print(f"ERROR: Check 15 failed: scripts/reconcile_backlog.py missing in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+    if os.path.getsize(reconcile_path) == 0:
+        print(f"ERROR: Check 15 failed: scripts/reconcile_backlog.py is empty in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+    if not os.access(reconcile_path, os.X_OK):
+        print(f"ERROR: Check 15 failed: scripts/reconcile_backlog.py is not executable in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+    print("Success: Check 15 verified (scripts/reconcile_backlog.py exists, is non-empty, and is executable).")
+
 def _run_verification(args, dest, repo_root, is_flutter, is_react):
-    # Run Checks 10, 11, 12, 13, and 14
+    # Run Checks 10, 11, 12, 13, 14, and 15
     check_gitignore_exists(repo_root)
     check_no_ds_store_files(repo_root)
     check_no_duplicate_master_blueprints(dest)
     check_latex_katex_syntax(repo_root)
     check_downstream_instructions_exist(repo_root)
+    check_reconcile_backlog_tooling_exists(repo_root)
 
     if is_flutter:
         print(f"Verifying conformance for platform 'flutter' at '{dest}'...")

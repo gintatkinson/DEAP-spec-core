@@ -359,6 +359,17 @@ def test_instructions_and_readme_accessible():
         f"No non-empty agent instruction entrypoint found at {repo_root} "
         f"(checked AGENTS.md, CLAUDE.md, .agents/AGENTS.md)"
     )
+
+def test_reconcile_backlog_tooling_accessible():
+    """Verify scripts/reconcile_backlog.py exists, is readable, and non-empty."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isdir(repo_root):
+        repo_root = os.getcwd()
+
+    reconcile_path = os.path.join(repo_root, "scripts", "reconcile_backlog.py")
+    assert os.path.isfile(reconcile_path), f"scripts/reconcile_backlog.py missing at {repo_root}"
+    assert os.path.getsize(reconcile_path) > 0, f"scripts/reconcile_backlog.py is empty at {repo_root}"
+    assert os.access(reconcile_path, os.R_OK), f"scripts/reconcile_backlog.py is not readable at {repo_root}"
 EOF
 fi
 
