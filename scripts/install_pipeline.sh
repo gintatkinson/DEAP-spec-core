@@ -11,13 +11,14 @@ if [ "$TARGET_DIR" = "$INSTALLER_ROOT" ] && [ -e "$INSTALLER_ROOT/.pipeline/upst
   exit 1
 fi
 
-rm -rf "$TARGET_DIR/skills" "$TARGET_DIR/rules" "$TARGET_DIR/.pipeline" "$TARGET_DIR/.agents" "$TARGET_DIR/scripts"
+rm -rf "$TARGET_DIR/skills" "$TARGET_DIR/rules" "$TARGET_DIR/.pipeline" "$TARGET_DIR/.agents" "$TARGET_DIR/scripts" "$TARGET_DIR/schema"
 cp -RP "$INSTALLER_ROOT/skills" "$TARGET_DIR/"
 cp -RP "$INSTALLER_ROOT/rules" "$TARGET_DIR/"
 cp -RP "$INSTALLER_ROOT/.pipeline" "$TARGET_DIR/"
 rm -rf "$TARGET_DIR/.pipeline/upstream"
 cp -RP "$INSTALLER_ROOT/.agents" "$TARGET_DIR/"
 cp -RP "$INSTALLER_ROOT/scripts" "$TARGET_DIR/"
+cp -RP "$INSTALLER_ROOT/schema" "$TARGET_DIR/"
 cp -P "$INSTALLER_ROOT/requirements.txt" "$TARGET_DIR/" 2>/dev/null || true
 if [ -f "$TARGET_DIR/.gitignore" ]; then
   cat "$INSTALLER_ROOT/.gitignore" >> "$TARGET_DIR/.gitignore"
@@ -27,10 +28,191 @@ elif [ -f "$INSTALLER_ROOT/.gitignore" ]; then
   cp "$INSTALLER_ROOT/.gitignore" "$TARGET_DIR/"
 fi
 
+mkdir -p "$TARGET_DIR/schema"
 mkdir -p "$TARGET_DIR/tests"
 mkdir -p "$TARGET_DIR/docs/conops" "$TARGET_DIR/docs/safety" "$TARGET_DIR/docs/architecture/blueprints" "$TARGET_DIR/docs/epics" "$TARGET_DIR/docs/features" "$TARGET_DIR/docs/user-stories" "$TARGET_DIR/docs/use-cases"
 mkdir -p "$TARGET_DIR/.pipeline/contracts" "$TARGET_DIR/.pipeline/domain_specs" "$TARGET_DIR/.pipeline/profiles"
 chmod +x "$TARGET_DIR"/scripts/*.sh "$TARGET_DIR"/scripts/*.py 2>/dev/null || true
+
+# Scaffold downstream root AGENTS.md if missing
+if [ ! -f "$TARGET_DIR/AGENTS.md" ]; then
+  if [ -f "$TARGET_DIR/.agents/AGENTS.md" ]; then
+    cp "$TARGET_DIR/.agents/AGENTS.md" "$TARGET_DIR/AGENTS.md"
+  elif [ -f "$INSTALLER_ROOT/AGENTS.md" ]; then
+    cp "$INSTALLER_ROOT/AGENTS.md" "$TARGET_DIR/AGENTS.md"
+  fi
+fi
+
+# Scaffold downstream root CLAUDE.md if missing
+if [ ! -f "$TARGET_DIR/CLAUDE.md" ]; then
+  cat << 'EOF' > "$TARGET_DIR/CLAUDE.md"
+# Claude Code Project Guidelines
+
+## Primary Commercial Toolchain Integration Context
+This project explicitly declares MATLAB / Simulink / Stateflow / Embedded Coder as the Primary Tier-1 Commercial Toolchain Integration Context (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada code generation).
+
+## Workflow & Quality Gates
+- Follow all pipeline rules in `rules/` and skills in `skills/` and `.agents/skills/`.
+- Strict Planning Gate: Do not execute unauthorized modifications without an approved implementation plan.
+- Execute baseline verification: `pytest tests/test_baseline.py` and `python3 scripts/verify_downstream_baseline.py --no-domain`.
+EOF
+fi
+
+# Scaffold downstream root README.md if missing
+if [ ! -f "$TARGET_DIR/README.md" ]; then
+  cat << 'EOF' > "$TARGET_DIR/README.md"
+# Downstream Low-Altitude UAS Infrastructure Safety Project
+
+> **Repository Role:** `DOWNSTREAM_APPLICATION_WORKSPACE`  
+> **Primary Technology Profiles:** `ROS2 C++ Real-Time` | `PX4 Autopilot Flight Module`  
+> **Target Regulatory Frameworks:** `JARUS SORA v2.5 (SAIL I–VI)` | `ASTM F3269-17 RTA` | `ASTM F3411-22a Remote ID` | `RTCA DO-365B DAA`  
+
+---
+
+## 1. System Overview
+
+This repository is an installed downstream implementation workspace governed by the **Digital Engineering Agent Platform (DEAP)** for low-altitude UAS infrastructure safety, detect-and-avoid (DAA), run-time assurance (RTA), and autonomous flight operations.
+
+### 1.1 Primary Commercial Toolchain Integration Context
+
+This platform explicitly declares **MATLAB / Simulink / Stateflow / Embedded Coder** as the Primary Tier-1 Commercial Toolchain Integration Context (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada code generation).
+
+---
+
+## 2. Pipeline Structure & Governance
+
+- `.agents/` & `AGENTS.md`: Agent behavior rules, role boundaries, and subagent dispatch protocols.
+- `CLAUDE.md`: Claude Code guidelines and verification gates.
+- `.pipeline/`: Constitution (`constitution.md`), domain specifications, and execution profiles (`profiles/ros2_cpp.md`, `profiles/px4_module.md`).
+- `rules/` & `skills/`: Platform engineering rules and agent workflow skills.
+- `schema/`: Contract definitions and SysML v2 schemas.
+- `tests/`: Automated baseline verification and safety compliance tests.
+
+---
+
+## 3. Mandatory Agent Initialization Sequence
+
+Immediately following installation, any AI agent (Antigravity, Claude Code, Gemini CLI, Cursor) initializing in this repository MUST execute the following sequence before accepting user directives or executing task implementations:
+
+0. **Detect Repository Role & Scope**:
+   - Inspect whether `.pipeline/upstream/` exists on disk.
+   - If absent -> **Downstream Customer Project Mode**: Authorized for customer feature implementation and domain codebase delivery.
+1. **Read Governance Constitution**: Execute `view_file` on `.pipeline/constitution.md` to ingest the platform-independent functional governance layer and zero-mocking persistence mandates.
+2. **Load Project Skills**: Execute `view_file` on `skills/feature-driven-implementation/SKILL.md` (and any active skills under `skills/` or `.agents/skills/`) to initialize feature-driven implementation protocols and review gates.
+3. **Load Governance Rules**: Ingest `AGENTS.md` and `rules/` to enforce project-scoped agentic rules, context-isolated subagent dispatch loops, and role boundary locks.
+4. **Load Platform Profile**: Read the target platform execution profile (`.pipeline/profiles/ros2_cpp.md` for ROS2 C++ Real-Time Nodes or `.pipeline/profiles/px4_module.md` for PX4 Autopilot Flight Modules) to establish platform-specific build, test, and lifecycle constraints.
+5. **Bootstrap Tracker Labels & Verify Baseline**: Verify that repository issue tracker labels and baseline tests pass by running `pytest tests/` and `python3 scripts/verify_downstream_baseline.py --no-domain`.
+
+---
+
+## 4. Pipeline 0: Pre-Spec Safety Engineering Execution Workflow
+
+Pipeline 0 (**Pre-Spec Safety Engineering Engine**) ingests mission flight envelopes and airspace constraints to produce normative safety specifications, STPA/FMECA analysis, SORA SAIL assurance models, and SysML v2 textual AST artifacts.
+
+### 4.1 Master-Worker Subagent Topology
+
+```mermaid
+flowchart LR
+    CustomerIntent["Unstructured Intent & Flight Envelope"] --> Worker_0A["Worker 0A: CONOPS Synthesizer"]
+    Worker_0A -->|"CONOPS.md"| Worker_0B["Worker 0B: STPA / FMECA / SORA Assurer"]
+    Worker_0B -->|"STPA_MATRIX.md & SORA SAIL"| Worker_0C["Worker 0C: SysML v2 Authoring Worker"]
+    Worker_0C -->|"DEAP_MODEL.sysml & Handoff AST JSON"| Pipeline_1["Pipeline 1 Projection Engine"]
+```
+
+### 4.2 Pipeline 0 Command-Line Execution Prompts
+
+Execute the following prompts in sequence using context-isolated subagents:
+
+#### 4.2.1 Worker 0A: CONOPS & Mission Scenario Synthesis Prompt
+
+```text
+Role: Worker 0A — CONOPS & Mission Scenario Synthesizer
+
+Primary Commercial Toolchain Integration Context:
+This project explicitly declares MATLAB / Simulink / Stateflow / Embedded Coder as the Primary Tier-1 Commercial Toolchain Integration Context (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada code generation).
+
+Directive:
+Execute front-end CONOPS synthesis for the target UAS flight mission profile by ingesting the input SysML v2 safety model file (`docs/architecture/blueprints/DEAP_MODEL.sysml`). Convert raw stakeholder intent, structural SysML v2 requirements, and airspace constraints into a structured Concept of Operations (`CONOPS.md`).
+
+1. Inputs & Constraints:
+   - Primary Input SysML v2 Model File: `docs/architecture/blueprints/DEAP_MODEL.sysml` (or custom input `.sysml` file path).
+   - Ingest operational mission envelope (flight altitude boundaries, max ground speed, payload configuration, population density, BVLOS vs VLOS flight operations).
+   - Identify stakeholder role definitions (Remote Pilot in Command, Fleet Operations Manager, Command Center Lead, Air Traffic Management / UTM interface).
+   - Define flight operational phases (Pre-Flight Checkout, Launch/Takeoff, En-Route Cruise, Mission Execution, Approach & Landing, Fail-Safe Contingency RTL).
+
+2. Output Requirement:
+   - Generate `CONOPS.md` under `docs/conops/CONOPS.md`.
+   - Ensure clear operational phase boundaries, system physical and functional boundaries, and environmental envelope constraints.
+   - Include MATLAB / Simulink / Stateflow model integration baseline hooks for downstream control law synthesis.
+   - KaTeX / LaTeX Math Formatting Mandate: All multi-line aligned equations MUST be enclosed in `\begin{aligned} ... \end{aligned}` within `$$` delimiters on dedicated lines. Bare alignment tabs `&` outside an alignment environment (`aligned`, `matrix`, `cases`) and `\begin{align*}` environments are strictly forbidden.
+
+PROCEED
+```
+
+#### 4.2.2 Worker 0B: STPA Hazard Analysis, FMECA & SORA SAIL Assurer Prompt
+
+```text
+Role: Worker 0B — STPA Hazard Analysis, FMECA & SORA SAIL Assurer
+
+Primary Commercial Toolchain Integration Context:
+This project explicitly declares MATLAB / Simulink / Stateflow / Embedded Coder as the Primary Tier-1 Commercial Toolchain Integration Context (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada code generation).
+
+Directive:
+Perform STPA hazard analysis, FMECA failure mode criticality evaluation, and SORA SAIL I–VI risk assessment based on `docs/conops/CONOPS.md`.
+
+1. Standards Compliance:
+   - JARUS SORA v2.5 (SAIL I through SAIL VI risk mitigations, Ground Risk Class GRC, Air Risk Class ARC, Operational Safety Objectives OSOs).
+   - ASTM F3269-17 (Run-Time Assurance Monitor Architecture).
+   - RTCA DO-365B (Detect and Avoid DAA MOPS & TCAS II / ACAS sUAS alert & guidance).
+
+2. Output Requirements:
+   - Generate `STPA_MATRIX.md` under `docs/safety/STPA_MATRIX.md` containing System Losses ($L-1..N$), System Hazards ($H-1..N$), Control Structure topology, Unsafe Control Actions ($UCA-1..N$), Loss Scenarios ($LS-1..N$), and Safety Constraints ($SC-1..N$).
+   - Formulate FMECA Matrix detailing component failure modes, severity/occurrence ratings, single-point failures, and Risk Priority Numbers (RPN).
+   - Calculate SORA SAIL classification level (SAIL I–VI) and map mandatory OSOs (OSO-01 through OSO-24).
+   - KaTeX / LaTeX Math Formatting Mandate: All multi-line aligned equations MUST be enclosed in `\begin{aligned} ... \end{aligned}` within `$$` delimiters on dedicated lines. Bare alignment tabs `&` outside an alignment environment (`aligned`, `matrix`, `cases`) and `\begin{align*}` environments are strictly forbidden.
+
+PROCEED
+```
+
+#### 4.2.3 Worker 0C: SysML v2 Architectural & Safety Model Author Prompt
+
+```text
+Role: Worker 0C — SysML v2 Architectural & Safety Model Author
+
+Primary Commercial Toolchain Integration Context:
+This project explicitly declares MATLAB / Simulink / Stateflow / Embedded Coder as the Primary Tier-1 Commercial Toolchain Integration Context (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada code generation).
+
+Directive:
+Formalize the CONOPS (`CONOPS.md`), STPA hazard matrices, FMECA ratings, and SORA SAIL requirements (`STPA_MATRIX.md`) into a normative SysML v2 textual model and serialized AST handoff contract.
+
+1. Model Engineering Mandate:
+   - Construct `DEAP_MODEL.sysml` conforming to SysML v2 textual specification standards (`package`, `req`, `part`, `port`, `state`, `satisfy`, `verify`).
+   - Define safety statecharts for Run-Time Assurance (RTA) switching logic, contingency flight modes, and fail-safe Return-to-Launch (RTL) transitions.
+   - Establish MATLAB / Simulink / Stateflow export compatibility for DO-178C C/SPARK Ada code synthesis.
+   - KaTeX / LaTeX Math Formatting Mandate: Ensure any statechart/mathematical transition guards and formal expressions follow standard escaping and valid KaTeX blocks (all multi-line aligned equations MUST be enclosed in `\begin{aligned} ... \end{aligned}` within `$$` delimiters on dedicated lines; bare alignment tabs `&` outside an alignment environment and `\begin{align*}` are strictly forbidden).
+
+2. Output Requirements:
+   - Generate `DEAP_MODEL.sysml` under `docs/architecture/blueprints/DEAP_MODEL.sysml`.
+   - Generate `pipeline0_handoff_contract.json` under `.pipeline/contracts/pipeline0_handoff_contract.json` for downstream Pipeline 1 Agile projection and Pipeline 2 code generation.
+
+PROCEED
+```
+
+---
+
+## 5. Verification & Quality Gates
+
+Execute baseline and safety governance verification:
+
+```bash
+# Run baseline tests
+python3 -m pytest tests/
+
+# Run downstream conformance gate
+python3 scripts/verify_downstream_baseline.py --no-domain
+```
+EOF
+fi
 
 if [ ! -f "$TARGET_DIR/tests/test_baseline.py" ]; then
   cat << 'EOF' > "$TARGET_DIR/tests/test_baseline.py"
@@ -40,6 +222,7 @@ Downstream Environment & Runtime Integrity Verification Suite.
 """
 import sys
 import os
+import re
 import tempfile
 import pytest
 
@@ -56,6 +239,126 @@ def test_disk_io_and_permissions():
         temp_file.seek(0)
         read_back = temp_file.read()
         assert read_back == test_payload, "Disk I/O payload mismatch during environment validation"
+
+def test_schema_directory_accessible():
+    """Verify schema directory exists and is accessible for domain specification contracts."""
+    schema_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "schema")
+    assert os.path.isdir(schema_dir) or os.path.isdir("schema"), "Schema directory missing or inaccessible"
+
+def test_latex_katex_integrity():
+    """Verify KaTeX / LaTeX mathematical rendering syntax across all markdown files.
+
+    Ensures:
+    - Balanced $$ math blocks
+    - No bare alignment operators & outside alignment environments (aligned, matrix, bmatrix, etc.)
+    - No forbidden \\begin{align} or \\begin{align*} in math blocks (\\begin{aligned} must be used)
+    - Balanced \\begin{aligned} and \\end{aligned} pairs
+    """
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isdir(repo_root):
+        repo_root = os.getcwd()
+
+    excluded_dirs = {".git", "node_modules", ".dart_tool", "build"}
+    allowed_alignment_envs = {
+        "aligned", "alignedat", "matrix", "pmatrix", "bmatrix", "Bmatrix",
+        "vmatrix", "Vmatrix", "cases", "dcases", "rcases", "array",
+        "split", "gathered", "gather", "subarray", "smallmatrix"
+    }
+
+    errors = []
+    for root, dirs, files in os.walk(repo_root):
+        dirs[:] = [d for d in dirs if d not in excluded_dirs]
+        for f in files:
+            if not f.endswith(".md"):
+                continue
+            file_path = os.path.join(root, f)
+            rel_path = os.path.relpath(file_path, repo_root)
+            try:
+                with open(file_path, "r", encoding="utf-8") as md_file:
+                    content = md_file.read()
+            except Exception as e:
+                errors.append(f"Failed to read {rel_path}: {e}")
+                continue
+
+            cleaned = re.sub(r"```.*?```|~~~.*?~~~", "", content, flags=re.DOTALL)
+            cleaned = re.sub(r"`+.*?`+", "", cleaned)
+
+            # a. Validate balanced $$ math blocks
+            parts = cleaned.split("$$")
+            if (len(parts) - 1) % 2 != 0:
+                errors.append(f"Unbalanced $$ display math delimiters in {rel_path} (found {len(parts) - 1} delimiters).")
+                continue
+
+            # Check balanced \begin{aligned} and \end{aligned} globally in file
+            num_begin_aligned_all = len(re.findall(r"\\begin\{aligned\}", cleaned))
+            num_end_aligned_all = len(re.findall(r"\\end\{aligned\}", cleaned))
+            if num_begin_aligned_all != num_end_aligned_all:
+                errors.append(f"Unbalanced \\begin{{aligned}} ({num_begin_aligned_all}) and \\end{{aligned}} ({num_end_aligned_all}) pairs in {rel_path}.")
+
+            # Validate each display math block
+            for i in range(1, len(parts), 2):
+                block = parts[i]
+
+                # c. Detect top-level \begin{align} or \begin{align*}
+                if re.search(r"\\begin\{align\*?\}", block):
+                    errors.append(
+                        f"Forbidden \\begin{{align}} or \\begin{{align*}} found in display math block in {rel_path}. "
+                        f"In markdown KaTeX, \\begin{{aligned}} must be used instead."
+                    )
+
+                # d. Validate balanced \begin{aligned} and \end{aligned} pairs within the block
+                num_begin_aligned = len(re.findall(r"\\begin\{aligned\}", block))
+                num_end_aligned = len(re.findall(r"\\end\{aligned\}", block))
+                if num_begin_aligned != num_end_aligned:
+                    errors.append(
+                        f"Unbalanced \\begin{{aligned}} ({num_begin_aligned}) and \\end{{aligned}} ({num_end_aligned}) in math block in {rel_path}."
+                    )
+
+                # b. Detect bare alignment operators & outside alignment environments
+                token_pattern = re.compile(r"\\begin\{([a-zA-Z*]+)\}|\\end\{([a-zA-Z*]+)\}|\\&|&")
+                env_stack = []
+                for match in token_pattern.finditer(block):
+                    token = match.group(0)
+                    if token.startswith(r"\begin{"):
+                        env_stack.append(match.group(1))
+                    elif token.startswith(r"\end{"):
+                        end_name = match.group(2)
+                        if end_name in env_stack:
+                            while env_stack:
+                                popped = env_stack.pop()
+                                if popped == end_name:
+                                    break
+                    elif token == r"\&":
+                        continue
+                    elif token == "&":
+                        if not any(env in allowed_alignment_envs for env in env_stack):
+                            snippet = block[max(0, match.start() - 20):min(len(block), match.end() + 20)].strip().replace("\n", " ")
+                            errors.append(
+                                f"Bare alignment operator '&' outside alignment environment in {rel_path}: \"...{snippet}...\""
+                            )
+
+    assert not errors, "KaTeX / LaTeX mathematical syntax violations found:\n" + "\n".join(errors)
+
+def test_instructions_and_readme_accessible():
+    """Verify README.md and agent instruction entrypoints exist and are accessible."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isdir(repo_root):
+        repo_root = os.getcwd()
+
+    readme_path = os.path.join(repo_root, "README.md")
+    assert os.path.isfile(readme_path), f"Root README.md missing in repository at {repo_root}"
+    assert os.path.getsize(readme_path) > 0, f"Root README.md is empty in repository at {repo_root}"
+
+    agent_entrypoints = [
+        os.path.join(repo_root, "AGENTS.md"),
+        os.path.join(repo_root, "CLAUDE.md"),
+        os.path.join(repo_root, ".agents", "AGENTS.md"),
+    ]
+    valid_entrypoints = [p for p in agent_entrypoints if os.path.isfile(p) and os.path.getsize(p) > 0]
+    assert len(valid_entrypoints) > 0, (
+        f"No non-empty agent instruction entrypoint found at {repo_root} "
+        f"(checked AGENTS.md, CLAUDE.md, .agents/AGENTS.md)"
+    )
 EOF
 fi
 

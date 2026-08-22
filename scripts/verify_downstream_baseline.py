@@ -16,27 +16,22 @@ import sys
 
 TIMEOUT_SECONDS = 600
 GIT_TIMEOUT_SECONDS = 30
+EXCLUDED_DIRS = {".git", "node_modules", ".dart_tool", "build"}
 
-def _cleanup_pg(proc):
-    """Clean up process group for proc with SIGTERM then SIGKILL if needed."""
+def _terminate_process_group(proc):
+    """Terminate process group cleanly with SIGTERM followed by SIGKILL fallback."""
     try:
-        pgid = os.getpgid(proc.pid)
-    except (ProcessLookupError, PermissionError, OSError):
-        pgid = None
-
-    if pgid is not None:
+        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        proc.wait(timeout=15)
+    except (subprocess.TimeoutExpired, ProcessLookupError, PermissionError):
         try:
-            os.killpg(pgid, signal.SIGTERM)
-            proc.wait(timeout=15)
-        except (subprocess.TimeoutExpired, ProcessLookupError, PermissionError, OSError):
-            try:
-                os.killpg(pgid, signal.SIGKILL)
-            except (ProcessLookupError, PermissionError, OSError):
-                pass
-            try:
-                proc.wait()
-            except Exception:
-                pass
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+        try:
+            proc.wait(timeout=5)
+        except (subprocess.TimeoutExpired, ProcessLookupError, PermissionError):
+            pass
 
 def _run_bounded(cmd, cwd, timeout, label):
     """Run cmd with a timeout that binds the whole process tree.
@@ -50,16 +45,8 @@ def _run_bounded(cmd, cwd, timeout, label):
     proc = subprocess.Popen(cmd, cwd=cwd, start_new_session=True)
     try:
         rc = proc.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        _cleanup_pg(proc)
-        raise subprocess.TimeoutExpired(cmd, timeout)
-    except Exception:
-        _cleanup_pg(proc)
-        raise
     finally:
-        if proc.poll() is None:
-            _cleanup_pg(proc)
-
+        _terminate_process_group(proc)
     if rc != 0:
         raise subprocess.CalledProcessError(rc, cmd)
 
@@ -88,6 +75,11 @@ def check_no_domain_config(destination):
 def tag_restoration_point(repo_root=None):
     print("Tagging restoration point...")
     try:
+        is_git = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], capture_output=True, text=True, cwd=repo_root, timeout=GIT_TIMEOUT_SECONDS)
+        if is_git.returncode != 0:
+            print("WARNING: Skipping restoration point tag - not inside a git repository.", file=sys.stderr)
+            return False
+
         res = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=repo_root, timeout=GIT_TIMEOUT_SECONDS)
         if res.returncode != 0:
             print("WARNING: Skipping restoration point tag - git HEAD is unborn (fresh repository).", file=sys.stderr)
@@ -120,7 +112,8 @@ def cleanup_workspace(destination):
         if os.path.isdir(d_path):
             shutil.rmtree(d_path, ignore_errors=True)
 
-    for root, _, files in os.walk(destination):
+    for root, dirs, files in os.walk(destination):
+        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
         for f in files:
             if f.endswith(".db-shm") or f.endswith(".db-wal") or f.endswith(".db-journal"):
                 sidecar_path = os.path.join(root, f)
@@ -134,8 +127,8 @@ def cleanup_workspace(destination):
                 else:
                     try:
                         os.remove(sidecar_path)
-                    except OSError as e:
-                        print(f"WARNING: Failed to remove orphaned SQLite sidecar '{sidecar_path}': {e}", file=sys.stderr)
+                    except Exception:
+                        pass
 
 
 # Mandated domain classes/interfaces to check in types.ts or types.dart
@@ -212,30 +205,19 @@ def main():
             if web_react_dir not in targets:
                 targets.append(web_react_dir)
 
-    if not targets:
-        if os.path.isdir(repo_root):
-            print(f"NOTE: Destination path '{repo_root}' is a generic downstream project. Registering root target for baseline verification.")
+        if not targets and os.path.isdir(repo_root):
+            print(f"NOTE: Destination path '{repo_root}' has no pubspec.yaml or package.json. Registering repository root for non-framework baseline checks.")
             targets.append(repo_root)
-        else:
-            print(f"ERROR: Destination path '{repo_root}' does not appear to be a valid project directory.", file=sys.stderr)
-            sys.exit(1)
+
+    if not targets:
+        print(f"ERROR: Destination path '{repo_root}' does not appear to be a valid directory.", file=sys.stderr)
+        sys.exit(1)
 
     reports = []
     for dest in targets:
         is_flutter = os.path.exists(os.path.join(dest, "pubspec.yaml"))
         is_react = os.path.exists(os.path.join(dest, "package.json"))
 
-        # An explicit --no-domain on the command line is the operator's decision and is
-        # never overridden. The config-file setting is a stored default, so it IS
-        # overridden once a domain directory exists on disk -- that is what stops a
-        # stale config silently disabling verification on a project that has since
-        # implemented its domain.
-        #
-        # Both were overridden until this was fixed, which made --no-domain inert: the
-        # shipped app_flutter and web_react templates both contain a domain directory,
-        # so the flag cancelled itself on every fresh install and the documented
-        # "verify the workspace structure prior to implementing the domain model" path
-        # ran a full `flutter build macos --release` instead.
         no_domain_for_target = args.no_domain
         if not args.no_domain and (
             check_no_domain_config(repo_root) or check_no_domain_config(dest)
@@ -324,7 +306,8 @@ def check_gitignore_exists(repo_root):
 def check_no_ds_store_files(repo_root):
     """Check 11: Verify zero .DS_Store files exist in the working tree or git index."""
     ds_store_files = []
-    for root, _, files in os.walk(repo_root):
+    for root, dirs, files in os.walk(repo_root):
+        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
         for f in files:
             if f == ".DS_Store":
                 ds_store_files.append(os.path.join(root, f))
@@ -335,13 +318,19 @@ def check_no_ds_store_files(repo_root):
 
 def check_no_duplicate_master_blueprints(dest):
     """Check 12: Verify downstream repositories do NOT contain duplicate master core blueprints."""
+    # If the repository is upstream (indicated by .pipeline/upstream), master blueprints are expected here
+    if os.path.exists(os.path.join(dest, ".pipeline", "upstream")):
+        print("Success: Check 12 verified (upstream repository retains canonical master core blueprints).")
+        return
+
     master_blueprints = {
         "DEAP_MASTER_ARCHITECTURE.md",
         "THREE_TIER_GOVERNANCE_BLUEPRINT.md",
         "DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml"
     }
     duplicates = []
-    for root, _, files in os.walk(dest):
+    for root, dirs, files in os.walk(dest):
+        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
         for f in files:
             if f in master_blueprints:
                 duplicates.append(os.path.join(root, f))
@@ -350,11 +339,122 @@ def check_no_duplicate_master_blueprints(dest):
         sys.exit(1)
     print("Success: Check 12 verified (no duplicate master core blueprints found).")
 
+def check_latex_katex_syntax(repo_root):
+    """Check 13: Verify KaTeX / LaTeX mathematical rendering syntax across all markdown files."""
+    allowed_alignment_envs = {
+        "aligned", "alignedat", "matrix", "pmatrix", "bmatrix", "Bmatrix",
+        "vmatrix", "Vmatrix", "cases", "dcases", "rcases", "array",
+        "split", "gathered", "gather", "subarray", "smallmatrix"
+    }
+    errors = []
+    for root, dirs, files in os.walk(repo_root):
+        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
+        for f in files:
+            if not f.endswith(".md"):
+                continue
+            file_path = os.path.join(root, f)
+            rel_path = os.path.relpath(file_path, repo_root)
+            try:
+                with open(file_path, "r", encoding="utf-8") as md_file:
+                    content = md_file.read()
+            except Exception as e:
+                errors.append(f"Failed to read {rel_path}: {e}")
+                continue
+
+            # Strip code blocks and inline code
+            cleaned = re.sub(r"```.*?```|~~~.*?~~~", "", content, flags=re.DOTALL)
+            cleaned = re.sub(r"`+.*?`+", "", cleaned)
+
+            # a. Validate balanced $$ math blocks
+            parts = cleaned.split("$$")
+            if (len(parts) - 1) % 2 != 0:
+                errors.append(f"Unbalanced $$ display math delimiters in {rel_path} (found {len(parts) - 1} delimiters).")
+                continue
+
+            # Check balanced \begin{aligned} and \end{aligned} globally in the file
+            num_begin_aligned_all = len(re.findall(r"\\begin\{aligned\}", cleaned))
+            num_end_aligned_all = len(re.findall(r"\\end\{aligned\}", cleaned))
+            if num_begin_aligned_all != num_end_aligned_all:
+                errors.append(f"Unbalanced \\begin{{aligned}} ({num_begin_aligned_all}) and \\end{{aligned}} ({num_end_aligned_all}) pairs in {rel_path}.")
+
+            # Validate each math block
+            for i in range(1, len(parts), 2):
+                block = parts[i]
+
+                # c. Detect top-level \begin{align} or \begin{align*}
+                if re.search(r"\\begin\{align\*?\}", block):
+                    errors.append(
+                        f"Forbidden \\begin{{align}} or \\begin{{align*}} found in display math block in {rel_path}. "
+                        f"In markdown KaTeX, \\begin{{aligned}} must be used instead."
+                    )
+
+                # d. Validate balanced \begin{aligned} and \end{aligned} pairs within the block
+                num_begin_aligned = len(re.findall(r"\\begin\{aligned\}", block))
+                num_end_aligned = len(re.findall(r"\\end\{aligned\}", block))
+                if num_begin_aligned != num_end_aligned:
+                    errors.append(
+                        f"Unbalanced \\begin{{aligned}} ({num_begin_aligned}) and \\end{{aligned}} ({num_end_aligned}) in math block in {rel_path}."
+                    )
+
+                # b. Detect bare alignment operators & outside alignment environments
+                token_pattern = re.compile(r"\\begin\{([a-zA-Z*]+)\}|\\end\{([a-zA-Z*]+)\}|\\&|&")
+                env_stack = []
+                for match in token_pattern.finditer(block):
+                    token = match.group(0)
+                    if token.startswith(r"\begin{"):
+                        env_stack.append(match.group(1))
+                    elif token.startswith(r"\end{"):
+                        end_name = match.group(2)
+                        if end_name in env_stack:
+                            while env_stack:
+                                popped = env_stack.pop()
+                                if popped == end_name:
+                                    break
+                    elif token == r"\&":
+                        continue
+                    elif token == "&":
+                        if not any(env in allowed_alignment_envs for env in env_stack):
+                            snippet = block[max(0, match.start() - 20):min(len(block), match.end() + 20)].strip().replace("\n", " ")
+                            errors.append(
+                                f"Bare alignment operator '&' outside alignment environment in {rel_path}: \"...{snippet}...\""
+                            )
+
+    if errors:
+        print("ERROR: Check 13 failed (KaTeX / LaTeX mathematical syntax violations found):", file=sys.stderr)
+        for err in errors:
+            print(f"  - {err}", file=sys.stderr)
+        sys.exit(1)
+    print("Success: Check 13 verified (KaTeX / LaTeX mathematical syntax valid across all markdown files).")
+
+def check_downstream_instructions_exist(repo_root):
+    """Check 14: Verify presence of README.md and agent instruction entrypoints (AGENTS.md, CLAUDE.md, or .agents/AGENTS.md)."""
+    readme_path = os.path.join(repo_root, "README.md")
+    if not os.path.isfile(readme_path):
+        print(f"ERROR: Check 14 failed: README.md missing in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+    if os.path.getsize(readme_path) == 0:
+        print(f"ERROR: Check 14 failed: README.md is empty in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+
+    agent_entrypoints = [
+        os.path.join(repo_root, "AGENTS.md"),
+        os.path.join(repo_root, "CLAUDE.md"),
+        os.path.join(repo_root, ".agents", "AGENTS.md"),
+    ]
+    valid_entrypoints = [p for p in agent_entrypoints if os.path.isfile(p) and os.path.getsize(p) > 0]
+    if not valid_entrypoints:
+        print(f"ERROR: Check 14 failed: No non-empty agent instruction entrypoint found in '{repo_root}' (expected AGENTS.md, CLAUDE.md, or .agents/AGENTS.md).", file=sys.stderr)
+        sys.exit(1)
+
+    print("Success: Check 14 verified (README.md and agent instruction entrypoints exist).")
+
 def _run_verification(args, dest, repo_root, is_flutter, is_react):
-    # Run Checks 10, 11, and 12
+    # Run Checks 10, 11, 12, 13, and 14
     check_gitignore_exists(repo_root)
     check_no_ds_store_files(repo_root)
     check_no_duplicate_master_blueprints(dest)
+    check_latex_katex_syntax(repo_root)
+    check_downstream_instructions_exist(repo_root)
 
     if is_flutter:
         print(f"Verifying conformance for platform 'flutter' at '{dest}'...")
@@ -427,12 +527,8 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
                 _run_bounded(["flutter", "build", "macos", "--release"], cwd=dest, timeout=TIMEOUT_SECONDS * 3, label="flutter build macos --release")
                 
                 print("Zipping the macOS application bundle...")
-                # The build output is typically at app_flutter/build/macos/Build/Products/Release/Platform Console.app
-                # We need to package it into the repository root as app_flutter_release.zip
                 zip_path = os.path.join(upstream_repo_root, "app_flutter_release.zip")
                 
-                # We expect the app bundle to be named 'Platform Console.app'. 
-                # Let's find it in the release directory.
                 release_dir = os.path.join(dest, "build", "macos", "Build", "Products", "Release")
                 app_bundle = "Platform Console.app"
                 
@@ -511,4 +607,3 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
 
 if __name__ == "__main__":
     main()
-
