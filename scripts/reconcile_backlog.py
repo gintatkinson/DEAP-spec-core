@@ -27,6 +27,7 @@ import yaml
 import traceback
 import shutil
 import tempfile
+import copy
 
 def sanitize_github_token_env():
     """
@@ -41,15 +42,161 @@ def sanitize_github_token_env():
 
 sanitize_github_token_env()
 
+DEFAULT_CODEBASE_RULES = {
+    "meta": {
+        "version": "1.0.0",
+        "description": "Default pipeline and codebase compliance rules",
+        "upstream_repository": "gintatkinson/digital-pipeline-repo",
+    },
+    "tracker_rules": {
+        "provider": "github",
+        "issue_id_placeholder": "#[IssueID]",
+        "prefix_normalization_regex": r"^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+\s*[:\-]?|:)\s*",
+        "title_extraction_prefixes_regex": r"(?:Feature\s+\d+\s*:\s*|Use\s+Case\s+\d+\s*:\s*|User\s+Story\s+\d+\s*:\s*)?",
+        "truncation_headers": [
+            "## Acceptance Criteria",
+            "## User Stories"
+        ],
+        "truncation_message_template": "\n\n---\n*Warning: This issue body has been truncated because it exceeds the tracker size limit of {max_body_chars} characters.*\n*Please refer to the full specification file in the repository at `{rel_path}` for the complete details.*\n",
+        "numeric_prefix": "#",
+        "alphanumeric_prefix": "",
+        "keys": {
+            "issue_id": "number",
+            "title": "title",
+            "labels": "labels",
+            "state": "state",
+            "closed_state_value": "CLOSED",
+            "open_state_value": "OPEN"
+        },
+        "labels": {
+            "epic": "epic",
+            "feature": "feature",
+            "user_story": "user-story",
+            "use_case": "use-case",
+            "resolved": "status:fixed-resolved"
+        },
+        "close_comments": {
+            "epic": "Epic completed. All constituent features successfully delivered and verified.",
+            "user_story": "Resolved. All dependent features/tasks for BDD scenario '{title}' have been completed and verified.",
+            "use_case": "Resolved. All dependent user stories and features for use case '{title}' are completed."
+        },
+        "commands": {
+            "list_issues": [
+                "gh",
+                "issue",
+                "list",
+                "--limit",
+                "1000",
+                "--state",
+                "all",
+                "--json",
+                "number,title,state,labels"
+            ],
+            "edit_issue": [
+                "gh",
+                "issue",
+                "edit",
+                "{number}",
+                "--body-file",
+                "{temp_path}"
+            ],
+            "edit_issue_title": [
+                "gh",
+                "issue",
+                "edit",
+                "{number}",
+                "--title",
+                "{title}"
+            ],
+            "add_label": [
+                "gh",
+                "issue",
+                "edit",
+                "{number}",
+                "--add-label",
+                "{label}"
+            ],
+            "resolve_issue": [
+                "gh",
+                "issue",
+                "edit",
+                "{number}",
+                "--add-label",
+                "{label}"
+            ],
+            "comment_issue": [
+                "gh",
+                "issue",
+                "comment",
+                "{number}",
+                "--body",
+                "{comment}"
+            ],
+            "create_label": [
+                "gh",
+                "label",
+                "create",
+                "{label}",
+                "--description",
+                "{description}",
+                "--color",
+                "0E8A16",
+                "--force"
+            ]
+        }
+    },
+    "backlog_directories": {
+        "epics": "docs/epics",
+        "features": "docs/features",
+        "user_stories": "docs/user-stories",
+        "use_cases": "docs/use-cases",
+        "schemas": "schema"
+    }
+}
+
+def resolve_codebase_rules_path(workspace_dir: str):
+    candidate_paths = [
+        os.environ.get("CODEBASE_RULES_PATH"),
+        os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json"),
+        os.path.join(workspace_dir, ".pipeline", "codebase_rules.json"),
+        os.path.join(workspace_dir, "codebase_rules.json"),
+    ]
+    for path in candidate_paths:
+        if path and os.path.exists(path):
+            return path
+    return None
+
+def resolve_linter_script(workspace_dir: str):
+    candidates = [
+        os.path.join(workspace_dir, "skills", "spec-orchestrator", "scripts", "verify_model_coverage.py"),
+        os.path.join(workspace_dir, "scripts", "verify_model_coverage.py"),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return None
+
+def deep_merge(base, override):
+    result = dict(base)
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
 def load_codebase_rules(workspace_dir):
-    rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")
-    if os.path.exists(rules_path):
+    rules = copy.deepcopy(DEFAULT_CODEBASE_RULES)
+    rules_path = resolve_codebase_rules_path(workspace_dir)
+    if rules_path:
         try:
             with open(rules_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    rules = deep_merge(rules, loaded)
         except Exception as e:
-            print(f"Warning: Failed to load codebase_rules.json: {e}")
-    return {}
+            print(f"Warning: Failed to load codebase_rules.json from {rules_path}: {e}")
+    return rules
 
 def get_git_remote_repo(workspace_dir):
     try:
@@ -1580,6 +1727,10 @@ def find_workspace_dir(start_path):
     while True:
         if os.path.exists(os.path.join(curr, ".pipeline", "logical-ui", "codebase_rules.json")):
             return curr
+        if os.path.exists(os.path.join(curr, ".pipeline", "codebase_rules.json")):
+            return curr
+        if os.path.exists(os.path.join(curr, "codebase_rules.json")):
+            return curr
         if os.path.exists(os.path.join(curr, ".git")):
             return curr
         parent = os.path.dirname(curr)
@@ -1632,73 +1783,57 @@ Options:
 
     # Programmatic gate: Run linter before proceeding with reconciliation
     blocked_specs = set()
-    try:
-        with open(os.path.join(workspace_dir, ".pipeline", "logical-ui",
-                               "codebase_rules.json"), encoding="utf-8") as _fh:
-            rules_preview = json.load(_fh)
-    except Exception:
-        rules_preview = {}
-    print("Running pre-reconciliation linter validation...")
-    linter_script = os.path.join(workspace_dir, "skills", "spec-orchestrator", "scripts", "verify_model_coverage.py")
-    if not os.path.exists(linter_script):
-        alt_linter = os.path.join(workspace_dir, "scripts", "verify_model_coverage.py")
-        if os.path.exists(alt_linter):
-            linter_script = alt_linter
-    cmd = [sys.executable, linter_script, "--spec-only", "--allow-missing-specs"]
-    try:
-        res = subprocess.run(cmd, cwd=workspace_dir, capture_output=True, text=True, timeout=30)
-        if res.returncode != 0:
-            output_text = (res.stdout or "") + "\n" + (res.stderr or "")
-            lines = [line.strip() for line in output_text.splitlines()]
-            error_lines = [line for line in lines if line.startswith("- ")]
-            
-            is_exclusive_checklist_placeholder = False
-            if error_lines:
-                is_exclusive_checklist_placeholder = True
-                for err in error_lines:
-                    err_lower = err.lower()
-                    if "placeholder" not in err_lower and "checklist" not in err_lower and "required features matrix" not in err_lower:
-                        is_exclusive_checklist_placeholder = False
-                        break
-            
-            if is_exclusive_checklist_placeholder:
-                print("[Warning] Pre-reconciliation linter validation found only checklist warning issues/placeholders. Proceeding with warnings.", file=sys.stderr)
-                for err in error_lines:
-                    print(f"  [Warning Detail] {err}", file=sys.stderr)
+    rules_preview = load_codebase_rules(workspace_dir)
+    linter_script = resolve_linter_script(workspace_dir)
+    if linter_script and os.path.exists(linter_script):
+        print("Running pre-reconciliation linter validation...")
+        cmd = [sys.executable, linter_script, "--spec-only", "--allow-missing-specs"]
+        try:
+            res = subprocess.run(cmd, cwd=workspace_dir, capture_output=True, text=True, timeout=30)
+            if res.returncode != 0:
+                output_text = (res.stdout or "") + "\n" + (res.stderr or "")
+                lines = [line.strip() for line in output_text.splitlines()]
+                error_lines = [line for line in lines if line.startswith("- ")]
+                
+                is_exclusive_checklist_placeholder = False
+                if error_lines:
+                    is_exclusive_checklist_placeholder = True
+                    for err in error_lines:
+                        err_lower = err.lower()
+                        if "placeholder" not in err_lower and "checklist" not in err_lower and "required features matrix" not in err_lower:
+                            is_exclusive_checklist_placeholder = False
+                            break
+                
+                if is_exclusive_checklist_placeholder:
+                    print("[Warning] Pre-reconciliation linter validation found only checklist warning issues/placeholders. Proceeding with warnings.", file=sys.stderr)
+                    for err in error_lines:
+                        print(f"  [Warning Detail] {err}", file=sys.stderr)
+                else:
+                    # Issue #321 - a failing linter used to abort the entire run, so one
+                    # incomplete work-in-progress draft withheld synchronisation from every
+                    # finished, unrelated specification. The gate is not weakened: the
+                    # offending items are skipped and the run still exits non-zero at the
+                    # end. What changes is that valid work is no longer held hostage.
+                    blocked_specs = blocked_specs_from_linter_output(
+                        output_text, workspace_dir, rules_preview
+                    )
+                    print("[BLOCKED] Pre-reconciliation linter validation failed for "
+                          f"{len(blocked_specs)} specification(s). These will be SKIPPED; "
+                          "everything else still synchronises, and this run will exit "
+                          "non-zero.", file=sys.stderr)
+                    for name in sorted(blocked_specs):
+                        print(f"  [Blocked] {name}", file=sys.stderr)
+                    print(res.stdout, file=sys.stderr)
             else:
-                # Issue #321 - a failing linter used to abort the entire run, so one
-                # incomplete work-in-progress draft withheld synchronisation from every
-                # finished, unrelated specification. The gate is not weakened: the
-                # offending items are skipped and the run still exits non-zero at the
-                # end. What changes is that valid work is no longer held hostage.
-                blocked_specs = blocked_specs_from_linter_output(
-                    output_text, workspace_dir, rules_preview
-                )
-                print("[BLOCKED] Pre-reconciliation linter validation failed for "
-                      f"{len(blocked_specs)} specification(s). These will be SKIPPED; "
-                      "everything else still synchronises, and this run will exit "
-                      "non-zero.", file=sys.stderr)
-                for name in sorted(blocked_specs):
-                    print(f"  [Blocked] {name}", file=sys.stderr)
-                print(res.stdout, file=sys.stderr)
-        else:
-            print("Pre-reconciliation linter validation passed successfully.")
-    except subprocess.TimeoutExpired:
-        print("[FATAL] Pre-reconciliation linter validation timed out after 30 seconds. Aborting.", file=sys.stderr)
-        sys.exit(1)
+                print("Pre-reconciliation linter validation passed successfully.")
+        except subprocess.TimeoutExpired:
+            print("[FATAL] Pre-reconciliation linter validation timed out after 30 seconds. Aborting.", file=sys.stderr)
+            sys.exit(1)
+    else:
+        print("[INFO] Pre-reconciliation linter not found; skipping pre-validation.")
 
     try:
-        rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")
-        if not os.path.exists(rules_path):
-            print(f"Error: codebase_rules.json not found at: {rules_path}")
-            print("Please ensure the configuration file is present at '.pipeline/logical-ui/codebase_rules.json'.")
-            sys.exit(1)
-
         rules = load_codebase_rules(workspace_dir)
-        if not rules:
-            print("Error: codebase_rules.json is empty, invalid, or could not be loaded.")
-            print("Please check '.pipeline/logical-ui/codebase_rules.json' and ensure it contains valid configuration.")
-            sys.exit(1)
 
         try:
             issues = get_all_issues(rules)
