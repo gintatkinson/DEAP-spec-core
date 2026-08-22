@@ -470,8 +470,16 @@ def get_all_issues(rules=None):
     cmd = commands["list_issues"]
     res = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
     if res.returncode != 0:
-        raise Exception(f"Failed to fetch issues: {res.stderr.strip()}")
-    return json.loads(res.stdout)
+        err_msg = res.stderr.strip() if res.stderr else ""
+        err_lower = err_msg.lower()
+        if "no git remotes found" in err_lower or "not a git repository" in err_lower or "could not read username" in err_lower:
+            print(f"[Notice] Issue tracker unavailable ({err_msg}). Operating in offline/local specification mode.")
+            return []
+        raise Exception(f"Failed to fetch issues: {err_msg}")
+    try:
+        return json.loads(res.stdout)
+    except json.JSONDecodeError:
+        return []
 
 def update_checklist_in_file(filepath, issue_dict, rules=None):
     with open(filepath, "r", encoding="utf-8") as f:
