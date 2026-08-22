@@ -1,5 +1,11 @@
 # Project-Scoped Rules
 
+## Repository Role & Scope Classification
+- **Repository Classification:** `DEAP-spec-core` (DEAP Platform Component)
+- **Sentinel Indicator:** The presence of `.pipeline/upstream/` denotes that this repository is a **Pipeline Distribution Template**, NOT a downstream customer application workspace.
+- **Customer Data Boundary:** Customer-specific application code, private flight logs, mission parameters, and proprietary artifacts belong in the customer's downstream repository (installed via `install_pipeline.sh`), and must NOT be committed to this template repository.
+
+
 ## Mandatory Hidden Folder Direct-Path Read (CRITICAL FIRST STEP)
 - **Mandatory Hidden Folder Direct-Path Read (CRITICAL FIRST STEP)**: You are strictly forbidden from assuming files or directories inside the `.pipeline/` folder (such as `.pipeline/constitution.md` or `.pipeline/profiles/`) do not exist based on glob or search tool results. Because glob and ripgrep index queries skip hidden folders, you MUST verify their presence by directly executing a path read via `view_file` or a folder check via `list_dir`. This MUST be your very first action upon starting a session before declaring state or starting tasks.
 
