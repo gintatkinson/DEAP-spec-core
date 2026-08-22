@@ -30,6 +30,7 @@ fi
 
 mkdir -p "$TARGET_DIR/schema"
 mkdir -p "$TARGET_DIR/tests"
+cp -RP "$INSTALLER_ROOT/tests/test_baseline.py" "$TARGET_DIR/tests/" 2>/dev/null || true
 mkdir -p "$TARGET_DIR/docs/conops" "$TARGET_DIR/docs/safety" "$TARGET_DIR/docs/architecture/blueprints" "$TARGET_DIR/docs/epics" "$TARGET_DIR/docs/features" "$TARGET_DIR/docs/user-stories" "$TARGET_DIR/docs/use-cases"
 mkdir -p "$TARGET_DIR/.pipeline/contracts" "$TARGET_DIR/.pipeline/domain_specs" "$TARGET_DIR/.pipeline/profiles"
 chmod +x "$TARGET_DIR"/scripts/*.sh "$TARGET_DIR"/scripts/*.py 2>/dev/null || true
@@ -223,6 +224,7 @@ Downstream Environment & Runtime Integrity Verification Suite.
 import sys
 import os
 import re
+import subprocess
 import tempfile
 import pytest
 
@@ -361,7 +363,7 @@ def test_instructions_and_readme_accessible():
     )
 
 def test_reconcile_backlog_tooling_accessible():
-    """Verify scripts/reconcile_backlog.py exists, is readable, and non-empty."""
+    """Verify scripts/reconcile_backlog.py exists, is executable, and runs to completion."""
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if not os.path.isdir(repo_root):
         repo_root = os.getcwd()
@@ -370,6 +372,10 @@ def test_reconcile_backlog_tooling_accessible():
     assert os.path.isfile(reconcile_path), f"scripts/reconcile_backlog.py missing at {repo_root}"
     assert os.path.getsize(reconcile_path) > 0, f"scripts/reconcile_backlog.py is empty at {repo_root}"
     assert os.access(reconcile_path, os.R_OK), f"scripts/reconcile_backlog.py is not readable at {repo_root}"
+
+    res = subprocess.run([sys.executable, reconcile_path], cwd=repo_root, capture_output=True, text=True, timeout=60)
+    assert res.returncode == 0, f"scripts/reconcile_backlog.py failed with exit code {res.returncode}:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}"
+    assert "Traceback" not in res.stderr, f"scripts/reconcile_backlog.py produced unhandled exception:\n{res.stderr}"
 EOF
 fi
 
@@ -378,3 +384,4 @@ if [ -f "$TARGET_DIR/scripts/setup_git_hooks.py" ]; then
 fi
 
 echo "==> Digital Pipeline Installation Complete. 0 manual steps remaining."
+
