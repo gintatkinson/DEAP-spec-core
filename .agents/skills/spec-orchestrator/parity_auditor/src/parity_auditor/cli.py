@@ -916,9 +916,59 @@ def _main_impl():
         has_failed = True
     else:
         print("Success: Profile compliance checks passed.")
+
+    print("\n=== Package Structure & Subsystem Allocation Audit ===")
+    package_allocation_errors = _scope_findings(cardinality_validator.validate_package_structure_and_subsystem_allocation(repo), getattr(args, 'only', None))
+    if package_allocation_errors:
+        print("[!] Package Structure & Subsystem Allocation Violations Identified:")
+        for err in package_allocation_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Package structure and subsystem capability allocations verified.")
+
+    print("\n=== Feature Operation & Schema Constraint Coverage ===")
+    feature_op_errors = _scope_findings(cardinality_validator.validate_feature_operation_and_constraint_coverage(repo), getattr(args, 'only', None))
+    if feature_op_errors:
+        print("[!] Feature Operation & Schema Constraint Violations Identified:")
+        for err in feature_op_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Feature operation and schema constraint coverage verified.")
+
+    print("\n=== User Story Interaction & Sequence Lifeline Audit ===")
+    interaction_errors = _scope_findings(uml_validator.validate_user_story_interactions_and_lifelines(repo, global_classes=global_classes), getattr(args, 'only', None))
+    if interaction_errors:
+        print("[!] User Story Interaction & Sequence Lifeline Violations Identified:")
+        for err in interaction_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: User Story interaction sequences and lifelines verified.")
+
+    print("\n=== Safety Invariant & RTA Constraint Assertion Audit ===")
+    safety_constraint_errors = _scope_findings(uml_validator.validate_safety_invariants_and_rta_constraints(repo), getattr(args, 'only', None))
+    if safety_constraint_errors:
+        print("[!] Safety Invariant & RTA Constraint Assertion Violations Identified:")
+        for err in safety_constraint_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Safety invariants and RTA constraint assertions verified.")
+
+    print("\n=== Acceptance Criteria Test Case & Verification Binding Audit ===")
+    acceptance_test_errors = _scope_findings(uml_validator.validate_acceptance_criteria_and_test_cases(repo), getattr(args, 'only', None))
+    if acceptance_test_errors:
+        print("[!] Acceptance Criteria Test Case & Verification Binding Violations Identified:")
+        for err in acceptance_test_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Acceptance criteria test cases and verification bindings verified.")
         
     if has_failed:
-        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (logical_ui_errors or []) + (docstring_errors or []) + (profile_compliance_errors or []) + (missing_spec_errors or []) + (source_ref_errors or []) + (link_errors or [])
+        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (logical_ui_errors or []) + (docstring_errors or []) + (profile_compliance_errors or []) + (package_allocation_errors or []) + (feature_op_errors or []) + (interaction_errors or []) + (safety_constraint_errors or []) + (acceptance_test_errors or []) + (missing_spec_errors or []) + (source_ref_errors or []) + (link_errors or [])
         compiled_errors = all_errors
         target_file = None
         snippet_content = None
