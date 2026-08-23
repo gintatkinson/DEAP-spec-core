@@ -6,6 +6,10 @@ This directory serves as the root repository for input specification schemas, in
 
 The `schema/` directory contains heterogeneous interface definitions, domain schemas, and high-level architectural models that define the contracts, data structures, and interactions for the system under design.
 
+## Upstream Clean Landing Zone Invariant
+
+In upstream distribution templates (`DEAP-*`), the `schema/` directory is strictly maintained as a **clean landing zone** containing only `.gitkeep`. Upstream distribution templates contain only the abstract compiler, linters, and empty specification directories. Concrete project schemas, domain models, and interface specifications are never committed to upstream templates; they reside exclusively in downstream application workspaces initialized via `scripts/install_pipeline.sh`.
+
 Supported specification formats include:
 - **SysML v2** (`.sysml`): Textual modeling for system architecture, item definitions, parts, ports, requirement definitions, state machines, and use cases.
 - **OpenAPI 3.0 / 3.1 & JSON Schemas** (`.json`, `.yaml`, `.yml`): REST APIs, JSON data schemas, and object payload definitions.
@@ -78,7 +82,9 @@ To prevent model drift between textual specifications and architectural models, 
 - **Continuous Digest Verification**: Any elaboration step that touches specifications must verify AST digest consistency (`.pipeline/schema-digest.json`) against the SysML v2 SSOT before validation gates pass.
 
 ## Usage Guidelines
-- Place all raw or upstream schema specifications into `schema/` (or structured subdirectories within `schema/`).
-- Commit schemas alongside pipeline configuration to preserve end-to-end traceability and model parity.
+- In upstream distribution templates (`DEAP-*`), `schema/` remains a clean landing zone containing only `.gitkeep` awaiting user-provided schemas.
+- In downstream workspaces (installed via `scripts/install_pipeline.sh`), place all project schema specifications into `schema/` (or structured subdirectories within `schema/`).
+- Commit schemas alongside downstream pipeline configuration to preserve end-to-end traceability and model parity.
 - Adhere strictly to [`rules/sysml-ssot-completeness.md`](file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety/rules/sysml-ssot-completeness.md) across all modeling and specification tasks.
+
 
