@@ -13,7 +13,9 @@ metadata:
 
 # Schema Specification Engineering
 
-Use this as the single canonical workflow for translating structural schemas and their normative specification documents into highly rigorous, implementation-ready Agile specifications for sub-agents. 
+Use this as the single canonical workflow for translating structural schemas, SysML v2 AST models, and normative specification documents into highly rigorous, implementation-ready Agile specifications for sub-agents. 
+
+In accordance with [`rules/sysml-ssot-completeness.md`](file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety/rules/sysml-ssot-completeness.md), SysML v2 is the 100% Single Source of Truth (SSOT) for all system architecture and structural components. Epics derive from architectural `package`s and Features derive from formal `part def` (components) and `item def` (data payloads) AST elements. All structural specifications feed downstream Model-Based Design (MBD) and code synthesis in the Primary Tier-1 Commercial Toolchain Context (**MATLAB / Simulink / Stateflow / Embedded Coder** for DO-178C C / SPARK Ada generation).
 
 > [!TIP]
 > This skill operates in the spirit of the `andrej-karpathy` methodology: focus deeply on the fundamentals, enforce exhaustive structural rigor, leave absolutely zero ambiguity in the acceptance criteria, and instrument the outputs flawlessly into project tracking systems.
@@ -30,13 +32,14 @@ Use this as the single canonical workflow for translating structural schemas and
 ## Step 1: Forensic Audit & Module Decomposition
 
 > [!IMPORTANT]
-> **MANDATORY PRE-EXECUTION INGESTION GATE (SysML v2)**
-> Before initiating Phase 1 decomposition, you MUST execute `sysmlv2_ingest.py` to convert input specification schemas (OMG IDL, AUTOSAR ARXML, Protobuf, OpenAPI) into canonical SysML v2 textual models and generate `.pipeline/schema-digest.json`:
+> **MANDATORY PRE-EXECUTION INGESTION GATE (SysML v2 SSOT)**
+> Before initiating Phase 1 decomposition, you MUST execute `sysmlv2_ingest.py` to convert input specification schemas (OMG IDL, AUTOSAR ARXML, Protobuf, OpenAPI) into canonical SysML v2 textual models (`.pipeline/schema.sysml`) and generate `.pipeline/schema-digest.json` per [`rules/sysml-ssot-completeness.md`](file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety/rules/sysml-ssot-completeness.md):
 > ```bash
-> python3 skills/spec-orchestrator/scripts/sysmlv2_ingest.py --schema <schema-file-or-dir> --format auto --out schema.sysml
+> python3 skills/spec-orchestrator/scripts/sysmlv2_ingest.py --schema <schema-file-or-dir> --format auto --out .pipeline/schema.sysml --digest .pipeline/schema-digest.json
 > ```
+> All Epics and Features MUST be derived directly from the resulting SysML v2 AST nodes (`package`, `part def`, `item def`), and any downstream structural refinements must maintain 100% bidirectional parity with the SysML v2 model.
 
-1. **Parse the Schema:** Read the primary structural schema file and its imports.
+1. **Parse the Schema & SysML v2 AST:** Read the SysML v2 model (`.pipeline/schema.sysml`), the primary structural schema file, and its imports.
 2. **Categorize the Module (Utility vs. Functional)**:
    - Identify if the module contains only type helpers (`typedef`, `identity`, `grouping` definitions without concrete `container` or `list` data nodes).
    - If it is a **utility module** (e.g., `ietf-yang-types`), catalog its types into a Shared Type Registry and parse `grouping` definitions as Reusable Component Features or UML DataTypes linked via composition (`*--`). Do NOT skip specification generation.
