@@ -52,7 +52,7 @@ Before beginning orchestration, verify you have:
 1. The target specification identifier (e.g., RFC 8345, 3GPP TS 23.501).
 2. The path(s) to the associated structural schemas (e.g., `*.sysml`, `*.yang`, `*.yaml`, `*.proto`, `*.arxml`, `*.idl`).
 3. *(Optional)* A project constitution at `.pipeline/constitution.md`. If present, read it and apply platform/domain constraints to all worker dispatches.
-4. The SysML v2 SSOT completeness rules in `rules/sysml-ssot-completeness.md`.
+4. The SysML v2 SSOT completeness and bidirectional synchronization rules in `rules/sysml-ssot-completeness.md` and `docs/architecture/blueprints/SYSML_SSOT_BIDIRECTIONAL_SYNCHRONIZATION_ARCHITECTURE.md`.
 
 ## Item-Level Subagent Context Isolation
 
@@ -180,11 +180,16 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
 > absent — not asserted where it is inconvenient.
 
 ## Phase 4: Reconciliation & Automated Verification (Worker D & Coverage Check)
-1. **Trigger Backlog Reconciliation**: Run the automated backlog reconciliation script:
+1. **Trigger Automated Closed-Loop Reverse Synchronization**: Run the reverse compilation engine to extract newly elaborated markdown components, state transitions, port contracts, and STPA/FMECA safety constraints into the SysML v2 SSOT:
+   ```bash
+   python3 scripts/compile_sysml.py --reverse-sync
+   ```
+   This step parses all markdown specifications (`docs/epics`, `docs/features`, `docs/user-stories`, `docs/use-cases`), performs semantic AST delta-merging into `.pipeline/schema.sysml`, and recomputes the SHA-256 integrity hash in `.pipeline/schema-digest.json` per [`rules/sysml-ssot-completeness.md`](file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety/rules/sysml-ssot-completeness.md).
+2. **Trigger Backlog Reconciliation**: Run the automated backlog reconciliation script:
    ```bash
    ./skills/spec-orchestrator/scripts/reconcile_backlog.py
    ```
-2. **Trigger Model Coverage & UML Conformance Verification**: Run the automated UML compliance and coverage linter tool:
+3. **Trigger Model Coverage & 22-Gate Parity Lock Verification**: Run the automated UML compliance and coverage linter tool:
    ```bash
    ./skills/spec-orchestrator/scripts/verify_model_coverage.py [schema_dir] [features_dir] --spec-only
    ```
@@ -192,12 +197,13 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
 
    > [!WARNING]
    > The `--spec-only` flag is mandatory during specification phases to prevent the verifier from checking implementation coverage (i.e. verifying that features are implemented in codebase source directories such as `app_flutter/` or `web_react/`).
-3. **Execution**: 
+4. **Execution**: 
+   - The reverse compilation engine parses frontmatter, Mermaid class/state/use-case diagrams, Given-When-Then action signatures, and STPA/FMECA tables, synchronizing any newly discovered states, ports, or constraints back into the SysML v2 AST.
    - The backlog script parses frontmatter using PyYAML to prevent block erasure, performs dependency issue hallucination checks, queries GitHub issues, syncs checkbox states in local markdown, and marks completed Epics, User Stories, and Use Cases as `Fixed / Resolved` by applying the `status:fixed-resolved` label with an evidence comment. It leaves them open: `.pipeline/constitution.md:161` reserves `Closed` for Product Owner validation (#309).
      > [!IMPORTANT]
      > **Canonical Source of Truth & Phase 4 Scope**: The tracker is the canonical source of truth and must remain fully populated at all times during the specification lifecycle. Phase 4 backlog reconciliation is a secondary verification gate (syncing checkbox lists, cross-links, and marking completed items `Fixed / Resolved`), rather than a deferred publisher of primary issue bodies. Do not defer the publishing of primary issue bodies to Phase 4.
-   - The coverage linter parses raw schemas, builds class/sequence/use-case diagram symbol tables from Mermaid blocks, verifies 100% schema coverage within those class diagrams, and validates OMG UML 2.5.1 metamodel conformance and cross-view semantic rules (isolated classes, standard primitives, lifeline aliases, open return arrow assignments, system boundary use cases, undirected actor links, correct extend arrow directionality, etc.).
-4. **Validation Gate**: Both scripts must execute successfully with exit code 0. Ensure that all completed tasks have been correctly updated/synced to GitHub, all UML diagrams are validated as fully compliant, and the overall model coverage is verified at exactly 100%. Once this validation passes, **execute Phase 5 immediately without pausing for user approval.**
+   - The coverage linter parses raw schemas and SysML v2 AST models, builds class/sequence/use-case diagram symbol tables from Mermaid blocks, verifies 100% schema coverage across all 22 verification gates, and validates OMG UML 2.5.1 metamodel conformance and cross-view semantic rules.
+5. **Validation Gate**: All scripts must execute successfully with exit code 0. Ensure that all completed tasks have been correctly updated/synced to GitHub, all UML diagrams are validated as fully compliant, all 22 parity gates pass, and the overall model coverage is verified at exactly 100%. Once this validation passes, **execute Phase 5 immediately without pausing for user approval.**
 
 ## Phase 5: Final Reporting
 1. Summarize the end-to-end pipeline execution for the user.
