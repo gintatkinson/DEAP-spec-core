@@ -365,12 +365,12 @@ def test_reverse_extraction_stpa_hazards_to_sysml_assertions():
     c1 = compile_uca_to_constraint(ucas[0])
     assert c1.name == "Assert_UCA_UAS_01"
     assert c1.is_assertion is True
-    assert "lossDuration > 2.0" in c1.expression or "rtlActive" in c1.expression
+    assert "lossDuration <= timeoutLimit" in c1.expression
 
     c2 = compile_uca_to_constraint(ucas[1])
     assert c2.name == "Assert_UCA_UAS_02"
     assert c2.is_assertion is True
-    assert "altitudeAGL >= 50.0" in c2.expression
+    assert "systemParameter <= maxThreshold" in c2.expression
 
     fmecas = parse_fmeca_modes(SAMPLE_STPA_MATRIX_MD)
     assert len(fmecas) == 1
@@ -386,6 +386,26 @@ def test_reverse_extraction_stpa_hazards_to_sysml_assertions():
     assert "assert constraint Assert_UCA_UAS_01 {" in sysml_text
     assert "assert constraint Assert_UCA_UAS_02 {" in sysml_text
     assert "constraint def Constraint_FMECA_UAS_01 {" in sysml_text
+
+
+def test_parse_stpa_ucas_fallback_sanitization():
+    """Verify parse_stpa_ucas generic fallback synthesizes abstract domain-agnostic MBSE identifiers."""
+    generic_content = "# Section\n- Item UCA-99: Generic unclassified control action"
+    ucas = parse_stpa_ucas(generic_content)
+    assert len(ucas) == 1
+    uca = ucas[0]
+    assert uca["id"] == "UCA-99"
+    assert uca["controller"] == "SafetyController"
+    assert uca["control_action"] == "SystemSafetyAction"
+    assert uca["context"] == "OperationalBoundExceeded"
+    assert uca["hazard"] == "H_System_Hazard"
+    assert uca["severity"] == "Critical"
+    assert uca["sail"] == "SafetyLevel_High"
+
+    c = compile_uca_to_constraint(uca)
+    assert c.name == "Assert_UCA_99"
+    assert c.is_assertion is True
+    assert c.expression == "systemParameter <= maxThreshold"
 
 
 def test_end_to_end_compile_sysml_reverse_sync_cli():
