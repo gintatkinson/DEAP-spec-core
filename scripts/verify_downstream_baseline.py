@@ -471,14 +471,54 @@ def check_reconcile_backlog_tooling_exists(repo_root):
         sys.exit(1)
     print("Success: Check 15 verified (scripts/reconcile_backlog.py exists, is non-empty, and is executable).")
 
+def check_upstream_template_clean_landing_zones(repo_root):
+    """Check 16: Upstream Template Clean Landing Zone Gate.
+
+    Verify that upstream distribution templates contain zero concrete specification
+    markdown files or concrete .sysml domain models in landing zones (docs/epics/,
+    docs/features/, docs/user-stories/, docs/use-cases/, and schema/).
+    """
+    upstream_marker = os.path.join(repo_root, ".pipeline", "upstream")
+    if not os.path.isdir(upstream_marker):
+        print("Success: Check 16 verified (Downstream repository detected — skipping upstream clean landing zone gate).")
+        return
+
+    landing_zones = [
+        os.path.join("docs", "epics"),
+        os.path.join("docs", "features"),
+        os.path.join("docs", "user-stories"),
+        os.path.join("docs", "use-cases"),
+        "schema",
+    ]
+    allowed_files = {".gitkeep", "README.md"}
+
+    violations = []
+    for zone in landing_zones:
+        zone_path = os.path.join(repo_root, zone)
+        if not os.path.isdir(zone_path):
+            continue
+        for root, dirs, files in os.walk(zone_path):
+            dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
+            for f in files:
+                if f not in allowed_files:
+                    rel_path = os.path.relpath(os.path.join(root, f), repo_root)
+                    violations.append(rel_path)
+
+    if violations:
+        print(f"ERROR: Check 16 failed: Upstream distribution template landing zones contain concrete specification files: {', '.join(violations)}", file=sys.stderr)
+        sys.exit(1)
+
+    print("Success: Check 16 verified (Upstream distribution template landing zones are clean with zero concrete specs).")
+
 def _run_verification(args, dest, repo_root, is_flutter, is_react):
-    # Run Checks 10, 11, 12, 13, 14, and 15
+    # Run Checks 10, 11, 12, 13, 14, 15, and 16
     check_gitignore_exists(repo_root)
     check_no_ds_store_files(repo_root)
     check_no_duplicate_master_blueprints(dest)
     check_latex_katex_syntax(repo_root)
     check_downstream_instructions_exist(repo_root)
     check_reconcile_backlog_tooling_exists(repo_root)
+    check_upstream_template_clean_landing_zones(repo_root)
 
     if is_flutter:
         print(f"Verifying conformance for platform 'flutter' at '{dest}'...")
