@@ -1,10 +1,19 @@
 # Project-Scoped Rules
 
 ## Repository Role & Scope Classification
-- **Repository Classification:** `DEAP-spec-core` (DEAP Platform Component)
-- **Sentinel Indicator:** The presence of `.pipeline/upstream/` denotes that this repository is a **Pipeline Distribution Template**, NOT a downstream customer application workspace.
+- **Repository Classification:** `PIPELINE_DISTRIBUTION_TEMPLATE` (Upstream Domain Template for UAS Infrastructure Safety)
+- **Sentinel Indicator:** The presence of `.pipeline/upstream/` denotes that this repository is the **Pipeline Distribution Template**, NOT a downstream customer application workspace.
 - **Customer Data Boundary:** Customer-specific application code, private flight logs, mission parameters, and proprietary artifacts belong in the customer's downstream repository (installed via `install_pipeline.sh`), and must NOT be committed to this template repository.
 
+## Pure Schema-Driven Compiler Invariant (Zero Hardcoded Domain Concepts)
+- **Abstract MBSE Compiler Declaration**: The DEAP pipeline is an abstract Model-Based Systems Engineering (MBSE) compiler and verification framework, NOT a domain-specific modeler.
+- **Strict Prohibition of Hardcoded Domain Concepts**: Agents are strictly forbidden from inventing, proposing, or hardcoding domain-specific concepts (e.g., aviation flight controllers, automotive sensors, medical models) into pipeline logic, templates, or execution plans.
+- **Deterministic Schema-Derived Specifications**: All specification generation (Epics, Features, User Stories, Use Cases, Safety Invariants) and downstream engineering artifacts derive exclusively and deterministically from AST nodes present in user-provided schemas in `schema/`.
+
+## Upstream Distribution Template Clean Landing Zone Invariant
+- **Clean Landing Zone Mandate**: In upstream distribution template repositories (`DEAP-*`), the directories `schema/`, `docs/epics/`, `docs/features/`, `docs/user-stories/`, and `docs/use-cases/` must remain clean landing zones with ONLY `.gitkeep` files.
+- **Strict Prohibition of Concrete Specifications**: Committing concrete downstream project specifications, models, or code to upstream distribution templates is strictly forbidden.
+- **Downstream Workspace Boundary**: Concrete project schemas and specifications reside exclusively in downstream application workspaces installed via `scripts/install_pipeline.sh`.
 
 ## Mandatory Hidden Folder Direct-Path Read (CRITICAL FIRST STEP)
 - **Mandatory Hidden Folder Direct-Path Read (CRITICAL FIRST STEP)**: You are strictly forbidden from assuming files or directories inside the `.pipeline/` folder (such as `.pipeline/constitution.md` or `.pipeline/profiles/`) do not exist based on glob or search tool results. Because glob and ripgrep index queries skip hidden folders, you MUST verify their presence by directly executing a path read via `view_file` or a folder check via `list_dir`. This MUST be your very first action upon starting a session before declaring state or starting tasks.
@@ -29,6 +38,9 @@
 - You are strictly forbidden from creating mock test projects, mock repository directories, or test-runner scripts (such as `test_project/` or `run_tests.py`) directly inside the workspace repository.
 - All testing validation or tool execution must run against existing configured project structures or be executed completely outside the workspace (e.g., in a temporary directory designated by the system scratch path or App Data Directory).
 
+## Mandatory Workspace-Relative Paths Invariant
+- **Workspace-Relative Paths Invariant**: All source code, tests, configuration, documentation, scripts, and entitlements MUST use workspace-relative paths (`.`, `./...`) or environment-derived path resolution. Hardcoded workstation, environment-specific, or user-specific machine paths (such as absolute home directories, workstation folders, or user-specific paths) are strictly prohibited across all codebase tiers.
+
 ## Remote Synchronization Mandate
 - No task is complete until all changes are successfully pushed to and verified on the remote tracking branch.
 - You must verify that `git diff origin/<branch>` is empty before generating the walkthrough and final report.
@@ -49,7 +61,7 @@ You MUST execute the Subagent Dispatch Loop for these tasks:
    - **Role**: Set a descriptive role (e.g., `Codebase Researcher`, `Feature Spec Writer`, `Micro-Task Implementer`).
    - **Curated Prompt**: Construct a clean, isolated task description. Do not copy the entire conversation history, transcript, or session log. Pass only the task itself, the relevant file contents, schema fragment, spec guidelines, templates, conventions, and reference standards.
    - **Mandatory Single-Item Micro-Task Scope**: Every subagent dispatch prompt MUST target at most 1 specification item (max 1 Epic, 1 Feature, 1 User Story, or 1 Use Case). Assigning multiple specification items to a single subagent dispatch is strictly forbidden.
-   - **Mandatory Skill-Reading Instruction**: When launching a subagent, the coordinator's prompt MUST explicitly instruct the subagent to execute `view_file` on the active `SKILL.md` file by explicit path (e.g. `skills/feature-driven-implementation/SKILL.md`) as its very first step before executing any file edits or commands, and to strictly follow its formatting templates and instruction guidelines. Prompts launching audit subagents MUST explicitly mandate filing defects via `gh issue create`. Summarized or truncated prompt payloads are strictly forbidden.
+   - **Mandatory Skill-Reading Instruction**: When launching a subagent, the coordinator's prompt MUST explicitly instruct the subagent to execute `view_file` on the active `SKILL.md` file by explicit path (e.g. `skills/feature-driven-implementation/SKILL.md`) as its very first step before executing any file edits or commands, and to strictly follow its formatting templates and instruction guidelines.
    - **Enforce Evolved 3-Layer Definition of Done**: Logical UI (LUI) and Aerospace Real-Time Control is platform-independent and supports canonical display/control patterns. The full 3-layer semantic chain — (1) Domain State & Signal Model (e.g. UA Parameter Buffer / Discrete Input Event / Data Model), (2) Logic & Safety State Management (e.g. CDS Widget Definition / Safety Statechart / ViewModel), and (3) Display & Actuator Interface Binding (e.g. Display Kernel Render / Symbology Graphic / GUI Widget Binding + BDD User Story Widget test) — is mandatory **per specification item**, not per subagent dispatch. The 3 canonical LUI patterns are:
      - **Pattern A (ARINC 661 Cockpit Display Systems)**: UA Parameter Buffer -> CDS Widget Definition -> Display Kernel Render
      - **Pattern B (Real-Time Safety Statecharts & Symbology)**: Discrete Event -> Safety Statechart/FSM State -> Symbology/Alarm Render
@@ -95,7 +107,8 @@ is found, HALT and escalate as a blocker. Do not substitute direct coordinator w
 - You are strictly forbidden from commingling unrelated or multi-phase tasks in a single cumulative walkthrough. Unrelated changes or follow-up tasks must be treated as separate atomic packages with their own implementation plans, git branches/commits, and walkthroughs.
 
 ## Mandatory Upstream Tooling Bug Reporting
-- If a bug, edge case, or limitation is identified in the shared pipeline scripts (e.g., `verify_model_coverage.py`, `reconcile_backlog.py`), the executing agent is strictly required to file a corresponding defect report upstream on the `digital-pipeline-repo`.
+- If a bug, edge case, or limitation is identified in the shared pipeline scripts (e.g., `verify_model_coverage.py`, `reconcile_backlog.py`), the executing agent is strictly required to file a corresponding defect report upstream on the appropriate repository (`gintatkinson/DEAP-spec-core` for specification tooling or `gintatkinson/DEAP-implementation-driver` for implementation tooling).
+- Tooling Error Recovery Procedure: Locate the diagnostic payload at `.pipeline/diagnostics/repro_payload_[timestamp].json` and execute: `gh issue create --repo gintatkinson/DEAP-spec-core --title "Tooling Bug: [Command] failed" --body-file [payload_path] --label "bug"` (or `--repo gintatkinson/DEAP-implementation-driver` for implementation tooling bugs).
 - Agents must not silently apply local-only patches to pipeline scripts without filing an upstream synchronization issue.
 
 ## Documentation Integrity — No Wholesale Replacement Without Approval
@@ -147,6 +160,7 @@ is found, HALT and escalate as a blocker. Do not substitute direct coordinator w
 
 ## Strict Verification & Parametric Assumption Prevention Rules
 - **No Parametric Assertions**: You are strictly forbidden from asserting the state of the workspace, build status, files, or permissions based on parametric memory or assumptions. Every verification statement must be backed by running a specific tool (such as `git status`, `list_permissions`, `list_dir`) and citing the output.
+- **Mandatory Empirical Physical Path Verification**: The agent is strictly mandated to execute empirical physical path verification (`ls`, `git status`, `git rev-parse --show-toplevel`) on target workstation directories before declaring completion or transitioning status to `status:fixed-resolved`. Optimism bias or assuming target workstation directory states without empirical verification commands is strictly prohibited.
 - **Parametric Explanations Banned**: If explaining why an operation failed, you must cite concrete logs, line numbers, or command errors from your active context. Guessing or explaining via general training assumptions is prohibited.
 - **TDD RED-GREEN Gate Enforcement**: You must execute a failing integration/unit test (RED phase), document the failure, apply the codebase merge/remediation, and run the passing test (GREEN phase) to verify completeness.
 - **Subagent Permission Pre-Verification**: Before launching any subagent to execute tasks, you must verify that all required command prefixes, environment modifiers, and file scopes are fully pre-authorized on the active permissions table to guarantee 100% unattended background execution.
@@ -156,7 +170,10 @@ is found, HALT and escalate as a blocker. Do not substitute direct coordinator w
 - After modifying or publishing any GitHub issue or document, the agent MUST run `gh issue view <ID>` or `gh api` to fetch the live published payload and inspect links, Mermaid headers, and syntax.
 - **Optimism bias is prohibited**: agents must cite empirical output of live payload inspection before declaring completion.
 
+## Anti-Negligence & Mandatory Payload Inspection Gate
+- **Anti-Negligence & Mandatory Payload Inspection Gate**: Agents are strictly forbidden from declaring completion or readiness for testing without citing live empirical inspection of target artifacts (including `README.md` commands).
+
 ## Downstream Single Source of Truth (SSOT) & Clean Baseline Mandate
-- **No Master Blueprint Duplication**: Downstream projects MUST NOT duplicate or copy master core blueprint files (`DEAP_MASTER_ARCHITECTURE.md`, `THREE_TIER_GOVERNANCE_BLUEPRINT.md`, `DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml`). Central specification blueprints belong exclusively in the upstream specification repository (`digital-pipeline-repo`).
+- **No Master Blueprint Duplication**: Downstream projects MUST NOT duplicate or copy master core blueprint files (`DEAP_MASTER_ARCHITECTURE.md`, `THREE_TIER_GOVERNANCE_BLUEPRINT.md`, `DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml`). Central specification blueprints belong exclusively in the upstream specification repository (`gintatkinson/DEAP-spec-core`).
 - **Mandatory Repository `.gitignore`**: All downstream projects and workspace repositories MUST include a root `.gitignore` file.
 - **Zero `.DS_Store` Policy**: OS artifact metadata files (`.DS_Store`) are strictly forbidden in git index and working tree across all repositories. Automated cleanup and linter gates enforce zero `.DS_Store` presence.
