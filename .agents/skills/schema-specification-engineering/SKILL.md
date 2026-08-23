@@ -47,12 +47,14 @@ In accordance with [`rules/sysml-ssot-completeness.md`](file:///Users/perkunas/j
 3. **Determine Bounded Context (Epic) Boundaries**:
    - Do NOT use a rigid "one schema file = one Epic" rule.
    - **Augment Target Path Resolution Mandate**: Before partitioning, you MUST resolve all `augment` XPaths (e.g., `augment "/nw:networks/nw:network"`) to their target containers and inject the augmented nodes into the target container's tree so they are captured in the target Feature specification.
+   - **SysML v2 Subsystem Allocation & Capability Mandate**: Epics MUST derive directly from architectural `package` subsystem boundaries in the SysML AST. Every Epic MUST extract and represent formal `capability def` declarations declared within its subsystem package.
    - If a functional module is small (total leaf count <= 40 and depth <= 3), map it to exactly **1 Epic**.
    - If a functional module is massive (leaf count > 40 or depth > 3), partition the schema graph by major top-level subtrees. Create **1 Epic per partition** representing a logical Bounded Context / Subsystem.
 4. **Dispatch Epic Subagents:** For each identified Bounded Context/Subsystem Epic:
    - Invoke a **new, fresh subagent with an isolated context**.
-   - Pass only the specific schema nodes/attributes for this subsystem, and the Epic template.
+   - Pass only the specific schema nodes/attributes for this subsystem, the SysML AST `package` and `capability def` declarations, and the Epic template.
    - The subagent drafts the Epic markdown file (e.g., `docs/epics/epic-01-name.md`) containing:
+     - Formal **Subsystem Capability Allocations** mapping every `capability def` block declared within the architectural `package` to the Epic's subsystem.
      - An overarching **System-Level UML Class Diagram** illustrating the subsystem's classes and their relationships.
      - A **UML Component** representing the subsystem, specifying its provided/required interfaces and operations.
      - A **System State Machine Diagram** representing the macro-level domain, combining the individual structures and lifecycles that will be broken down into child features.
@@ -66,6 +68,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      $$SW(N) = L_{immediate}(N) + \sum_{C \in Containers(N)} L_{immediate}(C) + \sum_{U \in Uses(N)} L_{expanded}(U)$$
      where $L_{immediate}(X)$ is the count of leaf and leaf-list nodes directly under node X, excluding any nested list elements, and $L_{expanded}(U)$ is the count of leaf and leaf-list nodes expanded from `uses` statements.
    - **1:1 Container-to-Feature Mapping Mandate:** Every distinct schema `container` MUST be extracted into its own separate Feature file. Do NOT consolidate multiple containers into a single Feature file regardless of structural weight. However, `choice` and `case` branches MUST be kept inside the parent container's Feature file and modeled as polymorphic abstract classes (`<|--`). Attributes within a single container may be grouped within that container's Feature file.
+   - **SysML AST Action & Operation Binding Mandate**: Feature specifications MUST extract and bind formal `action def` operations with typed parameter signatures (`in`, `out`, parameter types) from the SysML AST for the corresponding `part def` / `item def`.
    - If $SW(N) > 20$ or has nested lists, partition it:
      - *Sibling lists*: Split each list into its own Feature.
      - *Nested lists*: Split nested lists with >= 5 leaves into child Features.
@@ -73,15 +76,17 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    - **Operational Statements**: Group RPCs, actions, and notifications directly into the Feature containing the target entity they operate on. For top-level `rpc` and `notification` statements without a target entity, extract them into API/M2M Feature files mapped to the module's System Component.
    - **Schema Import Prerequisite Links**: When a schema module `import`s another module that is itself specified in this workspace, the importing Epic MUST carry a `Parent Epic` markdown link to the Epic that specifies the imported module, and every imported module MUST have at least one Epic or Feature specifying it. An import is a hard prerequisite — the importing specification cannot be implemented before the imported one exists — and an unlinked import leaves that ordering constraint recorded nowhere. Enforced by `dependency_validator`.
    - **Container Traceability**: Every Feature MUST declare exactly one schema container in its YAML frontmatter `schema_containers` field using the fully-qualified schema container path format: `<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>` (e.g., `ietf-geo-location:geo-location/reference-frame/geodetic-system` or `ietf-geo-location:geo-location/location/ellipsoid`). All intermediate parent containers and choice/case wrapper nodes MUST be preserved in the path. Multi-container Features are forbidden — subagents must split consolidated containers into separate Feature files before the linter gate.
-2. **Dispatch Feature Subagent:** For each identified feature group, invoke a **new, fresh subagent with an isolated context** to draft the feature specification. Pass the schema nodes and properties for this specific feature group, AND the Bounded Context's Epic identity (local file prefix and/or pre-assigned tracker Issue ID if available). The subagent must have no visibility into other features.
+2. **Dispatch Feature Subagent:** For each identified feature group, invoke a **new, fresh subagent with an isolated context** to draft the feature specification. Pass the schema nodes, the SysML AST `part def`/`action def` elements, and properties for this specific feature group, AND the Bounded Context's Epic identity (local file prefix and/or pre-assigned tracker Issue ID if available). The subagent must have no visibility into other features.
 3. **Execution within Subagent Context:**
    - **Compliance Table Mandate:** Before writing the file, you MUST output a structured compliance table checking for standard UML primitives, return multiplicities, no curly braces in Mermaid, and no isolated classes.
    - **Platform Independence:** Feature specifications MUST be purely functional and platform-independent. Describe *what* the system must do (data to store, validations to enforce, information to display) — never *how* (no framework-specific components, no platform-specific patterns).
-   - **Exhaustive Constraint Parsing:** For EVERY attribute within the grouped feature, analyze and record all structural constraints:
+   - **Exhaustive Constraint Parsing & 100% Parameter Type Coverage**: For EVERY attribute and operation within the grouped feature, analyze and record all structural and interface constraints:
      - conditional clauses
      - type definitions (value ranges, string patterns, references)
      - units and default values
      - read-only vs configurable access control
+     - **100% Typed Parameter Coverage (Embedded Coder / DO-178C Synthesis)**: All operations originating from SysML `action def` or `operation def` MUST define typed signatures with explicit parameter directions (`in`, `out`) and standard data types (e.g., `Float`, `Integer`, `String`, `Boolean`, `Vector3D`, `StatusEnum`). No untyped or implicit parameter declarations are permitted.
+     - **SysML AST Constraint Invariant Binding**: All `constraint def` and `assert constraint` expressions from the SysML AST (e.g., safety envelope limits, thermal thresholds) MUST be exhaustively parsed and bound into feature acceptance criteria.
    - **UML Class Diagram:** Every Feature specification MUST include a **UML Class Diagram** (using Mermaid `classDiagram`).
      - *UML Classifier Mapping*: Feature specifications must map to a primary UML Class or DataType representing the schema entity. To satisfy strict linter verification, the diagram MUST include class nodes for ALL ancestor containers along the fully-qualified schema container path (from the root container down to the target node) and illustrate composition or aggregation relationships (e.g. composition `*--` or aggregation `o--`) between every adjacent pair of classes in the hierarchy, ensuring no isolated classes exist. Classes that will cross serialization boundaries (Web Workers via `structuredClone`, Flutter Isolates via `SendPort`) MUST be modeled as pure data classes (DTOs) without methods. Service methods (e.g. `save()`, `validate()`) MUST be placed in separate service/repository classes that are NOT transferred across threads.
      - *Choice/Case Representation*: Model schema alternative structures as abstract classes or classes with the `<<choice>>` stereotype, and their constituent choices as classes inheriting (`<|--`) from the choice class.
@@ -169,6 +174,12 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 
     ## 3. Architecture
 
+    ### Subsystem Capability Allocations
+    Formal allocation of SysML v2 `capability def` declarations mapped to this subsystem package:
+    | Capability Name | Subsystem Package | Description / Objective |
+    | --- | --- | --- |
+    | AutonomousCollisionAvoidance | FlightGuidance | Executes real-time detect-and-avoid trajectory deconfliction |
+
     ### Subsystem Component Definition
     Define the subsystem representing the Epic as a UML Component specifying provided/required interfaces and operations.
     ```mermaid
@@ -245,9 +256,10 @@ For each Bounded Context, partition its subtree into cohesive functional feature
          }
          class FeatureClassifier {
              +String primaryAttribute "[1]"
-              -Boolean optionalAttribute "[0..1]" (constraintText)
+             -Boolean optionalAttribute "[0..1]" (constraintText)
              +Integer listAttribute "[0..*]"
              +Boolean doSomething(String param)
+             +Boolean ExecuteManeuver(Float in_targetHeading, StatusEnum out_maneuverStatus)
          }
          ParentContainer *-- FeatureClassifier : featureClassifier
      ```
@@ -287,7 +299,8 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      - [Field constraints, ranges, patterns, protocol/payload limits]
 
      ### 3. Logical Operations & Interface Messages
-     - [For API/M2M: logical methods, operations, abstract paths, or channels]
+     - [For API/M2M: logical methods, operations, abstract paths, or channels with 100% typed parameter signatures matching SysML AST action defs for Embedded Coder/DO-178C code synthesis]
+     - `+ExecuteManeuver(in targetHeading: Float, out maneuverStatus: StatusEnum)`: Executes avoidance trajectory maneuvers.
 
      ### 4. Logical Exception States & Validation Failures
      - [For API/M2M: logical error states, timeouts, exception flows]
