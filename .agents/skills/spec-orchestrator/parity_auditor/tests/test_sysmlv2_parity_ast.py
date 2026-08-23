@@ -21,9 +21,18 @@ import pytest
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PARITY_AUDITOR_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 SPEC_ORCH_DIR = os.path.abspath(os.path.join(PARITY_AUDITOR_DIR, ".."))
-PROJECT_ROOT = os.path.abspath(os.path.join(SPEC_ORCH_DIR, "..", ".."))
-SPEC_SCRIPTS_DIR = os.path.join(SPEC_ORCH_DIR, "scripts")
-PARITY_AUDITOR_SRC = os.path.join(PARITY_AUDITOR_DIR, "src")
+
+def find_repo_root(start_dir: str) -> str:
+    cur = os.path.abspath(start_dir)
+    while cur and cur != os.path.dirname(cur):
+        if os.path.exists(os.path.join(cur, "scripts", "compile_sysml.py")):
+            return cur
+        cur = os.path.dirname(cur)
+    return os.path.abspath(os.path.join(start_dir, "..", "..", "..", ".."))
+
+PROJECT_ROOT = find_repo_root(SCRIPT_DIR)
+SPEC_SCRIPTS_DIR = os.path.join(PROJECT_ROOT, "skills", "spec-orchestrator", "scripts")
+PARITY_AUDITOR_SRC = os.path.join(PROJECT_ROOT, "skills", "spec-orchestrator", "parity_auditor", "src")
 
 for p in (SPEC_SCRIPTS_DIR, PARITY_AUDITOR_SRC, PROJECT_ROOT):
     if p not in sys.path:
