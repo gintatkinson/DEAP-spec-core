@@ -687,5 +687,53 @@ Add explicit Downstream Single Source of Truth (SSOT) & Clean Baseline Mandate u
 
 Non-destructive: additive subsection, line count increased from 235 to 239 lines, governance rules preserved.
 
+---
+
+## AMEND-0017 — Add Pure Schema-Driven Compiler and Upstream Clean Landing Zone Invariants
+
+- **Date:** 2026-08-23
+- **Logged:** 2026-08-23
+- **Motivating issue:** Pure Schema-Driven Compiler and Upstream Clean Landing Zone Invariants
+- **Approved by:** "PROCEED" — approved user prompt directive to enforce pure schema-driven compilation and clean landing zone invariants.
+- **Destructive:** no
+- **Line count:** 244
+- **Resulting SHA-256:** `c8d785e713c91c638477801af52f61f8726e1a55ac3f8e258b6770bf1b0cdf02`
+
+### Change
+
+Section *Architecture: Three-Tier Platform Isolation*, added subsection `### Core System Boundaries & Invariants`.
+
+Before:
+
+> ### Tier Boundary Guidelines
+> 
+> 1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical User & Machine Interface (LUMI) specifications...
+> 2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**: Design tokens, dynamic mapping configurations, translation files...
+> 3. **Tier 3: Platform Implementation Profiles (Technical Execution)**: `.pipeline/profiles/<platform>.md` and codebase implementations...
+> 
+> ## Domain Rules
+
+After:
+
+> ### Tier Boundary Guidelines
+> 
+> 1. **Tier 1: Functional Layer (Abstract Specification)**: Epics, Features, User Stories, Use Cases, and Logical User & Machine Interface (LUMI) specifications...
+> 2. **Tier 2: Runtime Configuration Parameters (Dynamic Context)**: Design tokens, dynamic mapping configurations, translation files...
+> 3. **Tier 3: Platform Implementation Profiles (Technical Execution)**: `.pipeline/profiles/<platform>.md` and codebase implementations...
+> 
+> ### Core System Boundaries & Invariants
+> 
+> - **Pure Schema-Driven Compiler**: The pipeline is an abstract compiler and verification framework. Agents are strictly forbidden from inventing, proposing, or hardcoding domain-specific concepts into pipeline logic or templates.
+> - **Upstream Clean Landing Zone Invariant**: Upstream distribution templates (`DEAP-*`) contain only the abstract compiler, linters, and empty landing zones (`schema/`, `docs/epics/`, `docs/features/`, `docs/user-stories/`, `docs/use-cases/` containing only `.gitkeep`). Concrete project schemas and specifications reside exclusively in downstream application workspaces installed via `scripts/install_pipeline.sh`.
+> 
+> ## Domain Rules
+
+### Rationale
+
+Add formal constitutional mandate for Pure Schema-Driven Compiler and Upstream Clean Landing Zone Invariants under `### Core System Boundaries & Invariants` in `.pipeline/constitution.md`.
+
+Non-destructive: additive subsection, line count increased from 240 to 244 lines, governance rules preserved.
+
+
 
 
