@@ -2,7 +2,7 @@
 
 ---
 name: spec-usecase-engineering
-description: "Extracts formal UML System Use Cases from normative specification documents using OOA/OOD methodology. Use when you need to derive Actors, Preconditions, Main Success Scenarios, and Realization Matrices linking Use Cases to User Stories and Features."
+description: "Extracts formal UML System Use Cases derived directly from SysML v2 use case def AST nodes and normative specification documents using OOA/OOD methodology. Use when you need to derive Actors, Preconditions, Main Success Scenarios, and Realization Matrices linking Use Cases to User Stories and Features."
 compatibility: "Requires issue tracker CLI and git. Works with modern agentic development environments."
 metadata:
   title: "Specification Use Case Engineering (System Interaction)"
@@ -14,26 +14,32 @@ metadata:
 
 # Specification Use Case Engineering (System Interaction)
 
-This skill enables a sub-agent to autonomously read a normative specification document and extract its high-level deployment patterns into formal, UML OOA/OOD compliant System Use Cases (e.g., Alistair Cockburn style). These Use Cases represent overarching system behavior and state transitions, and they map down to the granular User Stories and Features.
+This skill enables a sub-agent to autonomously derive formal, UML OOA/OOD compliant System Use Cases (e.g., Alistair Cockburn style) directly from canonical SysML v2 `use case def` AST nodes and normative specification documents. In accordance with [`rules/sysml-ssot-completeness.md`](file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety/rules/sysml-ssot-completeness.md), SysML v2 is the 100% Single Source of Truth (SSOT). Heuristic prose interpretation without formal AST backing is strictly forbidden.
+
+These Use Cases represent overarching system behavior, operational objectives, and state transitions, and they map down to granular User Stories and Features while feeding downstream Model-Based Design (MBD) and verification in the Primary Tier-1 Commercial Toolchain Context (MATLAB / Simulink / Stateflow / Embedded Coder).
 
 ## Execution Trigger
 You should invoke this skill ONLY after the behavioral User Stories have been extracted using the `spec-user-story-engineering` skill.
 
-## Step 1: Context Ingestion
-1. Ingest the target normative specification document.
-2. Target the broad architectural and operational chapters (e.g., "Deployment Scenarios", "System Architecture", "Operational Considerations").
-3. Identify the major functional groupings of behavior that define end-to-end system interactions.
+## Step 1: Context Ingestion (SysML v2 AST & Normative Specs)
+1. Ingest the canonical SysML v2 model (`.pipeline/schema.sysml`) and `.pipeline/schema-digest.json`.
+2. Extract all formal `use case def` AST nodes within the SysML v2 packages, identifying:
+   - `subject`: The subsystem or component (`part def`) realizing the use case.
+   - `actor`: Primary initiating actors and secondary participating actors bound to typed ports.
+   - `objective`: Operational goals, preconditions, and success criteria.
+   - `include` / `extend`: Formal relationships connecting modular or conditional sub-use-cases.
+3. Ingest the target normative specification document (specifically architectural chapters, deployment scenarios, and operational considerations) to enrich verbatim context without violating formal AST structural boundaries.
 
 ## Step 2: Isolated Use Case Modeling (Subagent Dispatch Loop)
 
-1. **Identify Use Cases:** Scan the specification architecture/deployment chapters and structural schemas to identify all required System Use Cases (including mandatory behavioral triggers). **1:1 Container-to-Use-Case Mapping Mandate:** Each distinct schema `container` or `choice`/`case` MUST be extracted into its own separate Use Case file. Do NOT consolidate multiple containers, choices, or cases into a single Use Case file. Compile the list of target Use Cases to be engineered.
-2. **Dispatch Use Case Subagent:** For each identified Use Case, invoke a **new, fresh subagent with an isolated context**. Pass ONLY the specific system interaction text, relevant User Stories, Feature specs, and the Use Case template. The subagent must have no visibility or knowledge of other Use Cases.
+1. **AST-Driven Use Case Identification:** Scan the SysML v2 model `use case def` blocks and structural schemas to identify all required System Use Cases (including mandatory behavioral triggers). **1:1 Container/Use Case Def Mapping Mandate:** Each distinct SysML `use case def` (or schema `container`/`choice`/`case`) MUST be extracted into its own separate Use Case file. Do NOT consolidate multiple use cases or containers into a single Use Case file. Compile the list of target Use Cases to be engineered.
+2. **Dispatch Use Case Subagent:** For each identified Use Case, invoke a **new, fresh subagent with an isolated context**. Pass ONLY the specific `use case def` AST node, associated system interaction text, relevant User Stories, Feature specs, and the Use Case template. The subagent must have no visibility or knowledge of other Use Cases.
 3. **Execution within Subagent Context:**
    - **Compliance Table Mandate:** Before writing the file, you MUST output a structured compliance table checking for system boundary subgraphs, external actors, and complete realization matrices.
-   - **Use Case Modeling:** Model a formal Use Case following standard UML Object-Oriented Analysis and Design (OOA/OOD) formats:
-     - **Primary & Secondary Actors:** The internal/external entities interacting with the system.
-     - **Preconditions:** The exact state the system/objects must be in before the Use Case begins.
-     - **Trigger:** The specific event or message that initiates the Use Case.
+   - **Formal AST-Driven Use Case Modeling:** Model a formal Use Case following standard UML Object-Oriented Analysis and Design (OOA/OOD) formats derived directly from SysML v2:
+     - **Primary & Secondary Actors:** Derived from `actor` declarations on the SysML `use case def`, bound to typed ports/interfaces.
+     - **Preconditions:** The exact state the system/objects must be in before the Use Case begins (mapped to `objective` preconditions and component `state def` states).
+     - **Trigger:** The specific event or message that initiates the Use Case (mapped to port input flows).
      - **Main Success Scenario (Basic Flow):** The sequential, step-by-step object interactions that lead to a successful outcome. Steps must be clear and numbered.
      - **Alternate/Exception Flows:** Variations in state, error conditions, or alternative paths.
        - *Constraint-to-Flow Parity*: For each Use Case, identify all features referenced in the `Realization Matrix`. Read the `Validation & Constraints` sections of those features and count the total number of validation/negative constraints. You MUST generate a dedicated Alternate/Exception flow for **every single** validation constraint defined across those features.
@@ -55,6 +61,7 @@ You should invoke this skill ONLY after the behavioral User Stories have been ex
         3. *Epic Issue IDs*: Inspect the YAML frontmatter `issue_id:` field in `docs/epics/epic-XX-name.md` or query `gh issue list`.
         4. *Prohibited Defaulting*: Using a single generic ID (e.g. `#0`, `#44`, `#N/A`, `#[StoryID]`) across multiple Realization Matrix entries is strictly prohibited. Each entry MUST reference its actual resolved Issue ID.
       - Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage.
+   - **Tandem Elaboration & Zero Model Drift:** If during elaboration of alternate/exception flows or realization matrices, new interaction paths or structural dependencies are discovered, they MUST be reflected back into the SysML v2 model (`.pipeline/schema.sysml`) to preserve 100% bidirectional parity per `rules/sysml-ssot-completeness.md`.
    - **Markdown Generation:** Write the Use Case as a local markdown file (e.g., `docs/use-cases/uc-01-register-core-entity.md`).
 4. **Return Control:** The subagent completes the task and returns control to the worker agent.
 
