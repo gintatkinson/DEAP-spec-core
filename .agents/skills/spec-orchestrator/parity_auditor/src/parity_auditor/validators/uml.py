@@ -59,6 +59,159 @@ def find_unresolved_placeholders(content: str, patterns=None):
             if pattern.search(line):
                 yield lineno, label, line.strip()
                 break
+
+import sys
+import yaml
+from typing import Optional, Set, Tuple
+
+# Import SysML v2 AST classes safely
+try:
+    from sysmlv2_ast import (
+        SysMLPackage, SysMLParser, SysMLCapabilityDef, ActionDef,
+        SysMLOperationDef, SysMLConstraintDef, SysMLInteractionDef,
+        SysMLTestCaseDef, RequirementDef, PartDef, AttributeDef
+    )
+except ImportError:
+    try:
+        from skills.spec_orchestrator.scripts.sysmlv2_ast import (
+            SysMLPackage, SysMLParser, SysMLCapabilityDef, ActionDef,
+            SysMLOperationDef, SysMLConstraintDef, SysMLInteractionDef,
+            SysMLTestCaseDef, RequirementDef, PartDef, AttributeDef
+        )
+    except ImportError:
+        _script_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "scripts"))
+        if _script_dir not in sys.path:
+            sys.path.insert(0, _script_dir)
+        try:
+            from sysmlv2_ast import (
+                SysMLPackage, SysMLParser, SysMLCapabilityDef, ActionDef,
+                SysMLOperationDef, SysMLConstraintDef, SysMLInteractionDef,
+                SysMLTestCaseDef, RequirementDef, PartDef, AttributeDef
+            )
+        except ImportError:
+            SysMLPackage = None
+            SysMLParser = None
+            SysMLCapabilityDef = None
+            ActionDef = None
+            SysMLOperationDef = None
+            SysMLConstraintDef = None
+            SysMLInteractionDef = None
+            SysMLTestCaseDef = None
+            RequirementDef = None
+            PartDef = None
+            AttributeDef = None
+
+
+def _find_sysml_files_in_repo(repo: WorkspaceRepository, schemas_dir: Optional[str] = None) -> List[str]:
+    sysml_files = []
+    if schemas_dir and os.path.exists(schemas_dir):
+        if os.path.isfile(schemas_dir) and schemas_dir.endswith(".sysml"):
+            sysml_files.append(schemas_dir)
+        elif os.path.isdir(schemas_dir):
+            for f in sorted(os.listdir(schemas_dir)):
+                if f.endswith(".sysml") and not f.startswith("."):
+                    sysml_files.append(os.path.join(schemas_dir, f))
+
+    if not sysml_files:
+        pipeline_sysml = os.path.join(repo.workspace_dir, ".pipeline", "schema.sysml")
+        if os.path.exists(pipeline_sysml):
+            sysml_files.append(pipeline_sysml)
+
+    return sysml_files
+
+
+def _collect_all_sysml_elements(pkg: Any) -> Tuple[List[Any], List[Any], List[Any], List[Any], List[Any], List[Any], List[Any], List[Any], List[Any]]:
+    """Recursively collect (packages, parts, capabilities, actions, operations, interactions, constraints, test_cases, requirements) from a SysMLPackage."""
+    if not pkg:
+        return [], [], [], [], [], [], [], [], []
+
+    packages = [pkg]
+    parts = list(getattr(pkg, "part_defs", []) or [])
+    capabilities = list(getattr(pkg, "capability_defs", []) or [])
+    actions = list(getattr(pkg, "action_defs", []) or [])
+    operations = list(getattr(pkg, "operation_defs", []) or [])
+    interactions = list(getattr(pkg, "interaction_defs", []) or [])
+    constraints = list(getattr(pkg, "constraint_defs", []) or [])
+    test_cases = list(getattr(pkg, "test_case_defs", []) or [])
+    requirements = list(getattr(pkg, "requirement_defs", []) or [])
+
+    def _traverse_part(p: Any):
+        for sub in (getattr(p, "parts", []) or []):
+            parts.append(sub)
+            _traverse_part(sub)
+        for cap in (getattr(p, "capabilities", []) or []):
+            capabilities.append(cap)
+        for act in (getattr(p, "actions", []) or []):
+            actions.append(act)
+        for op in (getattr(p, "operations", []) or []):
+            operations.append(op)
+        for inter in (getattr(p, "interactions", []) or []):
+            interactions.append(inter)
+        for c in (getattr(p, "constraints", []) or []):
+            constraints.append(c)
+        for tc in (getattr(p, "test_cases", []) or []):
+            test_cases.append(tc)
+        for r in (getattr(p, "requirements", []) or []):
+            requirements.append(r)
+
+    for p in (getattr(pkg, "part_defs", []) or []):
+        _traverse_part(p)
+
+    for sub_pkg in (getattr(pkg, "sub_packages", []) or []):
+        sub_pks, sub_pts, sub_caps, sub_acts, sub_ops, sub_inters, sub_cons, sub_tcs, sub_reqs = _collect_all_sysml_elements(sub_pkg)
+        packages.extend(sub_pks)
+        parts.extend(sub_pts)
+        capabilities.extend(sub_caps)
+        actions.extend(sub_acts)
+        operations.extend(sub_ops)
+        interactions.extend(sub_inters)
+        constraints.extend(sub_cons)
+        test_cases.extend(sub_tcs)
+        requirements.extend(sub_reqs)
+
+    return packages, parts, capabilities, actions, operations, interactions, constraints, test_cases, requirements
+
+
+def _load_all_sysml_elements_full(repo: WorkspaceRepository, schemas_dir: Optional[str] = None):
+    sysml_files = _find_sysml_files_in_repo(repo, schemas_dir)
+    errors: List[Finding] = []
+    all_pkgs: List[Any] = []
+    all_parts: List[Any] = []
+    all_caps: List[Any] = []
+    all_actions: List[Any] = []
+    all_ops: List[Any] = []
+    all_interactions: List[Any] = []
+    all_constraints: List[Any] = []
+    all_test_cases: List[Any] = []
+    all_requirements: List[Any] = []
+
+    for sf in sysml_files:
+        try:
+            with open(sf, "r", encoding="utf-8") as file:
+                content = file.read()
+            if SysMLParser:
+                pkg = SysMLParser.parse_text(content, default_name=os.path.splitext(os.path.basename(sf))[0])
+            else:
+                pkg = SysMLPackage(name=os.path.splitext(os.path.basename(sf))[0]) if SysMLPackage else None
+            pks, pts, caps, acts, ops, inters, cons, tcs, reqs = _collect_all_sysml_elements(pkg)
+            all_pkgs.extend(pks)
+            all_parts.extend(pts)
+            all_caps.extend(caps)
+            all_actions.extend(acts)
+            all_ops.extend(ops)
+            all_interactions.extend(inters)
+            all_constraints.extend(cons)
+            all_test_cases.extend(tcs)
+            all_requirements.extend(reqs)
+        except Exception as exc:
+            errors.append(Finding(
+                "sysml-model-not-readable",
+                f"Failed to read SysML model file '{os.path.basename(sf)}': {exc}",
+                location="schemas"
+            ))
+
+    return sysml_files, all_pkgs, all_parts, all_caps, all_actions, all_ops, all_interactions, all_constraints, all_test_cases, all_requirements, errors
+
 from ..core.models import FeatureFile
 from ..parsers.mermaid import MermaidClassDiagramParser, MermaidFlowchartParser, MermaidSequenceDiagramParser
 
@@ -653,6 +806,12 @@ class UmlValidator(IValidator):
                         uml_primitives, visibility_prefixes, relationship_connectors,
                         choice_stereotypes, multiplicity_regex
                     )
+
+        is_sysml = kwargs.get("is_sysml", False)
+        if is_sysml:
+            errors.extend(self.validate_user_story_interactions_and_lifelines(repo, **kwargs))
+            errors.extend(self.validate_safety_invariants_and_rta_constraints(repo, **kwargs))
+            errors.extend(self.validate_acceptance_criteria_and_test_cases(repo, **kwargs))
                     
         return errors
 
@@ -1179,3 +1338,401 @@ class UmlValidator(IValidator):
                                 "raw": method.raw
                             })
         return classes
+
+    def validate_user_story_interactions_and_lifelines(self, repo: WorkspaceRepository, **kwargs) -> List[Finding]:
+        """
+        Check 20: User Story Interaction & Sequence Lifeline Audit.
+        Verifies that User Story sequence diagrams bind to valid SysML parts and interaction message steps.
+        Ensures internal participant lifelines map to SysML PartDefs and messages map to SysML interaction
+        message flows or part operations/actions.
+        """
+        rules = repo.get_codebase_rules()
+        backlog_dirs = rules.backlog_directories
+        schemas_dir_rel = getattr(backlog_dirs, "schemas", None)
+        schemas_dir = os.path.join(repo.workspace_dir, schemas_dir_rel) if schemas_dir_rel else os.path.join(repo.workspace_dir, "schemas")
+        user_stories_dir_rel = getattr(backlog_dirs, "user_stories", None)
+        user_stories_dir = os.path.join(repo.workspace_dir, user_stories_dir_rel) if user_stories_dir_rel else os.path.join(repo.workspace_dir, "docs", "user-stories")
+
+        sysml_files, all_pkgs, all_parts, _, all_actions, all_ops, all_interactions, _, _, _, errors = _load_all_sysml_elements_full(repo, schemas_dir)
+        if errors:
+            return errors
+        if not sysml_files:
+            return []
+
+        if not user_stories_dir or not os.path.exists(user_stories_dir):
+            story_files = []
+        else:
+            story_files = [f for f in sorted(os.listdir(user_stories_dir)) if f.endswith(".md")]
+
+        if not story_files:
+            return []
+
+        # Collect valid SysML part names & global classes
+        valid_parts: Set[str] = set()
+        for p in all_parts:
+            p_name = getattr(p, "name", "")
+            if p_name:
+                valid_parts.add(p_name)
+
+        features_dir_rel = getattr(backlog_dirs, "features", None)
+        features_dir = os.path.join(repo.workspace_dir, features_dir_rel) if features_dir_rel else None
+        epics_dir_rel = getattr(backlog_dirs, "epics", None)
+        epics_dir = os.path.join(repo.workspace_dir, epics_dir_rel) if epics_dir_rel else None
+        global_classes = kwargs.get("global_classes") or self.build_global_classes(repo, features_dir, epics_dir)
+        valid_classifiers = set(valid_parts) | set(global_classes.keys())
+
+        # Collect valid operation and message names
+        valid_operations: Set[str] = set()
+        for op in all_ops:
+            if getattr(op, "name", None):
+                valid_operations.add(op.name)
+        for act in all_actions:
+            if getattr(act, "name", None):
+                valid_operations.add(act.name)
+        for part in all_parts:
+            for op in (getattr(part, "operations", []) or []):
+                if getattr(op, "name", None):
+                    valid_operations.add(op.name)
+            for act in (getattr(part, "actions", []) or []):
+                if getattr(act, "name", None):
+                    valid_operations.add(act.name)
+
+        for inter in all_interactions:
+            for msg in (getattr(inter, "messages", []) or []):
+                if msg:
+                    valid_operations.add(msg)
+            for trg in (getattr(inter, "triggers", []) or []):
+                if trg:
+                    valid_operations.add(trg)
+
+        sequence_parser = MermaidSequenceDiagramParser()
+        covered_interactions: Set[str] = set()
+
+        for filename in story_files:
+            filepath = os.path.join(user_stories_dir, filename)
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+            except Exception as exc:
+                errors.append(Finding(
+                    "user-story-not-readable",
+                    f"Failed to read User Story specification '{filename}': {exc}",
+                    location="user-stories"
+                ))
+                continue
+
+            fm = None
+            fm_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
+            if fm_match:
+                try:
+                    fm = yaml.safe_load(fm_match.group(1).replace('\x01', ''))
+                except Exception:
+                    pass
+
+            seq_matches = list(re.finditer(r"```mermaid\s*\n\s*sequenceDiagram(.*?)(?=```|\Z)", content, re.DOTALL))
+            for sm in seq_matches:
+                seq_code = sm.group(0)
+                parsed_seq = sequence_parser.parse(seq_code)
+
+                # 1. Lifeline Part Binding
+                for alias, lf in parsed_seq.lifelines.items():
+                    role = (lf.role or "").lower()
+                    is_external_actor = (role == "actor")
+                    cls_name = lf.classifier_name
+
+                    if not is_external_actor:
+                        if cls_name and (cls_name not in valid_classifiers and cls_name not in valid_parts):
+                            errors.append(Finding(
+                                "user-story-lifeline-part-invalid",
+                                f"User Story '{filename}': Sequence diagram lifeline '{alias}' specifies classifier '{cls_name}' which does not bind to any valid SysML part definition.",
+                                location="user-stories"
+                            ))
+
+                # 2. Message Flow Operation Matching
+                for msg in parsed_seq.messages:
+                    if msg.arrow_type in ("sync", "async") and msg.operation:
+                        op_name = msg.operation
+                        if op_name not in valid_operations:
+                            # Check if receiver has this method in global_classes
+                            rx_lf = parsed_seq.lifelines.get(msg.receiver)
+                            rx_cls = rx_lf.classifier_name if rx_lf else None
+                            cls_has_method = False
+                            if rx_cls and rx_cls in global_classes:
+                                cls_has_method = any(m["name"] == op_name for m in global_classes[rx_cls]["methods"])
+                            if not cls_has_method:
+                                errors.append(Finding(
+                                    "user-story-interaction-step-invalid",
+                                    f"User Story '{filename}': Sequence diagram message '{op_name}' is not declared in SysML interaction message flows or part operations.",
+                                    location="user-stories"
+                                ))
+
+            # 3. Track covered SysML interactions
+            for inter in all_interactions:
+                inter_name = getattr(inter, "name", "")
+                if not inter_name:
+                    continue
+                if fm and isinstance(fm, dict) and fm.get("interaction") == inter_name:
+                    covered_interactions.add(inter_name)
+                elif re.search(rf"\b(?:interaction|Interaction|SysML\s+Interaction\s+Def)\s*:?\s*`?{re.escape(inter_name)}`?\b", content):
+                    covered_interactions.add(inter_name)
+                elif re.search(rf"\b{re.escape(inter_name)}\b", content):
+                    covered_interactions.add(inter_name)
+
+        # 4. Bidirectional Check: SysML interaction realization
+        for inter in all_interactions:
+            inter_name = getattr(inter, "name", "")
+            if inter_name and inter_name not in covered_interactions:
+                errors.append(Finding(
+                    "sysml-interaction-uncovered",
+                    f"SysML interaction def '{inter_name}' is not realized by any User Story sequence diagram.",
+                    location="user-stories"
+                ))
+
+        return errors
+
+    def validate_safety_invariants_and_rta_constraints(self, repo: WorkspaceRepository, **kwargs) -> List[Finding]:
+        """
+        Check 21: Safety Invariant & RTA Constraint Assertion Audit.
+        Verifies that all STPA Unsafe Control Actions (UCAs) have corresponding 'assert constraint'
+        declarations in the SysML AST for Run-Time Assurance (RTA) mathematical verification with
+        Simulink Design Verifier (SLDV).
+        """
+        rules = repo.get_codebase_rules()
+        backlog_dirs = rules.backlog_directories
+        schemas_dir_rel = getattr(backlog_dirs, "schemas", None)
+        schemas_dir = os.path.join(repo.workspace_dir, schemas_dir_rel) if schemas_dir_rel else os.path.join(repo.workspace_dir, "schemas")
+
+        sysml_files, all_pkgs, all_parts, _, _, _, _, all_constraints, _, _, errors = _load_all_sysml_elements_full(repo, schemas_dir)
+        if errors:
+            return errors
+        if not sysml_files:
+            return []
+
+        # Discover STPA UCAs
+        stpa_content = kwargs.get("stpa_content")
+        discovered_ucas: List[Dict[str, Any]] = []
+
+        if stpa_content:
+            try:
+                from scripts.compile_sysml import parse_stpa_ucas
+                discovered_ucas.extend(parse_stpa_ucas(stpa_content))
+            except ImportError:
+                pass
+        else:
+            # Scan safety documentation directories
+            safety_candidates = []
+            for sub_dir in ["docs/safety", "docs/architecture/blueprints", "docs/requirements"]:
+                full_dir = os.path.join(repo.workspace_dir, sub_dir)
+                if os.path.exists(full_dir):
+                    for f in sorted(os.listdir(full_dir)):
+                        if f.endswith(".md"):
+                            safety_candidates.append(os.path.join(full_dir, f))
+
+            stpa_matrix_file = os.path.join(repo.workspace_dir, "docs", "safety", "STPA_MATRIX.md")
+            if os.path.exists(stpa_matrix_file) and stpa_matrix_file not in safety_candidates:
+                safety_candidates.append(stpa_matrix_file)
+
+            try:
+                from scripts.compile_sysml import parse_stpa_ucas
+            except ImportError:
+                parse_stpa_ucas = None
+
+            for sc_path in safety_candidates:
+                try:
+                    with open(sc_path, "r", encoding="utf-8") as f:
+                        s_text = f.read()
+                    if parse_stpa_ucas:
+                        file_ucas = parse_stpa_ucas(s_text)
+                    else:
+                        file_ucas = []
+                        for m in re.finditer(r'\b(UCA(?:-[A-Za-z0-9_]+)?-\d+)\b', s_text):
+                            file_ucas.append({"id": m.group(1)})
+                    for u in file_ucas:
+                        if not any(existing["id"] == u["id"] for existing in discovered_ucas):
+                            discovered_ucas.append(u)
+                except Exception:
+                    pass
+
+        if not discovered_ucas:
+            return []
+
+        # Check each UCA against assert constraint definitions
+        assert_constraints = [c for c in all_constraints if getattr(c, "is_assertion", False)]
+        
+        for uca in discovered_ucas:
+            uca_id = uca.get("id", "")
+            if not uca_id:
+                continue
+            clean_uca_id = re.sub(r'[^a-zA-Z0-9_]', '_', uca_id)
+
+            found_assert = False
+            for c in assert_constraints:
+                c_name = getattr(c, "name", "")
+                c_doc = getattr(c, "doc", "")
+                c_expr = getattr(c, "expression", "")
+                
+                if (
+                    clean_uca_id.lower() in c_name.lower()
+                    or uca_id.lower() in c_name.lower()
+                    or clean_uca_id.lower() in c_doc.lower()
+                    or uca_id.lower() in c_doc.lower()
+                    or clean_uca_id.lower() in c_expr.lower()
+                    or uca_id.lower() in c_expr.lower()
+                ):
+                    found_assert = True
+                    break
+
+            if not found_assert:
+                errors.append(Finding(
+                    "stpa-uca-missing-assert-constraint",
+                    f"STPA Unsafe Control Action '{uca_id}' has no corresponding 'assert constraint' declaration in SysML AST.",
+                    location="safety"
+                ))
+
+        # Check that all assert constraint expressions are non-empty for SLDV RTA verification
+        for c in assert_constraints:
+            c_name = getattr(c, "name", "")
+            c_expr = getattr(c, "expression", "")
+            if not c_expr or not str(c_expr).strip():
+                errors.append(Finding(
+                    "rta-constraint-expression-empty",
+                    f"SysML assert constraint '{c_name}' has an empty expression; required for Simulink Design Verifier (SLDV) RTA verification.",
+                    location="schemas"
+                ))
+
+        return errors
+
+    def validate_acceptance_criteria_and_test_cases(self, repo: WorkspaceRepository, **kwargs) -> List[Finding]:
+        """
+        Check 22: Acceptance Criteria Test Case & Verification Binding Audit.
+        Verifies that every BDD scenario is bound to a SysML 'test case def' and verifies
+        its parent safety requirement via formal 'verify requirement' bindings.
+        """
+        rules = repo.get_codebase_rules()
+        backlog_dirs = rules.backlog_directories
+        schemas_dir_rel = getattr(backlog_dirs, "schemas", None)
+        schemas_dir = os.path.join(repo.workspace_dir, schemas_dir_rel) if schemas_dir_rel else os.path.join(repo.workspace_dir, "schemas")
+        user_stories_dir_rel = getattr(backlog_dirs, "user_stories", None)
+        user_stories_dir = os.path.join(repo.workspace_dir, user_stories_dir_rel) if user_stories_dir_rel else os.path.join(repo.workspace_dir, "docs", "user-stories")
+
+        sysml_files, all_pkgs, all_parts, _, _, _, _, _, all_test_cases, all_requirements, errors = _load_all_sysml_elements_full(repo, schemas_dir)
+        if errors:
+            return errors
+        if not sysml_files:
+            return []
+
+        if not user_stories_dir or not os.path.exists(user_stories_dir):
+            story_files = []
+        else:
+            story_files = [f for f in sorted(os.listdir(user_stories_dir)) if f.endswith(".md")]
+
+        if not story_files:
+            return []
+
+        # Build AST lookup maps
+        test_cases_by_name: Dict[str, Any] = {}
+        for tc in all_test_cases:
+            tc_name = getattr(tc, "name", "")
+            if tc_name:
+                test_cases_by_name[tc_name] = tc
+
+        reqs_by_id_or_name: Dict[str, Any] = {}
+        for r in all_requirements:
+            r_name = getattr(r, "name", "")
+            r_id = getattr(r, "req_id", "")
+            if r_name:
+                reqs_by_id_or_name[r_name] = r
+            if r_id:
+                reqs_by_id_or_name[r_id] = r
+
+        bound_test_cases: Set[str] = set()
+
+        for filename in story_files:
+            filepath = os.path.join(user_stories_dir, filename)
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+            except Exception as exc:
+                errors.append(Finding(
+                    "user-story-not-readable",
+                    f"Failed to read User Story specification '{filename}': {exc}",
+                    location="user-stories"
+                ))
+                continue
+
+            fm = None
+            fm_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
+            if fm_match:
+                try:
+                    fm = yaml.safe_load(fm_match.group(1).replace('\x01', ''))
+                except Exception:
+                    pass
+
+            # Extract test case bindings
+            tc_refs = []
+            if fm and isinstance(fm, dict):
+                tc_val = fm.get("test_case") or fm.get("test_case_def") or fm.get("test_cases")
+                if isinstance(tc_val, list):
+                    tc_refs.extend([str(t) for t in tc_val])
+                elif tc_val:
+                    tc_refs.append(str(tc_val))
+
+            # Markdown extraction
+            header_tc_refs = re.findall(r'(?:SysML\s+Test\s+Case\s+Def\s*:\s*`?|test\s+case\s+(?:def\s+)?)([A-Za-z0-9_]+)', content)
+            tc_refs.extend(header_tc_refs)
+
+            # TC_ prefix scan
+            tc_prefix_matches = re.findall(r'\b(TC_[A-Za-z0-9_]+)\b', content)
+            tc_refs.extend(tc_prefix_matches)
+
+            # Filter out non-testcase generic tokens
+            tc_refs = [t for t in set(tc_refs) if t not in ("TestCase", "Name", "test_case", "test_case_def")]
+
+            if not tc_refs:
+                errors.append(Finding(
+                    "user-story-missing-test-case-binding",
+                    f"User Story '{filename}': BDD Acceptance Criteria scenario is missing formal SysML 'test case def' binding.",
+                    location="user-stories"
+                ))
+                continue
+
+            for tc_name in tc_refs:
+                if tc_name not in test_cases_by_name:
+                    errors.append(Finding(
+                        "user-story-test-case-not-in-ast",
+                        f"User Story '{filename}': Bound test case '{tc_name}' is not defined in SysML AST.",
+                        location="user-stories"
+                    ))
+                else:
+                    bound_test_cases.add(tc_name)
+                    tc_obj = test_cases_by_name[tc_name]
+                    verified_reqs = getattr(tc_obj, "verified_requirements", []) or []
+
+                    if not verified_reqs:
+                        errors.append(Finding(
+                            "test-case-missing-verify-requirement",
+                            f"User Story '{filename}': Test case def '{tc_name}' does not declare any 'verify requirement' bindings for safety requirements.",
+                            location="user-stories"
+                        ))
+                    else:
+                        if reqs_by_id_or_name:
+                            for v_req in verified_reqs:
+                                if v_req not in reqs_by_id_or_name:
+                                    errors.append(Finding(
+                                        "test-case-verify-requirement-invalid",
+                                        f"User Story '{filename}': Test case def '{tc_name}' specifies verify requirement '{v_req}' which is not defined in SysML AST.",
+                                        location="user-stories"
+                                    ))
+
+        # Bidirectional Check: SysML test cases bound across User Stories
+        for tc in all_test_cases:
+            tc_name = getattr(tc, "name", "")
+            if tc_name and tc_name not in bound_test_cases:
+                errors.append(Finding(
+                    "sysml-test-case-unbound",
+                    f"SysML test case def '{tc_name}' is not bound to any User Story BDD acceptance criteria.",
+                    location="user-stories"
+                ))
+
+        return errors
+
