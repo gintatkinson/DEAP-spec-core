@@ -122,7 +122,7 @@ those are.
   `par` fragment must be enclosed in square brackets. Unbracketed, the guard is parsed as
   part of the fragment label and the condition is lost.
 
-## Use case diagrams
+## Use case diagrams and SysML v2 use case definitions
 
 - **Use Case Flowcharts Must Parse**: as for sequence diagrams, a malformed flowchart is
   reported rather than skipped.
@@ -139,6 +139,51 @@ those are.
   a use case when the diagram is read rather than parsed.
 - **Actor Associations Must Be Undirected**: the connection between an actor and a use
   case is an association, not a dependency or a flow, and must use an undirected link.
+- **SysML Use Case Definitions Must Declare A Subject**: every `use case def` in the SysML v2
+  model must declare a `subject` binding to a valid structural component (`part def`) that
+  provides the operational capability.
+- **SysML Use Case Definitions Must Declare Actors**: every `use case def` must declare
+  initiating and participating `actor` roles matching external actors outside the system boundary.
+- **SysML Use Case Definitions Must Declare Objectives**: every `use case def` must specify an
+  `objective` defining the formal goal and measurable success criteria of the use case.
+- **SysML Use Case Includes And Extends Must Declare Conditions**: use case decomposition using
+  `include` or `extend` must reference valid `use case def` nodes; conditional `extend`
+  relationships must carry explicit guard conditions.
+- **Use Case Document Parity**: every Use Case specification in the backlog must correspond to
+  a declared `use case def` in the SysML v2 model with matching identifier, actor bindings,
+  preconditions, and postconditions.
+
+## Statechart and state machine transitions
+
+- **Statecharts Must Form A Deterministic Automaton**: state machine diagrams (`stateDiagram-v2`
+  in Mermaid and `state def` in SysML v2) must define an explicit initial state `[*]`, reachable
+  named states, and valid terminal states where applicable. Isolated or unreachable states are
+  prohibited.
+- **State Transitions Must Declare Triggers And Bracketed Guards**: every conditional transition
+  between states must declare a trigger event, an explicit guard expression enclosed in square
+  brackets `[guard]`, and an optional effect action `/ action`. Unbracketed guards or ambiguous
+  event triggers are prohibited.
+- **State Transition Endpoints Must Exist**: every transition line must connect source and
+  target states that are explicitly defined within the enclosing state machine or component.
+  Transitions pointing to undeclared states are prohibited.
+- **Stateflow Execution Parity**: hierarchical composite states, transition priority orderings,
+  and orthogonal parallel states must maintain deterministic execution semantics compatible with
+  MATLAB / Simulink / Stateflow model synthesis.
+
+## Actor port bindings and interface integrity
+
+- **Actor Messages Must Traverse Formal Ports**: messages and interactions passing between
+  external actors and internal system classifiers in sequence diagrams or SysML interaction
+  flows must traverse explicitly declared `port def` endpoints on the system boundary `part def`.
+- **Port Interfaces Must Declare Flow Direction And Item Type**: every `port def` must define
+  a flow direction (`in`, `out`, `inout`) and reference a valid `item def` or typed interface.
+  Untyped or raw unstructured port attachments are prohibited.
+- **Port Bindings Must Be Fully Connected**: every port declared on an internal subsystem
+  component must connect (`connect`) to a parent boundary port or bind to a peer component port.
+  Unconnected or dangling ports are prohibited.
+- **Message Signatures Must Match Port Interface Contracts**: an operation or data payload
+  sent across an actor port boundary must correspond to an operation or item type declared on
+  the receiving port's interface.
 
 ## Class diagrams
 
@@ -204,3 +249,4 @@ A diagram that renders is not a model. Every rule here exists because the corres
 defect passes visual review: the diagram looks right, the document reads complete, and the
 missing type, unbracketed guard, unreachable class or placeholder link is only discovered
 when something downstream tries to use it.
+
