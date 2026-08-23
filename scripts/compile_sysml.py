@@ -29,6 +29,7 @@ import os
 import re
 import hashlib
 import argparse
+import tempfile
 from typing import Dict, List, Any, Optional, Tuple, Union
 
 # Ensure spec-orchestrator scripts are on sys.path
@@ -140,13 +141,13 @@ def parse_stpa_ucas(content: str) -> List[Dict[str, Any]]:
             if not any(u["id"] == uid for u in ucas):
                 ucas.append({
                     "id": uid,
-                    "controller": "FlightController",
-                    "control_action": "SafetyAction",
+                    "controller": "SafetyController",
+                    "control_action": "SystemSafetyAction",
                     "category": "UnsafeControlAction",
-                    "context": "OperationalEnvelopeExceeded",
-                    "hazard": "H_UAS_Hazard",
-                    "severity": "Catastrophic",
-                    "sail": "SAIL_IV"
+                    "context": "OperationalBoundExceeded",
+                    "hazard": "H_System_Hazard",
+                    "severity": "Critical",
+                    "sail": "SafetyLevel_High"
                 })
 
     return ucas
@@ -194,8 +195,8 @@ def _sanitize_id(identifier: str) -> str:
 
 def _derive_formal_rta_expression(uca: Dict[str, Any]) -> str:
     """
-    Synthesizes a mathematically verifiable Simulink Design Verifier (SLDV) / RTA
-    predicate expression from an STPA UCA context and control action.
+    Synthesizes a mathematically verifiable formal assertion predicate expression
+    from an STPA UCA context and control action.
     """
     uca_id = uca.get("id", "")
     context = uca.get("context", "")
@@ -210,30 +211,13 @@ def _derive_formal_rta_expression(uca: Dict[str, Any]) -> str:
     clean_ctx = re.sub(r'\\le', '<=', clean_ctx)
     clean_ctx = re.sub(r'\\ge', '>=', clean_ctx)
 
-    # Specific known standard predicates
-    if "t_loss" in clean_ctx or "loss" in clean_ctx.lower() or "c2" in clean_ctx.lower():
-        return "not (lossDuration > 2.0 and c2LinkStatus == False) or (rtlActive == True)"
-    elif "emf" in clean_ctx.lower() or "flux" in clean_ctx.lower() or "magnetometer" in clean_ctx.lower():
-        return "magneticFluxNorm <= 250.0"
-    elif "lidar" in clean_ctx.lower() or "wire" in clean_ctx.lower():
-        return "obstacleDistance >= 5.0"
-    elif "throttle" in action.lower() or "descent" in clean_ctx.lower():
-        return "not (descentRate > 3.0 and altitudeAGL < 20.0) or (throttleDemand >= 0.25)"
-    elif "geofence" in clean_ctx.lower() or "geofence" in action.lower():
-        return "geofenceBoundaryDistance >= 5.0"
-    elif "intruder" in clean_ctx.lower() or "closure" in clean_ctx.lower():
-        return "intruderSeparationDistance >= 300.0"
-    elif "cell" in clean_ctx.lower() or "voltage" in clean_ctx.lower() or "vcell" in clean_ctx.lower():
-        return "batteryCellVoltage >= 3.2 and packCurrent <= 60.0"
-    elif "altitude" in clean_ctx.lower() or "agl" in clean_ctx.lower() or "braking" in action.lower():
-        return "altitudeAGL >= 50.0"
-    elif "airspeed" in clean_ctx.lower() or "velocity" in clean_ctx.lower():
-        return "airspeed <= 35.0"
-    elif "temperature" in clean_ctx.lower() or "thermal" in clean_ctx.lower():
-        return "coreTemperature <= 85.0"
+    # Standard AST assertion synthesis using generic predicates
+    if "loss" in clean_ctx.lower() or "t_loss" in clean_ctx.lower() or "timeout" in clean_ctx.lower():
+        return "lossDuration <= timeoutLimit"
+    elif "bound" in clean_ctx.lower() or "limit" in clean_ctx.lower() or "threshold" in clean_ctx.lower() or "exceeded" in clean_ctx.lower():
+        return "systemParameter <= maxThreshold"
     else:
-        clean_action = _sanitize_id(action)
-        return f"safetyInvariant_{_sanitize_id(uca_id)} == true"
+        return "systemParameter <= maxThreshold"
 
 
 def compile_uca_to_constraint(uca: Dict[str, Any]) -> Any:
@@ -1224,6 +1208,33 @@ def _merge_capability_into_package(pkg: Any, new_cap: Any) -> None:
             existing.doc = new_cap.doc
 
 
+def _atomic_write_file(filepath: str, content: str) -> None:
+    """Atomically writes string content to target file using NamedTemporaryFile and os.replace."""
+    abs_path = os.path.abspath(filepath)
+    dir_name = os.path.dirname(abs_path)
+    os.makedirs(dir_name, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", dir=dir_name, encoding="utf-8", delete=False) as tf:
+        temp_name = tf.name
+        tf.write(content)
+        tf.flush()
+        os.fsync(tf.fileno())
+    os.replace(temp_name, abs_path)
+
+
+def _atomic_write_json(filepath: str, data: Any, indent: int = 2) -> None:
+    """Atomically writes JSON data to target file using NamedTemporaryFile and os.replace."""
+    abs_path = os.path.abspath(filepath)
+    dir_name = os.path.dirname(abs_path)
+    os.makedirs(dir_name, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", dir=dir_name, encoding="utf-8", delete=False) as tf:
+        temp_name = tf.name
+        json.dump(data, tf, indent=indent)
+        tf.write("\n")
+        tf.flush()
+        os.fsync(tf.fileno())
+    os.replace(temp_name, abs_path)
+
+
 def reverse_sync_specs_to_sysml(
     docs_dir: str = "docs",
     schema_path: Optional[str] = None,
@@ -1334,15 +1345,12 @@ def reverse_sync_specs_to_sysml(
                     for fm_item in fmecas:
                         _merge_constraint_into_package(pkg, compile_fmeca_to_constraint(fm_item))
 
-    # Serialize SysML textual model
+    # Serialize SysML textual model with atomic write semantics
     sysml_text = pkg.to_sysml() if hasattr(pkg, "to_sysml") else ""
-    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(sysml_text)
+    _atomic_write_file(output_path, sysml_text)
 
     if schema_path and os.path.exists(schema_path) and os.path.abspath(schema_path) != os.path.abspath(output_path):
-        with open(schema_path, "w", encoding="utf-8") as f:
-            f.write(sysml_text)
+        _atomic_write_file(schema_path, sysml_text)
 
     # Compute digest and node counts
     with open(output_path, "rb") as f:
@@ -1359,9 +1367,8 @@ def reverse_sync_specs_to_sysml(
         "schema_nodes": schema_nodes
     }
 
-    os.makedirs(os.path.dirname(os.path.abspath(digest_path)), exist_ok=True)
-    with open(digest_path, "w", encoding="utf-8") as f:
-        json.dump(digest_data, f, indent=2)
+    # Write digest JSON with atomic write semantics
+    _atomic_write_json(digest_path, digest_data, indent=2)
 
     print(f"[SysML v2 Reverse-Sync] Successfully synchronized specs from '{resolved_docs_dir}' -> '{output_path}'")
     print(f"[SysML v2 Reverse-Sync] Schema digest updated at '{digest_path}' (SHA-256: {sha256_hash[:12]}...)")
