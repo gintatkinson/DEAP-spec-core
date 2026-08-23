@@ -75,11 +75,6 @@ def check_no_domain_config(destination):
 def tag_restoration_point(repo_root=None):
     print("Tagging restoration point...")
     try:
-        is_git = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], capture_output=True, text=True, cwd=repo_root, timeout=GIT_TIMEOUT_SECONDS)
-        if is_git.returncode != 0:
-            print("WARNING: Skipping restoration point tag - not inside a git repository.", file=sys.stderr)
-            return False
-
         res = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=repo_root, timeout=GIT_TIMEOUT_SECONDS)
         if res.returncode != 0:
             print("WARNING: Skipping restoration point tag - git HEAD is unborn (fresh repository).", file=sys.stderr)
@@ -218,6 +213,17 @@ def main():
         is_flutter = os.path.exists(os.path.join(dest, "pubspec.yaml"))
         is_react = os.path.exists(os.path.join(dest, "package.json"))
 
+        # An explicit --no-domain on the command line is the operator's decision and is
+        # never overridden. The config-file setting is a stored default, so it IS
+        # overridden once a domain directory exists on disk -- that is what stops a
+        # stale config silently disabling verification on a project that has since
+        # implemented its domain.
+        #
+        # Both were overridden until this was fixed, which made --no-domain inert: the
+        # shipped app_flutter and web_react templates both contain a domain directory,
+        # so the flag cancelled itself on every fresh install and the documented
+        # "verify the workspace structure prior to implementing the domain model" path
+        # ran a full `flutter build macos --release` instead.
         no_domain_for_target = args.no_domain
         if not args.no_domain and (
             check_no_domain_config(repo_root) or check_no_domain_config(dest)
@@ -318,11 +324,6 @@ def check_no_ds_store_files(repo_root):
 
 def check_no_duplicate_master_blueprints(dest):
     """Check 12: Verify downstream repositories do NOT contain duplicate master core blueprints."""
-    # If the repository is upstream (indicated by .pipeline/upstream), master blueprints are expected here
-    if os.path.exists(os.path.join(dest, ".pipeline", "upstream")):
-        print("Success: Check 12 verified (upstream repository retains canonical master core blueprints).")
-        return
-
     master_blueprints = {
         "DEAP_MASTER_ARCHITECTURE.md",
         "THREE_TIER_GOVERNANCE_BLUEPRINT.md",
@@ -424,10 +425,10 @@ def check_latex_katex_syntax(repo_root):
         for err in errors:
             print(f"  - {err}", file=sys.stderr)
         sys.exit(1)
-    print("Success: Check 13 verified (KaTeX / LaTeX mathematical syntax valid across all markdown files).")
+    print("Success: Check 13 verified (KaTeX / LaTeX mathematical syntax valid across all markdown files, including rules/sysml-ssot-completeness.md).")
 
 def check_downstream_instructions_exist(repo_root):
-    """Check 14: Verify presence of README.md and agent instruction entrypoints (AGENTS.md, CLAUDE.md, or .agents/AGENTS.md)."""
+    """Check 14: Verify presence of README.md, agent instruction entrypoints (AGENTS.md, CLAUDE.md, or .agents/AGENTS.md), and rules/sysml-ssot-completeness.md."""
     readme_path = os.path.join(repo_root, "README.md")
     if not os.path.isfile(readme_path):
         print(f"ERROR: Check 14 failed: README.md missing in repository root '{repo_root}'.", file=sys.stderr)
@@ -446,7 +447,15 @@ def check_downstream_instructions_exist(repo_root):
         print(f"ERROR: Check 14 failed: No non-empty agent instruction entrypoint found in '{repo_root}' (expected AGENTS.md, CLAUDE.md, or .agents/AGENTS.md).", file=sys.stderr)
         sys.exit(1)
 
-    print("Success: Check 14 verified (README.md and agent instruction entrypoints exist).")
+    sysml_rule_path = os.path.join(repo_root, "rules", "sysml-ssot-completeness.md")
+    if not os.path.isfile(sysml_rule_path):
+        print(f"ERROR: Check 14 failed: rules/sysml-ssot-completeness.md missing in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+    if os.path.getsize(sysml_rule_path) == 0:
+        print(f"ERROR: Check 14 failed: rules/sysml-ssot-completeness.md is empty in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+
+    print("Success: Check 14 verified (README.md, agent instruction entrypoints, and rules/sysml-ssot-completeness.md exist).")
 
 def check_reconcile_backlog_tooling_exists(repo_root):
     """Check 15: Verify scripts/reconcile_backlog.py exists, is non-empty, and is executable."""
@@ -542,8 +551,12 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
                 _run_bounded(["flutter", "build", "macos", "--release"], cwd=dest, timeout=TIMEOUT_SECONDS * 3, label="flutter build macos --release")
                 
                 print("Zipping the macOS application bundle...")
+                # The build output is typically at app_flutter/build/macos/Build/Products/Release/Platform Console.app
+                # We need to package it into the repository root as app_flutter_release.zip
                 zip_path = os.path.join(upstream_repo_root, "app_flutter_release.zip")
                 
+                # We expect the app bundle to be named 'Platform Console.app'. 
+                # Let's find it in the release directory.
                 release_dir = os.path.join(dest, "build", "macos", "Build", "Products", "Release")
                 app_bundle = "Platform Console.app"
                 
@@ -622,3 +635,4 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
 
 if __name__ == "__main__":
     main()
+
