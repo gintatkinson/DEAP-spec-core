@@ -2,7 +2,7 @@
 
 ---
 name: spec-user-story-engineering
-description: "Extracts BDD User Stories from normative specification documents using OOA/OOD modeling. Use when you need to derive behavioral scenarios (Given-When-Then) from protocol specs and matrix them against existing Feature issues in the repository."
+description: "Extracts BDD User Stories derived from SysML v2 action def, state def, and port def AST nodes and normative specification documents using OOA/OOD modeling. Use when you need to derive behavioral scenarios (Given-When-Then) from protocol specs and matrix them against existing Feature issues in the repository."
 compatibility: "Requires issue tracker CLI and git. Works with modern agentic development environments."
 metadata:
   title: "Specification User Story Engineering (Behavioral Extraction)"
@@ -14,23 +14,25 @@ metadata:
 
 # Specification User Story Engineering (Behavioral Extraction)
 
-This skill enables a sub-agent to autonomously read a normative specification document (e.g., domain-specific specifications and API documentation) and extract its behavioral deployment scenarios into pure Behavior-Driven Development (BDD) User Stories modeled according to Object-Oriented Analysis and Design (OOA/OOD) principles, linking them dynamically to structural features already defined in the repository.
+This skill enables a sub-agent to autonomously derive pure Behavior-Driven Development (BDD) User Stories modeled according to Object-Oriented Analysis and Design (OOA/OOD) principles directly from SysML v2 behavioral elements (`action def`, `state def`, `port def`) and normative specification documents. 
+
+In accordance with [`rules/sysml-ssot-completeness.md`](file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety/rules/sysml-ssot-completeness.md), SysML v2 is the 100% Single Source of Truth (SSOT) for all computational actions, lifecycle states, and interface ports. User Stories provide behavioral realization feeding downstream Stateflow statecharts and control law synthesis in the Primary Tier-1 Commercial Toolchain Context (**MATLAB / Simulink / Stateflow / Embedded Coder** for DO-178C C / SPARK Ada generation).
 
 ## Execution Trigger
 You should invoke this skill ONLY after the structural Features have been extracted using the `schema-specification-engineering` skill.
 
 ### Algorithmic & Calculation Story Extraction Trigger (Mandatory)
-In addition to standard deployment scenarios, you MUST scan the specification and schema for any derived, computed, or calculated values (e.g. performing unit conversions, coordinate transformations, validation ranges, formulas, or elapsed time checks). For every calculated or derived value identified, you MUST extract a dedicated, mandatory User Story that details the calculations, formulas, or algorithmic transformations required, ensuring that these dynamic behaviors are fully captured.
+In addition to standard deployment scenarios, you MUST scan the SysML v2 model (`action def`) and schemas for any derived, computed, or calculated values (e.g. performing unit conversions, coordinate transformations, validation ranges, formulas, or elapsed time checks). For every calculated or derived value identified, you MUST extract a dedicated, mandatory User Story that details the calculations, formulas, or algorithmic transformations required, ensuring that these dynamic behaviors are fully captured.
 
 ### Temporal & Lifecycle Expiration Story Extraction Trigger (Mandatory)
-In addition to standard deployment scenarios, you MUST scan the specification and schema for any temporal/lifecycle expirations, state-decay lifecycles, or timeout transitions (e.g. token expiration, data staleness, status-based data access rules, or lifecycle decay). For every temporal or lifecycle expiration identified, you MUST extract a dedicated, mandatory User Story detailing the transition to the expired state and any postconditions for accessing data in that state.
+In addition to standard deployment scenarios, you MUST scan the SysML v2 model (`state def`) and schemas for any temporal/lifecycle expirations, state-decay lifecycles, or timeout transitions (e.g. token expiration, data staleness, status-based data access rules, or lifecycle decay). For every temporal or lifecycle expiration identified, you MUST extract a dedicated, mandatory User Story detailing the transition to the expired state and any postconditions for accessing data in that state.
 
-## Step 1: Context Ingestion (Operational Text & Schemas)
-1. Ingest the target normative specification document AND the target structural schemas (e.g., structural or protocol schemas).
-2. **Scan the structural schema definitions** (specifically node descriptions, comments, type restrictions, and validation constraints) to identify:
+## Step 1: Context Ingestion (SysML v2 AST, Schemas & Operational Text)
+1. Ingest the canonical SysML v2 model (`.pipeline/schema.sysml`), `.pipeline/schema-digest.json`, target normative specification document, AND structural schemas.
+2. **Scan the SysML v2 AST definitions and structural schema nodes** (specifically `action def`, `state def`, `port def`, node descriptions, comments, type restrictions, and validation constraints) to identify:
    - Any derived, calculated, or computed data fields.
    - Any mathematical formulas, equations, unit conversions, or derivations.
-   - Any temporal attributes or state lifecycles.
+   - Any temporal attributes, state lifecycles, or transition guards.
 3. Target and analyze the following operational chapters of the normative specification:
    - Introduction & Applicability
    - Deployment Scenarios
@@ -66,6 +68,7 @@ In addition to standard deployment scenarios, you MUST scan the specification an
      - Inspect the provided structural features to determine exactly which of those `#IssueID`s are prerequisites for the current User Story.
      - Construct the `## Required Features` matrix containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute URL of the feature document.
      - Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage.
+   - **Tandem Elaboration & Zero Model Drift:** Any newly derived operations, algorithmic methods, state transitions, or port interactions identified during User Story modeling MUST be reflected back into the SysML v2 model (`.pipeline/schema.sysml`) as `action def`, `state def`, or `port def` elements per `rules/sysml-ssot-completeness.md`.
    - **Markdown Generation:** Write the User Story as a local markdown file (e.g., `docs/user-stories/us-01-register-entity.md`).
 4. **Return Control:** The subagent completes the task and returns control to the worker agent.
 
