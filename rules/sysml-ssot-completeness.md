@@ -60,6 +60,12 @@ SysML v2 model parity is non-negotiable across all lifecycle phases:
 - **Zero Heuristic Parsing**: Inferring system structure, types, ports, or message signatures from unstructured natural language Markdown prose is strictly prohibited when formal SysML v2 AST nodes exist.
 - **Deterministic Toolchain Ingestion**: Downstream synthesis tools (including MATLAB/Simulink bridges, state machine generators, and interface validators) must consume the validated AST representation to ensure mathematical determinism and prevent specification ambiguity.
 
+## Pure Schema-Driven & Domain-Agnostic Compilation
+
+- **Generic AST Invariant**: SysML v2 parsing, AST extraction, and verification gates in DEAP operate purely on generic AST tokens (`package`, `part def`, `item def`, `action def`, `state def`, `port def`, `requirement def`, `use case def`, and their typed relationships) without domain-specific heuristics, assumptions, or hardcoded entity names.
+- **Zero Domain-Biasing**: The MBSE compiler and verification tools MUST NOT encode domain-specific rules (e.g., flight controllers, automotive sensors, medical infusion logic) into parsing or checking algorithms. All semantics are derived purely and deterministically from user-provided schema definitions in `schema/`.
+- **Mathematical Determinism**: Universal token-based processing ensures absolute mathematical determinism and cross-domain portability across aerospace, automotive, defense, medical, and industrial automation engineering domains.
+
 ## Why
 
 Treating textual specifications and models as separate entities inevitably causes specification drift, where documentation diverges from the architectural model and code generation toolchains. Enforcing SysML v2 as the 100% Single Source of Truth guarantees model integrity, enables automated bidirectional validation, and provides an unbroken digital thread from high-level safety invariants to generated DO-178C C/SPARK Ada flight code.
