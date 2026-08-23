@@ -158,4 +158,29 @@ def test_reconcile_backlog_tooling_accessible():
     assert res.returncode == 0, f"scripts/reconcile_backlog.py failed with exit code {res.returncode}:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}"
     assert "Traceback" not in res.stderr, f"scripts/reconcile_backlog.py produced unhandled exception:\n{res.stderr}"
 
+def test_sysml_ssot_completeness_rule_accessible():
+    """Verify rules/sysml-ssot-completeness.md exists, is non-empty, and satisfies governance requirements."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isdir(repo_root):
+        repo_root = os.getcwd()
+
+    rule_path = os.path.join(repo_root, "rules", "sysml-ssot-completeness.md")
+    assert os.path.isfile(rule_path), f"rules/sysml-ssot-completeness.md missing at {repo_root}"
+    assert os.path.getsize(rule_path) > 0, f"rules/sysml-ssot-completeness.md is empty at {repo_root}"
+
+    with open(rule_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Verify key architectural and governance markers
+    required_phrases = [
+        "SysML v2",
+        "Single Source of Truth",
+        "Primary Tier-1 Commercial Toolchain Integration Context",
+        "MATLAB / Simulink / Stateflow / Embedded Coder",
+        "use case def",
+        "requirement def",
+    ]
+    for phrase in required_phrases:
+        assert phrase in content, f"Missing required governance marker '{phrase}' in rules/sysml-ssot-completeness.md"
+
 
