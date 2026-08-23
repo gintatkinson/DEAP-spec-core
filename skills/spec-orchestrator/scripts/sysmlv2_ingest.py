@@ -67,7 +67,7 @@ def detect_format(schema_path: str, content: str) -> str:
 def ingest_schema(
     schema_path: str,
     format_type: str = "auto",
-    output_path: str = "schema.sysml",
+    output_path: str = ".pipeline/schema.sysml",
     digest_path: str = ".pipeline/schema-digest.json"
 ) -> Tuple[SysMLPackage, Dict[str, Any]]:
     if not os.path.exists(schema_path):
@@ -135,14 +135,19 @@ def ingest_schema(
 
 def main():
     parser = argparse.ArgumentParser(description="SysML v2 Universal Ingestion Engine CLI")
-    parser.add_argument("--schema", required=True, help="Path to input schema file")
+    parser.add_argument("schema_pos", nargs="?", default=None, help="Path to input schema file (positional)")
+    parser.add_argument("--schema", required=False, default=None, help="Path to input schema file")
     parser.add_argument("--format", default="auto", help="Schema format (sysml, idl, autosar, protobuf, openapi, auto)")
-    parser.add_argument("--out", default="schema.sysml", help="Path to output .sysml file")
+    parser.add_argument("--out", default=".pipeline/schema.sysml", help="Path to output .sysml file")
     parser.add_argument("--digest", default=".pipeline/schema-digest.json", help="Path to output digest JSON")
     args = parser.parse_args()
 
+    schema_path = args.schema or args.schema_pos
+    if not schema_path:
+        parser.error("Must specify a schema file via positional argument or --schema")
+
     ingest_schema(
-        schema_path=args.schema,
+        schema_path=schema_path,
         format_type=args.format,
         output_path=args.out,
         digest_path=args.digest
