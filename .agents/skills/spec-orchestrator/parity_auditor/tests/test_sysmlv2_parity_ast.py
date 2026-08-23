@@ -446,3 +446,41 @@ def test_sysml_parser_roundtrip():
     assert len(pkg2.constraint_defs) == len(pkg1.constraint_defs)
     assert len(pkg2.test_case_defs) == len(pkg1.test_case_defs)
     assert pkg2.get_all_node_names() == pkg1.get_all_node_names()
+
+
+def test_compile_sysml_stpa_sanitized_assertions():
+    """Verify compile_sysml STPA synthesis emits sanitized domain-agnostic AST assertions."""
+    import importlib.util
+    compile_path = os.path.join(PROJECT_ROOT, "scripts", "compile_sysml.py")
+    spec = importlib.util.spec_from_file_location("compile_sysml", compile_path)
+    compile_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(compile_module)
+
+    # Test generic fallback sanitization
+    sample_text = "# STPA Section\n- Item UCA-01: Critical system event"
+    ucas = compile_module.parse_stpa_ucas(sample_text)
+    assert len(ucas) == 1
+    assert ucas[0]["controller"] == "SafetyController"
+    assert ucas[0]["control_action"] == "SystemSafetyAction"
+    assert ucas[0]["context"] == "OperationalBoundExceeded"
+    assert ucas[0]["hazard"] == "H_System_Hazard"
+    assert ucas[0]["severity"] == "Critical"
+    assert ucas[0]["sail"] == "SafetyLevel_High"
+
+    c = compile_module.compile_uca_to_constraint(ucas[0])
+    assert c.name == "Assert_UCA_01"
+    assert c.expression == "systemParameter <= maxThreshold"
+
+    # Test timeout/loss predicate synthesis
+    uca_loss = {
+        "id": "UCA-02",
+        "controller": "SafetyController",
+        "control_action": "SystemSafetyAction",
+        "context": "t_loss > 2.0 s, Link Timeout",
+        "hazard": "H_System_Hazard",
+        "severity": "Critical",
+        "sail": "SafetyLevel_High"
+    }
+    c_loss = compile_module.compile_uca_to_constraint(uca_loss)
+    assert c_loss.name == "Assert_UCA_02"
+    assert c_loss.expression == "lossDuration <= timeoutLimit"
