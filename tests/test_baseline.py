@@ -183,4 +183,46 @@ def test_sysml_ssot_completeness_rule_accessible():
     for phrase in required_phrases:
         assert phrase in content, f"Missing required governance marker '{phrase}' in rules/sysml-ssot-completeness.md"
 
+def test_upstream_template_clean_landing_zones():
+    """Verify upstream template landing zones remain pristine with zero concrete specs.
+
+    If repository is an upstream template (.pipeline/upstream/ exists), asserts that
+    docs/epics/, docs/features/, docs/user-stories/, docs/use-cases/, and schema/
+    contain only .gitkeep and README.md, and zero concrete specification files or
+    concrete .sysml domain models.
+    """
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isdir(repo_root):
+        repo_root = os.getcwd()
+
+    upstream_marker = os.path.join(repo_root, ".pipeline", "upstream")
+    if not os.path.isdir(upstream_marker):
+        pytest.skip("Downstream project detected — skipping upstream landing zone clean check.")
+
+    landing_zones = [
+        os.path.join("docs", "epics"),
+        os.path.join("docs", "features"),
+        os.path.join("docs", "user-stories"),
+        os.path.join("docs", "use-cases"),
+        "schema",
+    ]
+    allowed_files = {".gitkeep", "README.md"}
+    excluded_dirs = {".git", "node_modules", ".dart_tool", "build"}
+
+    violations = []
+    for zone in landing_zones:
+        zone_path = os.path.join(repo_root, zone)
+        if not os.path.isdir(zone_path):
+            continue
+        for root, dirs, files in os.walk(zone_path):
+            dirs[:] = [d for d in dirs if d not in excluded_dirs]
+            for f in files:
+                if f not in allowed_files:
+                    rel_path = os.path.relpath(os.path.join(root, f), repo_root)
+                    violations.append(rel_path)
+
+    assert not violations, (
+        f"Upstream distribution template landing zones contain concrete specification files: {violations}"
+    )
+
 
