@@ -3,7 +3,7 @@
 SysML v2 Universal Ingestion Engine (CLI Entrypoint)
 
 Translates heterogeneous specification schemas (OMG IDL, AUTOSAR ARXML,
-Protobuf, OpenAPI 3.0/3.1) into canonical SysML v2 textual models and
+Protobuf, OpenAPI 3.0/3.1, and native SysML v2) into canonical SysML v2 textual models and
 generates `.pipeline/schema-digest.json`.
 
 Usage:
@@ -23,13 +23,13 @@ if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
 try:
-    from sysmlv2_ast import SysMLPackage
+    from sysmlv2_ast import SysMLPackage, SysMLParser
     from translators.idl_translator import IDLTranslator
     from translators.autosar_translator import AUTOSARTranslator
     from translators.protobuf_translator import ProtobufTranslator
     from translators.openapi_translator import OpenAPITranslator
 except ImportError:
-    from skills.spec_orchestrator.scripts.sysmlv2_ast import SysMLPackage
+    from skills.spec_orchestrator.scripts.sysmlv2_ast import SysMLPackage, SysMLParser
     from skills.spec_orchestrator.scripts.translators.idl_translator import IDLTranslator
     from skills.spec_orchestrator.scripts.translators.autosar_translator import AUTOSARTranslator
     from skills.spec_orchestrator.scripts.translators.protobuf_translator import ProtobufTranslator
@@ -38,7 +38,9 @@ except ImportError:
 
 def detect_format(schema_path: str, content: str) -> str:
     ext = os.path.splitext(schema_path)[1].lower()
-    if ext == ".idl":
+    if ext == ".sysml":
+        return "sysml"
+    elif ext == ".idl":
         return "idl"
     elif ext in (".arxml", ".xml"):
         return "autosar"
@@ -48,7 +50,9 @@ def detect_format(schema_path: str, content: str) -> str:
         return "openapi"
 
     # Content-based detection
-    if "module " in content or "interface " in content or "struct " in content:
+    if "part def " in content or "package " in content or "capability def " in content or "requirement def " in content:
+        return "sysml"
+    elif "module " in content or "interface " in content or "struct " in content:
         return "idl"
     elif "<AUTOSAR" in content or "<AR-PACKAGE" in content:
         return "autosar"
@@ -82,18 +86,23 @@ def ingest_schema(
     fmt = format_type.lower()
     file_basename = os.path.splitext(os.path.basename(schema_path))[0]
 
-    if fmt in ("idl", "omg_idl"):
+    if fmt in ("sysml", "sysmlv2", "sysml_v2"):
+        pkg = SysMLParser.parse_text(content_text, default_name=file_basename)
+    elif fmt in ("idl", "omg_idl"):
         translator = IDLTranslator()
+        pkg = translator.translate(content_text, default_name=file_basename)
     elif fmt in ("autosar", "arxml"):
         translator = AUTOSARTranslator()
+        pkg = translator.translate(content_text, default_name=file_basename)
     elif fmt in ("protobuf", "proto"):
         translator = ProtobufTranslator()
+        pkg = translator.translate(content_text, default_name=file_basename)
     elif fmt in ("openapi", "json", "yaml"):
         translator = OpenAPITranslator()
+        pkg = translator.translate(content_text, default_name=file_basename)
     else:
         translator = IDLTranslator()
-
-    pkg = translator.translate(content_text, default_name=file_basename)
+        pkg = translator.translate(content_text, default_name=file_basename)
 
     sysml_text = pkg.to_sysml()
 
@@ -127,7 +136,7 @@ def ingest_schema(
 def main():
     parser = argparse.ArgumentParser(description="SysML v2 Universal Ingestion Engine CLI")
     parser.add_argument("--schema", required=True, help="Path to input schema file")
-    parser.add_argument("--format", default="auto", help="Schema format (idl, autosar, protobuf, openapi, auto)")
+    parser.add_argument("--format", default="auto", help="Schema format (sysml, idl, autosar, protobuf, openapi, auto)")
     parser.add_argument("--out", default="schema.sysml", help="Path to output .sysml file")
     parser.add_argument("--digest", default=".pipeline/schema-digest.json", help="Path to output digest JSON")
     args = parser.parse_args()
