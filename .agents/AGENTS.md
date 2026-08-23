@@ -1,10 +1,19 @@
 # Project-Scoped Rules
 
 ## Repository Role & Scope Classification
-- **Repository Classification:** `DEAP-spec-core` (DEAP Platform Component)
-- **Sentinel Indicator:** The presence of `.pipeline/upstream/` denotes that this repository is a **Pipeline Distribution Template**, NOT a downstream customer application workspace.
+- **Repository Classification:** `PIPELINE_DISTRIBUTION_TEMPLATE` (Upstream Domain Template for UAS Infrastructure Safety)
+- **Sentinel Indicator:** The presence of `.pipeline/upstream/` denotes that this repository is the **Pipeline Distribution Template**, NOT a downstream customer application workspace.
 - **Customer Data Boundary:** Customer-specific application code, private flight logs, mission parameters, and proprietary artifacts belong in the customer's downstream repository (installed via `install_pipeline.sh`), and must NOT be committed to this template repository.
 
+## Pure Schema-Driven Compiler Invariant (Zero Hardcoded Domain Concepts)
+- **Abstract MBSE Compiler Declaration**: The DEAP pipeline is an abstract Model-Based Systems Engineering (MBSE) compiler and verification framework, NOT a domain-specific modeler.
+- **Strict Prohibition of Hardcoded Domain Concepts**: Agents are strictly forbidden from inventing, proposing, or hardcoding domain-specific concepts (e.g., aviation flight controllers, automotive sensors, medical models) into pipeline logic, templates, or execution plans.
+- **Deterministic Schema-Derived Specifications**: All specification generation (Epics, Features, User Stories, Use Cases, Safety Invariants) and downstream engineering artifacts derive exclusively and deterministically from AST nodes present in user-provided schemas in `schema/`.
+
+## Upstream Distribution Template Clean Landing Zone Invariant
+- **Clean Landing Zone Mandate**: In upstream distribution template repositories (`DEAP-*`), the directories `schema/`, `docs/epics/`, `docs/features/`, `docs/user-stories/`, and `docs/use-cases/` must remain clean landing zones with ONLY `.gitkeep` files.
+- **Strict Prohibition of Concrete Specifications**: Committing concrete downstream project specifications, models, or code to upstream distribution templates is strictly forbidden.
+- **Downstream Workspace Boundary**: Concrete project schemas and specifications reside exclusively in downstream application workspaces installed via `scripts/install_pipeline.sh`.
 
 ## Mandatory Hidden Folder Direct-Path Read (CRITICAL FIRST STEP)
 - **Mandatory Hidden Folder Direct-Path Read (CRITICAL FIRST STEP)**: You are strictly forbidden from assuming files or directories inside the `.pipeline/` folder (such as `.pipeline/constitution.md` or `.pipeline/profiles/`) do not exist based on glob or search tool results. Because glob and ripgrep index queries skip hidden folders, you MUST verify their presence by directly executing a path read via `view_file` or a folder check via `list_dir`. This MUST be your very first action upon starting a session before declaring state or starting tasks.
@@ -147,6 +156,7 @@ is found, HALT and escalate as a blocker. Do not substitute direct coordinator w
 
 ## Strict Verification & Parametric Assumption Prevention Rules
 - **No Parametric Assertions**: You are strictly forbidden from asserting the state of the workspace, build status, files, or permissions based on parametric memory or assumptions. Every verification statement must be backed by running a specific tool (such as `git status`, `list_permissions`, `list_dir`) and citing the output.
+- **Mandatory Empirical Physical Path Verification**: The agent is strictly mandated to execute empirical physical path verification (`ls`, `git status`, `git rev-parse --show-toplevel`) on target workstation directories before declaring completion or transitioning status to `status:fixed-resolved`. Optimism bias or assuming target workstation directory states without empirical verification commands is strictly prohibited.
 - **Parametric Explanations Banned**: If explaining why an operation failed, you must cite concrete logs, line numbers, or command errors from your active context. Guessing or explaining via general training assumptions is prohibited.
 - **TDD RED-GREEN Gate Enforcement**: You must execute a failing integration/unit test (RED phase), document the failure, apply the codebase merge/remediation, and run the passing test (GREEN phase) to verify completeness.
 - **Subagent Permission Pre-Verification**: Before launching any subagent to execute tasks, you must verify that all required command prefixes, environment modifiers, and file scopes are fully pre-authorized on the active permissions table to guarantee 100% unattended background execution.
