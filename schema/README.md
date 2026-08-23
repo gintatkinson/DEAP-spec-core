@@ -55,7 +55,7 @@ python3 skills/spec-orchestrator/scripts/sysmlv2_ingest.py \
 
 ## Bidirectional Elaboration Loop & Zero Model Drift
 
-To prevent model drift between textual specifications and architectural models, DEAP enforces a strict **bidirectional elaboration loop**:
+To prevent model drift between textual specifications and architectural models, DEAP enforces a strict **bidirectional elaboration loop** governed by [`docs/architecture/blueprints/SYSML_SSOT_BIDIRECTIONAL_SYNCHRONIZATION_ARCHITECTURE.md`](file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety/docs/architecture/blueprints/SYSML_SSOT_BIDIRECTIONAL_SYNCHRONIZATION_ARCHITECTURE.md):
 
 ```
  [Heterogeneous Schemas] (schema/)
@@ -69,17 +69,29 @@ To prevent model drift between textual specifications and architectural models, 
      Formal AST Mapping (Zero Heuristic Prose Parsing)                     │
            │                                                               │
            ▼                                                               │
- [Downstream Backlog Specifications]                                       │
+ [Downstream Backlog Specifications] (docs/)                               │
    ├─ Epics & Features       <── derived from `package`, `part def`        │
    ├─ User Stories           <── derived from `action def`, `state def`    │
    └─ Use Cases              <── derived from `use case def`               │
            │                                                               │
-           └──────── Bidirectional Synchronization & Enrichment ───────────┘
+           ▼                                                               │
+ [Automated Reverse Sync Engine] (compile_sysml.py --reverse-sync)        │
+           │                                                               │
+           └──────── Bidirectional Delta Merge & Digest Update ────────────┘
 ```
 
-- **Tandem Elaboration**: When downstream specification workers (Phases 1–3) elaborate edge cases, exception flows, or refined interactions, any newly introduced structural elements, states, ports, or use cases MUST be reflected back into the SysML v2 model (`.pipeline/schema.sysml`).
-- **100% Bidirectional Parity**: Every backlog item (Epic, Feature, User Story, Use Case) must trace 1:1 to a formal SysML v2 AST node, and all SysML v2 AST definitions must be fully covered in downstream specifications.
-- **Continuous Digest Verification**: Any elaboration step that touches specifications must verify AST digest consistency (`.pipeline/schema-digest.json`) against the SysML v2 SSOT before validation gates pass.
+### Automated Reverse Synchronization Standard
+
+When downstream specification workers (Phases 1–3) elaborate edge cases, exception flows, state transitions, or refined interactions, any newly introduced structural elements, states, ports, or use cases MUST be synchronized back into the SysML v2 model using the reverse compilation engine:
+
+```bash
+python3 scripts/compile_sysml.py --reverse-sync
+```
+
+1. **AST Delta Extraction**: Scans all backlog markdown specifications (`docs/epics`, `docs/features`, `docs/user-stories`, `docs/use-cases`), BDD Given-When-Then action signatures, Mermaid state diagrams, interface tables, and STPA/FMECA hazard matrices.
+2. **Semantic AST Merging**: Ingests deltas and updates `.pipeline/schema.sysml` via non-destructive AST merging in `sysmlv2_ast.py`.
+3. **Cryptographic Parity Digest**: Recomputes `.pipeline/schema-digest.json` with updated SHA-256 checksum and symbol tables.
+4. **22-Gate Parity Lock**: Verifies 100% model coverage, UML 2.5.1 conformance, and behavioral trigger parity via `verify_model_coverage.py --spec-only`.
 
 ## Usage Guidelines
 - In upstream distribution templates (`DEAP-*`), `schema/` remains a clean landing zone containing only `.gitkeep` awaiting user-provided schemas.
