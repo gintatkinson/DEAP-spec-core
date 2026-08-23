@@ -85,7 +85,7 @@ This platform explicitly declares **MATLAB / Simulink / Stateflow / Embedded Cod
 - `.agents/` & `AGENTS.md`: Agent behavior rules, role boundaries, and subagent dispatch protocols.
 - `CLAUDE.md`: Claude Code guidelines and verification gates.
 - `.pipeline/`: Constitution (`constitution.md`), domain specifications, and execution profiles (`profiles/ros2_cpp.md`, `profiles/px4_module.md`).
-- `rules/` & `skills/`: Platform engineering rules and agent workflow skills.
+- `rules/` & `skills/`: Platform engineering rules and agent workflow skills (including SysML v2 SSOT completeness in `rules/sysml-ssot-completeness.md`).
 - `schema/`: Contract definitions and SysML v2 schemas.
 - `tests/`: Automated baseline verification and safety compliance tests.
 
@@ -376,6 +376,31 @@ def test_reconcile_backlog_tooling_accessible():
     res = subprocess.run([sys.executable, reconcile_path], cwd=repo_root, capture_output=True, text=True, timeout=60)
     assert res.returncode == 0, f"scripts/reconcile_backlog.py failed with exit code {res.returncode}:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}"
     assert "Traceback" not in res.stderr, f"scripts/reconcile_backlog.py produced unhandled exception:\n{res.stderr}"
+
+def test_sysml_ssot_completeness_rule_accessible():
+    """Verify rules/sysml-ssot-completeness.md exists, is non-empty, and satisfies governance requirements."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isdir(repo_root):
+        repo_root = os.getcwd()
+
+    rule_path = os.path.join(repo_root, "rules", "sysml-ssot-completeness.md")
+    assert os.path.isfile(rule_path), f"rules/sysml-ssot-completeness.md missing at {repo_root}"
+    assert os.path.getsize(rule_path) > 0, f"rules/sysml-ssot-completeness.md is empty at {repo_root}"
+
+    with open(rule_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Verify key architectural and governance markers
+    required_phrases = [
+        "SysML v2",
+        "Single Source of Truth",
+        "Primary Tier-1 Commercial Toolchain Integration Context",
+        "MATLAB / Simulink / Stateflow / Embedded Coder",
+        "use case def",
+        "requirement def",
+    ]
+    for phrase in required_phrases:
+        assert phrase in content, f"Missing required governance marker '{phrase}' in rules/sysml-ssot-completeness.md"
 EOF
 fi
 
