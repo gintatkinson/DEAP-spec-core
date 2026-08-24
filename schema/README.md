@@ -19,14 +19,14 @@ Supported specification formats include:
 
 ## Boundary: Machine Schemas vs. Human-Authored Mission Intent
 
-DEAP enforces a clear architectural boundary between machine-readable schemas in `schema/` and human-authored operational intent in `docs/conops/MISSION_INTENT.md`:
+DEAP enforces a clear architectural boundary between machine-readable schemas in `schema/` and human-authored operational intent in `docs/conops/` (`MISSION_INTENT.md`):
 
-| Dimension | Machine Schemas (`schema/`) | Mission Intent Contract (`docs/conops/MISSION_INTENT.md`) |
+| Dimension | Machine Schemas (`schema/`) | Mission Intent Contract (`docs/conops/` / `MISSION_INTENT.md`) |
 | :--- | :--- | :--- |
 | **Primary Audience** | Automated compilers, parsers, code generators, and AST analyzers | Systems engineers, safety certifiers, operators, and LLM agent workers |
-| **Artifact Format** | SysML v2 (`.sysml`), OpenAPI/JSON Schema (`.json`/`.yaml`), AUTOSAR (`.arxml`), IDL (`.idl`), Protobuf (`.proto`) | Markdown document adhering to canonical `MISSION_INTENT.md` schema |
+| **Artifact Format** | SysML v2 (`.sysml`), OpenAPI/JSON Schema (`.json`/`.yaml`), AUTOSAR (`.arxml`), IDL (`.idl`), Protobuf (`.proto`) | Markdown documents (`docs/conops/*.md`) adhering to canonical schema |
 | **Content & Scope** | Structural types, port definitions, data models, state machines, and behavioral interfaces | Operational objectives, flight envelopes ($h_{\min}..h_{\max}, v_{\max}$), airspace rules, population density, and stakeholder roles |
-| **Ingestion Engine** | `sysmlv2_ingest.py` (AST translation to `.pipeline/schema.sysml`) | Pipeline 0 Worker 0A (Dual-Mode Ingestion synthesizing `docs/conops/CONOPS.md`) |
+| **Ingestion Engine** | `sysmlv2_ingest.py` (AST translation to `.pipeline/schema.sysml`) & Pipeline 0 Worker 0A (Ingestion for physical & functional boundary synthesis) | Pipeline 0 Worker 0A (Universal Multi-Document & Schema Ingestion synthesizing `docs/conops/CONOPS.md`) |
 | **Toolchain Target** | Embedded Coder, ROS2 interfaces, DDS IDL, SLDV formal models | High-level CONOPS, STPA hazard matrices, SORA SAIL models, and SysML v2 models |
 
 
