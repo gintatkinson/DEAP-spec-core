@@ -148,6 +148,15 @@ if 'tracker_rules' not in data:
     data['tracker_rules'] = {}
 if '$PROVIDER' != 'auto':
     data['tracker_rules']['provider'] = '$PROVIDER'
+if '$PROVIDER' == 'gitlab':
+    data['tracker_rules']['labels'] = {
+        'epic': 'type::epic',
+        'feature': 'type::feature',
+        'user_story': 'type::user-story',
+        'use_case': 'type::use-case',
+        'ready_for_review': 'status::ready-for-review',
+        'resolved': 'status::fixed-resolved'
+    }
 if '$GITLAB_URL':
     data['tracker_rules']['server_url'] = '$GITLAB_URL'
 if '$GITLAB_GROUP':
