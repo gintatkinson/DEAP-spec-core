@@ -2,7 +2,7 @@
 name: adversarial-code-auditor
 version: "3.2"
 description: "Pre-emptive adversarial audit against four correctness risk pillars."
-compatibility: "Requires gh CLI and git."
+compatibility: "Requires gh CLI or glab CLI / GitLab REST API v4, and git."
 metadata:
   title: "Adversarial Code Auditor"
   category: auditing
@@ -16,7 +16,7 @@ metadata:
 
 ### 1.1 Architecture
 
-Subagent receives: file path, pillar name, mode, repo name. Subagent reads this file, audits the target file, produces compliant output, self-verifies, files via `gh issue create --body-file`, returns URLs. Coordinator collects URLs. Coordinator never touches body text.
+Subagent receives: file path, pillar name, mode, repo name. Subagent reads this file, audits the target file, produces compliant output, self-verifies, files via issue tracker (using `gh issue create --body-file` on GitHub, or `glab issue create` / direct REST API v4 on GitLab), returns URLs. Coordinator collects URLs. Coordinator never touches body text.
 
 ### 1.2 When to Use
 
@@ -203,20 +203,55 @@ not a full Mermaid grammar parser, so a pass is not proof the diagram renders.
 
 ### Step E — File
 
-1. Write the verified body to a dynamically named temporary file (e.g., `/tmp/gh_body_$(uuidgen).md`) to prevent parallel execution collisions.
+1. Write the verified body to a dynamically named temporary file (e.g., `/tmp/gh_body_$(uuidgen).md` or `/tmp/gl_body_$(uuidgen).md`) to prevent parallel execution collisions.
 2. Resolve `[LABEL]` from the severity assigned in Section 1.4. This mapping is mandatory:
 
-   | Severity | `[LABEL]` |
-   | --- | --- |
-   | Critical | `bug` |
-   | Important | `bug` |
-   | Suggestion | `enhancement` |
-   | Nitpick | `enhancement` |
+   | Severity | GitHub `[LABEL]` | GitLab Scoped `[LABEL]` |
+   | --- | --- | --- |
+   | Critical | `bug` | `type::bug` |
+   | Important | `bug` | `type::bug` |
+   | Suggestion | `enhancement` | `type::feature` |
+   | Nitpick | `enhancement` | `type::feature` |
 
    Section 1.4 defines Suggestion as forward-looking risk that is explicitly **NOT a current bug**. Filing such a finding as `bug` places it in the selection set of `debug-protocol`, whose Step 0 then forbids processing it — deadlocking that loop. See issue #287.
-3. Run: `gh issue create --repo [REPO] --title "[AUDIT] [file.ext]: [description]" --label "[LABEL]" --body-file /tmp/gh_body_[ID].md`
+3. File the issue based on the provider environment:
+   - **GitHub (`gh` CLI)**:
+     ```bash
+     gh issue create --repo [REPO] --title "[AUDIT] [file.ext]: [description]" --label "[LABEL]" --body-file /tmp/gh_body_[ID].md
+     ```
+   - **GitLab (`glab` CLI)**: When running in GitLab environments with `glab` CLI available:
+     ```bash
+     glab issue create --repo [REPO] --title "[AUDIT] [file.ext]: [description]" --label "[LABEL]" --description "$(< /tmp/gl_body_[ID].md)"
+     ```
+   - **GitLab (Direct REST API v4)**: In containerized or air-gapped GitLab CI environments where `glab` CLI is unavailable, file via direct REST API v4 using standard Python:
+     ```bash
+     python3 - <<'EOF'
+     import os, json, urllib.request, urllib.parse
+
+     server_url = os.environ.get("GITLAB_URL") or os.environ.get("CI_SERVER_URL", "https://gitlab.com")
+     project_id = urllib.parse.quote(os.environ.get("CI_PROJECT_PATH", "[REPO]"), safe="")
+     token = os.environ.get("GITLAB_TOKEN") or os.environ.get("GL_TOKEN") or os.environ.get("CI_JOB_TOKEN")
+     body_content = open("/tmp/gl_body_[ID].md", encoding="utf-8").read()
+
+     url = f"{server_url.rstrip('/')}/api/v4/projects/{project_id}/issues"
+     headers = {"PRIVATE-TOKEN": token, "Content-Type": "application/json"}
+     if not os.environ.get("GITLAB_TOKEN") and not os.environ.get("GL_TOKEN") and os.environ.get("CI_JOB_TOKEN"):
+         headers = {"JOB-TOKEN": token, "Content-Type": "application/json"}
+
+     payload = json.dumps({
+         "title": "[AUDIT] [file.ext]: [description]",
+         "description": body_content,
+         "labels": "[LABEL]"
+     }).encode("utf-8")
+
+     req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+     with urllib.request.urlopen(req) as resp:
+         data = json.loads(resp.read().decode("utf-8"))
+         print(f"Created issue URL: {data.get('web_url')}")
+     EOF
+     ```
 4. Title format: `[AUDIT] [filename.ext]: [Brief description]`
-5. If mode is `bug-based` and finding confirms a known issue, use `gh issue comment` instead of `gh issue create`.
+5. If mode is `bug-based` and finding confirms a known issue, post a comment (`gh issue comment` on GitHub, or `glab issue note` / direct notes REST API on GitLab) instead of creating a new issue.
 6. Sleep 1 second between issues.
 7. Return: issue URLs with severities.
 
