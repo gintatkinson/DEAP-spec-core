@@ -192,6 +192,18 @@ class TestGitLabApiOperations(unittest.TestCase):
         success = self.provider.comment_issue(42, "Test comment")
         self.assertTrue(success)
 
+    def test_gitlab_provider_offline_mode(self):
+        offline_provider = GitLabV4Provider(offline=True)
+        self.assertEqual(offline_provider.list_issues(), [])
+
+    @patch("urllib.request.urlopen")
+    def test_api_error_handling(self, mock_urlopen):
+        mock_urlopen.side_effect = Exception("API connection error")
+        created = self.provider.create_issue("Title", "Body")
+        self.assertIsNone(created)
+        success = self.provider.edit_issue(42, "Body")
+        self.assertFalse(success)
+
 
 class TestTrackerProviderDetection(unittest.TestCase):
     def test_cli_provider_override(self):
@@ -217,6 +229,49 @@ class TestTrackerProviderDetection(unittest.TestCase):
         self.assertEqual(rules["tracker_rules"]["labels"]["use_case"], "type::use-case")
         self.assertEqual(rules["tracker_rules"]["labels"]["resolved"], "status::fixed-resolved")
 
+    def test_rules_loading_gitlab_explicit_override_cleans_github_keys_and_labels(self):
+        with patch("reconcile_backlog.resolve_codebase_rules_path", return_value=None):
+            rules = load_codebase_rules(os.getcwd(), provider="gitlab")
+            self.assertEqual(rules["tracker_rules"]["keys"], DEFAULT_GITLAB_TRACKER_RULES["keys"])
+            self.assertEqual(rules["tracker_rules"]["labels"], DEFAULT_GITLAB_TRACKER_RULES["labels"])
+            self.assertEqual(rules["tracker_rules"]["keys"]["issue_id"], "iid")
+            self.assertEqual(rules["tracker_rules"]["keys"]["open_state_value"], "OPENED")
+
+    def test_rules_loading_gitlab_provider_in_loaded_rules_merges_custom_rules(self):
+        custom_config = {
+            "tracker_rules": {
+                "provider": "gitlab",
+                "labels": {"custom_label": "type::custom"},
+                "keys": {"custom_key": "custom_val"}
+            }
+        }
+        with patch("reconcile_backlog.resolve_codebase_rules_path", return_value="/fake/codebase_rules.json"):
+            with patch("builtins.open", MagicMock()):
+                with patch("json.load", return_value=custom_config):
+                    rules = load_codebase_rules(os.getcwd(), provider="gitlab")
+                    self.assertEqual(rules["tracker_rules"]["provider"], "gitlab")
+                    self.assertEqual(rules["tracker_rules"]["labels"]["custom_label"], "type::custom")
+                    self.assertEqual(rules["tracker_rules"]["labels"]["epic"], "type::epic")
+                    self.assertEqual(rules["tracker_rules"]["keys"]["custom_key"], "custom_val")
+
+    def test_rules_loading_github_in_loaded_rules_overridden_by_gitlab_provider(self):
+        github_config = {
+            "tracker_rules": {
+                "provider": "github",
+                "labels": {"epic": "gh-epic", "stale_gh_label": "gh-val"},
+                "keys": {"issue_id": "number", "open_state_value": "OPEN"}
+            }
+        }
+        with patch("reconcile_backlog.resolve_codebase_rules_path", return_value="/fake/codebase_rules.json"):
+            with patch("builtins.open", MagicMock()):
+                with patch("json.load", return_value=github_config):
+                    rules = load_codebase_rules(os.getcwd(), provider="gitlab")
+                    self.assertEqual(rules["tracker_rules"]["provider"], "gitlab")
+                    self.assertEqual(rules["tracker_rules"]["labels"], DEFAULT_GITLAB_TRACKER_RULES["labels"])
+                    self.assertEqual(rules["tracker_rules"]["keys"], DEFAULT_GITLAB_TRACKER_RULES["keys"])
+                    self.assertEqual(rules["tracker_rules"]["keys"]["issue_id"], "iid")
+                    self.assertNotIn("stale_gh_label", rules["tracker_rules"]["labels"])
+
     def test_gitlab_scoped_labels(self):
         rules = {"tracker_rules": {"provider": "gitlab"}}
         self.assertEqual(get_structural_label("Epic", rules), "type::epic")
@@ -224,6 +279,25 @@ class TestTrackerProviderDetection(unittest.TestCase):
         self.assertEqual(get_structural_label("User Story", rules), "type::user-story")
         self.assertEqual(get_structural_label("Use Case", rules), "type::use-case")
         self.assertEqual(get_resolved_label(rules), "status::fixed-resolved")
+
+    def test_create_tracker_provider_gitlab(self):
+        rules = {"tracker_rules": {"server_url": "https://gitlab.example.com", "project_id": "group/project"}}
+        provider = create_tracker_provider("gitlab", rules=rules, offline=False)
+        self.assertIsInstance(provider, GitLabV4Provider)
+        self.assertEqual(provider.server_url, "https://gitlab.example.com")
+        self.assertEqual(provider.raw_project_id, "group/project")
+
+    def test_create_tracker_provider_github(self):
+        rules = {"tracker_rules": {}}
+        provider = create_tracker_provider("github", rules=rules, offline=True)
+        self.assertIsInstance(provider, GitHubCLIProvider)
+        self.assertTrue(provider.offline)
+
+    def test_gitlab_close_comments(self):
+        close_comments = DEFAULT_GITLAB_TRACKER_RULES.get("close_comments", {})
+        self.assertIn("epic", close_comments)
+        self.assertIn("user_story", close_comments)
+        self.assertIn("use_case", close_comments)
 
 
 if __name__ == "__main__":
