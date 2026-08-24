@@ -8,7 +8,7 @@ The `schema/` directory contains heterogeneous interface definitions, domain sch
 
 ## Upstream Clean Landing Zone Invariant
 
-In upstream distribution templates (`DEAP-*`), the `schema/` directory is strictly maintained as a **clean landing zone** containing only `.gitkeep`. Upstream distribution templates contain only the abstract compiler, linters, and empty specification directories. Concrete project schemas, domain models, and interface specifications are never committed to upstream templates; they reside exclusively in downstream application workspaces initialized via `scripts/install_pipeline.sh`.
+In upstream distribution templates (`DEAP-*`), the `schema/` directory is strictly maintained as a **clean landing zone** containing only `.gitkeep` and `README.md`. Upstream distribution templates contain only the abstract compiler, linters, and empty specification directories. Concrete project schemas, domain models, and interface specifications are never committed to upstream templates; they reside exclusively in downstream application workspaces initialized via `scripts/install_pipeline.sh`.
 
 Supported specification formats include:
 - **SysML v2** (`.sysml`): Textual modeling for system architecture, item definitions, parts, ports, requirement definitions, state machines, and use cases.
@@ -16,6 +16,19 @@ Supported specification formats include:
 - **AUTOSAR ARXML** (`.arxml`, `.xml`): Classic and Adaptive AUTOSAR software component descriptions, port interfaces, and package definitions.
 - **OMG IDL** (`.idl`): Interface Definition Language files for DDS/CORBA middleware contracts and topics.
 - **Protocol Buffers** (`.proto`): Structured serialization schemas for inter-process communication and message exchanges.
+
+## Boundary: Machine Schemas vs. Human-Authored Mission Intent
+
+DEAP enforces a clear architectural boundary between machine-readable schemas in `schema/` and human-authored operational intent in `docs/conops/MISSION_INTENT.md`:
+
+| Dimension | Machine Schemas (`schema/`) | Mission Intent Contract (`docs/conops/MISSION_INTENT.md`) |
+| :--- | :--- | :--- |
+| **Primary Audience** | Automated compilers, parsers, code generators, and AST analyzers | Systems engineers, safety certifiers, operators, and LLM agent workers |
+| **Artifact Format** | SysML v2 (`.sysml`), OpenAPI/JSON Schema (`.json`/`.yaml`), AUTOSAR (`.arxml`), IDL (`.idl`), Protobuf (`.proto`) | Markdown document adhering to canonical `MISSION_INTENT.md` schema |
+| **Content & Scope** | Structural types, port definitions, data models, state machines, and behavioral interfaces | Operational objectives, flight envelopes ($h_{\min}..h_{\max}, v_{\max}$), airspace rules, population density, and stakeholder roles |
+| **Ingestion Engine** | `sysmlv2_ingest.py` (AST translation to `.pipeline/schema.sysml`) | Pipeline 0 Worker 0A (Dual-Mode Ingestion synthesizing `docs/conops/CONOPS.md`) |
+| **Toolchain Target** | Embedded Coder, ROS2 interfaces, DDS IDL, SLDV formal models | High-level CONOPS, STPA hazard matrices, SORA SAIL models, and SysML v2 models |
+
 
 ## Primary Commercial Toolchain Integration Context
 
