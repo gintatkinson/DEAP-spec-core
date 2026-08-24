@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import unittest
+import netrc
 from unittest.mock import patch, MagicMock
 
 # Add scripts directory to sys.path
@@ -88,6 +89,43 @@ class TestGitLabProviderResolution(unittest.TestCase):
             token="test-token"
         )
         self.assertEqual(provider.project_id_encoded, "123456")
+
+    @patch("shutil.which", return_value=None)
+    @patch("netrc.netrc")
+    def test_netrc_resolution(self, mock_netrc_class, mock_which):
+        with patch.dict(os.environ, {}, clear=True):
+            mock_netrc_inst = MagicMock()
+            mock_netrc_inst.authenticators.return_value = ("user", "account", "netrc-glpat-token")
+            mock_netrc_class.return_value = mock_netrc_inst
+
+            provider = GitLabV4Provider(project_id="my-org/my-project")
+            self.assertEqual(provider.token, "netrc-glpat-token")
+            self.assertEqual(provider.token_type, "PRIVATE-TOKEN")
+            mock_netrc_inst.authenticators.assert_called_once_with("gitlab.com")
+
+    @patch("shutil.which", return_value=None)
+    @patch("netrc.netrc")
+    def test_netrc_resolution_custom_host(self, mock_netrc_class, mock_which):
+        with patch.dict(os.environ, {}, clear=True):
+            mock_netrc_inst = MagicMock()
+            mock_netrc_inst.authenticators.return_value = ("user", "account", "custom-corp-token")
+            mock_netrc_class.return_value = mock_netrc_inst
+
+            provider = GitLabV4Provider(
+                server_url="https://gitlab.internal.defense.gov",
+                project_id="uas-safety",
+            )
+            self.assertEqual(provider.token, "custom-corp-token")
+            self.assertEqual(provider.token_type, "PRIVATE-TOKEN")
+            mock_netrc_inst.authenticators.assert_called_once_with("gitlab.internal.defense.gov")
+
+    @patch("shutil.which", return_value=None)
+    @patch("netrc.netrc", side_effect=FileNotFoundError("~/.netrc missing"))
+    def test_netrc_resolution_missing_file_fallback(self, mock_netrc_class, mock_which):
+        with patch.dict(os.environ, {}, clear=True):
+            provider = GitLabV4Provider(project_id="uas-safety")
+            self.assertIsNone(provider.token)
+            self.assertEqual(provider.token_type, "PRIVATE-TOKEN")
 
 
 class TestGitLabApiOperations(unittest.TestCase):
