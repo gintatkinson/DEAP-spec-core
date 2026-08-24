@@ -187,9 +187,9 @@ def test_upstream_template_clean_landing_zones():
     """Verify upstream template landing zones remain pristine with zero concrete specs.
 
     If repository is an upstream template (.pipeline/upstream/ exists), asserts that
-    docs/epics/, docs/features/, docs/user-stories/, docs/use-cases/, and schema/
-    contain only .gitkeep and README.md, and zero concrete specification files or
-    concrete .sysml domain models.
+    docs/conops/, docs/safety/, docs/epics/, docs/features/, docs/user-stories/,
+    docs/use-cases/, and schema/ contain only .gitkeep and README.md, and zero concrete
+    specification files or concrete .sysml domain models.
     """
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if not os.path.isdir(repo_root):
@@ -200,6 +200,8 @@ def test_upstream_template_clean_landing_zones():
         pytest.skip("Downstream project detected — skipping upstream landing zone clean check.")
 
     landing_zones = [
+        os.path.join("docs", "conops"),
+        os.path.join("docs", "safety"),
         os.path.join("docs", "epics"),
         os.path.join("docs", "features"),
         os.path.join("docs", "user-stories"),
