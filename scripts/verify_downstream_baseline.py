@@ -475,8 +475,8 @@ def check_upstream_template_clean_landing_zones(repo_root):
     """Check 16: Upstream Template Clean Landing Zone Gate.
 
     Verify that upstream distribution templates contain zero concrete specification
-    markdown files or concrete .sysml domain models in landing zones (docs/epics/,
-    docs/features/, docs/user-stories/, docs/use-cases/, and schema/).
+    markdown files or concrete .sysml domain models in landing zones (docs/conops/,
+    docs/safety/, docs/epics/, docs/features/, docs/user-stories/, docs/use-cases/, and schema/).
     """
     upstream_marker = os.path.join(repo_root, ".pipeline", "upstream")
     if not os.path.isdir(upstream_marker):
@@ -484,6 +484,8 @@ def check_upstream_template_clean_landing_zones(repo_root):
         return
 
     landing_zones = [
+        os.path.join("docs", "conops"),
+        os.path.join("docs", "safety"),
         os.path.join("docs", "epics"),
         os.path.join("docs", "features"),
         os.path.join("docs", "user-stories"),
