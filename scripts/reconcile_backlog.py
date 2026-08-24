@@ -22,6 +22,7 @@ import os
 import re
 import subprocess
 import json
+import netrc
 import sys
 import yaml
 import traceback
@@ -465,6 +466,13 @@ class GitLabV4Provider:
                     return res.stdout.strip(), "PRIVATE-TOKEN"
             except Exception:
                 pass
+        try:
+            hostname = urllib.parse.urlparse(self.server_url).hostname or "gitlab.com"
+            auth = netrc.netrc().authenticators(hostname)
+            if auth and auth[2] and auth[2].strip():
+                return auth[2].strip(), "PRIVATE-TOKEN"
+        except Exception:
+            pass
         return None, "PRIVATE-TOKEN"
 
     def _api_request(
