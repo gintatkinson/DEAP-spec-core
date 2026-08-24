@@ -734,6 +734,65 @@ Add formal constitutional mandate for Pure Schema-Driven Compiler and Upstream C
 
 Non-destructive: additive subsection, line count increased from 240 to 244 lines, governance rules preserved.
 
+---
+
+## AMEND-0018 — Register Gate 16 (Safety Integrity Quality Gate) and Phase 0 Airworthiness Gate
+
+- **Date:** 2026-08-24
+- **Logged:** 2026-08-24
+- **Motivating issue:** #38 — Missing Safety Integrity Quality Gate and SORA OSO-01..24 Completeness Verification
+- **Approved by:** "PROCEED" — approved implementation plan for Safety Integrity Quality Gate and SORA OSO-01..24 Completeness Verification.
+- **Destructive:** no
+- **Line count:** 257
+- **Resulting SHA-256:** `4779d7c72630a7ff08b6a814e1fd99ff64c1e944bb8d76b47d5977351a81c852`
+
+### Change
+
+Section *Universal Quality Gates*, updated `### Quality Gates & Verification Standards` table count to 16 active quality gates and registered Safety Integrity Quality Gate; added subsection `### Phase 0 Safety Engineering Airworthiness Gate`.
+
+Before:
+
+> ### Quality Gates & Verification Standards
+> The pipeline mechanically enforces 15 active quality gates that halt execution on failure. All agents MUST ensure deliverables comply with these gates before declaring completion:
+> 
+> | Quality Gate | Enforcing Validator Path | Documentation Reference |
+> |---|---|---|
+> ...
+> | Logical UI Validation | `validators/logical_ui_validator.py` | `rules/platform-independence.md` |
+> 
+> ### Specification Validation Gates
+
+After:
+
+> ### Quality Gates & Verification Standards
+> The pipeline mechanically enforces 16 active quality gates that halt execution on failure. All agents MUST ensure deliverables comply with these gates before declaring completion:
+> 
+> | Quality Gate | Enforcing Validator Path | Documentation Reference |
+> |---|---|---|
+> ...
+> | Logical UI Validation | `validators/logical_ui_validator.py` | `rules/platform-independence.md` |
+> | Safety Integrity Quality Gate | `scripts/verify_downstream_baseline.py` | `docs/safety/README.md` |
+> 
+> ### Phase 0 Safety Engineering Airworthiness Gate
+> - **8-Pillar Safety Specification Schema**: All downstream safety engineering deliverables (`docs/safety/STPA_MATRIX.md`) MUST conform to the 8-pillar STPA, FMECA, and SORA schema:
+>   1. System Losses ($L-1..N$)
+>   2. System Hazards ($H-1..N$)
+>   3. Hierarchical Control Structure Topology
+>   4. Unsafe Control Actions ($UCA-1..N$) covering all 4 failure modes (Not providing, Providing, Too early/too late/out of order, Stopped too soon/applied too long)
+>   5. Loss Scenarios ($LS-1..N$) & Causal Factors
+>   6. Formal Safety Constraints ($SC-1..N$)
+>   7. FMECA Criticality Matrix with at least 15 component failure mode rows ($15+$ rows) and RPN calculations
+>   8. SORA SAIL Risk Mitigations & OSO Traceability Table determining Final GRC, ARC, SAIL classification, and complete coverage of all 24 Operational Safety Objectives (OSO-01 through OSO-24).
+> - **ASTM F3269-17 RTA & Model-Based Design Hook Mandate**: Formal safety constraints and Run-Time Assurance (RTA) Safety Net monitors MUST specify direct integration hooks for MATLAB / Simulink / Stateflow / Embedded Coder control law synthesis and Simulink Design Verifier (SLDV) invariant proving.
+> 
+> ### Specification Validation Gates
+
+### Rationale
+
+Register Gate 16 (Safety Integrity Quality Gate) in the Universal Quality Gates table and add the Phase 0 Safety Engineering Airworthiness Gate subsection to `.pipeline/constitution.md` to formally enforce the 8-pillar schema, all 24 SORA OSOs, 15+ FMECA rows, 4 UCA categories, ASTM F3269-17 RTA architecture, and MATLAB/Simulink hooks.
+
+Non-destructive: additive quality gate registration and airworthiness governance subsection, line count increased from 245 to 257 lines, governance rules preserved.
+
 
 
 
