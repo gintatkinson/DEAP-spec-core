@@ -599,5 +599,14 @@ if [ -f "$TARGET_DIR/scripts/setup_git_hooks.py" ]; then
   (cd "$TARGET_DIR" && python3 scripts/setup_git_hooks.py) || true
 fi
 
+# Automatically bootstrap issue tracker label taxonomy
+echo "Bootstrapping issue tracker label taxonomy..."
+if [ -f "$TARGET_DIR/skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py" ]; then
+  python3 "$TARGET_DIR/skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py" || {
+    echo "Note: Tracker labels could not be provisioned automatically (e.g. offline or unauthenticated)."
+    echo "You can re-run label provisioning anytime: python3 skills/spec-orchestrator/scripts/bootstrap_tracker_labels.py"
+  }
+fi
+
 echo "==> Digital Pipeline Installation Complete. 0 manual steps remaining."
 
