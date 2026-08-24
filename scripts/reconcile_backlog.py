@@ -925,6 +925,9 @@ def load_codebase_rules(workspace_dir, provider=None):
         rules = deep_merge(rules, gitlab_defaults)
         if loaded.get("tracker_rules", {}).get("provider") == "gitlab":
             rules["tracker_rules"] = deep_merge(rules["tracker_rules"], loaded["tracker_rules"])
+        else:
+            rules["tracker_rules"]["labels"] = copy.deepcopy(DEFAULT_GITLAB_TRACKER_RULES["labels"])
+            rules["tracker_rules"]["keys"] = copy.deepcopy(DEFAULT_GITLAB_TRACKER_RULES["keys"])
         rules["tracker_rules"]["provider"] = "gitlab"
 
     return rules
