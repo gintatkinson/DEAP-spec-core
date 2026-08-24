@@ -130,7 +130,14 @@ bash scripts/install_pipeline.sh <target_dir> -p gitlab --gitlab-url https://git
 
 #### Single-Command Remote Bootstrap
 ```bash
+# GitHub Remote Bootstrap
 git clone https://github.com/gintatkinson/DEAP-uas-infrastructure-safety.git /tmp/deap_installer && bash /tmp/deap_installer/scripts/install_pipeline.sh . -p github && rm -rf /tmp/deap_installer
+
+# GitLab SaaS Remote Bootstrap
+git clone https://github.com/gintatkinson/DEAP-uas-infrastructure-safety.git /tmp/deap_installer && bash /tmp/deap_installer/scripts/install_pipeline.sh . -p gitlab --gitlab-group <group> && rm -rf /tmp/deap_installer
+
+# GitLab Self-Hosted / Air-Gapped Remote Bootstrap
+git clone https://github.com/gintatkinson/DEAP-uas-infrastructure-safety.git /tmp/deap_installer && bash /tmp/deap_installer/scripts/install_pipeline.sh . -p gitlab --gitlab-url https://gitlab.internal.defense.gov --gitlab-group <group> && rm -rf /tmp/deap_installer
 ```
 
 > **Note**: `install_pipeline.sh` automatically copies `skills`, `rules`, `schema`, `.pipeline`, `.agents`, and `scripts`, updates `.gitignore`, and sets up git hooks directly into your project root in a single automated turnkey step.
@@ -157,6 +164,7 @@ else
   cp ./.tmp-pipeline/.gitignore ./
 fi
 rm -rf ./.tmp-pipeline
+mkdir -p ./docs/conops ./docs/safety ./docs/architecture/blueprints ./docs/epics ./docs/features ./docs/user-stories ./docs/use-cases ./.pipeline/contracts ./.pipeline/domain_specs ./.pipeline/profiles
 
 # Configure for GitLab (if applicable)
 python3 -c "
@@ -189,8 +197,8 @@ After copying the pipeline, configure Gemini / Antigravity to load the skills an
       - If present -> **Template Distribution Mode**: The active repository is the upstream distribution template. Customer application artifacts are prohibited; work is restricted to pipeline governance, tooling, and generic safety models.
       - If absent -> **Downstream Customer Project Mode**: The active repository is an installed customer workspace. Authorized for customer feature implementation and domain codebase delivery.
    1. **Read Governance Constitution**: Execute `view_file` on `.pipeline/constitution.md` to ingest the platform-independent functional governance layer and zero-mocking persistence mandates.
-   2. **Load Project Skills**: Execute `view_file` on `.agents/skills/feature-driven-implementation/SKILL.md` (and any active skills under `.agents/skills/`) to initialize feature-driven implementation protocols and review gates.
-   3. **Load Governance Rules**: Ingest `.agents/AGENTS.md` to enforce project-scoped agentic rules, context-isolated subagent dispatch loops, and role boundary locks.
+   2. **Load Project Skills**: Execute `view_file` on `skills/feature-driven-implementation/SKILL.md` (and any active skills under `skills/` or `.agents/skills/`) to initialize feature-driven implementation protocols and review gates.
+   3. **Load Governance Rules**: Ingest `AGENTS.md` (or `.agents/AGENTS.md`) and `rules/` to enforce project-scoped agentic rules, context-isolated subagent dispatch loops, and role boundary locks.
    4. **Load Platform Profile**: Read the target platform execution profile (`.pipeline/profiles/ros2_cpp.md` for ROS2 C++ Real-Time Nodes or `.pipeline/profiles/px4_module.md` for PX4 Autopilot Flight Modules) to establish platform-specific build, test, and lifecycle constraints.
    5. **Bootstrap Tracker Labels**: Verify that repository issue tracker labels are synchronized and operational by running `python3 scripts/reconcile_backlog.py` or verifying label bootstrapping status.
 
@@ -202,14 +210,14 @@ Ensure `.agents/AGENTS.md` exists in your project root to instruct initializing 
 # Agent Instructions
 
 ## Repository Role & Scope Classification
-- **Repository Classification:** `PIPELINE_DISTRIBUTION_TEMPLATE` (Upstream Domain Template for UAS Infrastructure Safety)
-- **Sentinel Indicator:** The presence of `.pipeline/upstream/` denotes that this repository is the **Pipeline Distribution Template**, NOT a downstream customer application workspace.
-- **Customer Data Boundary:** Customer-specific application code, private flight logs, mission parameters, and proprietary artifacts belong in the customer's downstream repository (installed via `install_pipeline.sh`), and must NOT be committed to this template repository.
+- **Repository Classification:** `DOWNSTREAM_CUSTOMER_PROJECT` (UAS Safety-Critical Engineering Project)
+- **Sentinel Indicator:** The absence of `.pipeline/upstream/` denotes that this repository is an active **Downstream Customer Project Workspace**, authorized for concrete application code implementation and domain feature delivery.
+- **Customer Application Scope:** Customer-specific application code, ROS2 C++ nodes, PX4 flight modules, domain tests, mission flight envelopes, and proprietary safety models are developed, tested, and maintained directly within this project workspace.
 
 ## Pipeline Skills & Rules
 This project uses the Digital Engineering Agent Platform (DEAP).
-- Skills: read all SKILL.md files in `.agents/skills/` and `skills/`
-- Rules: read all files in `.agents/AGENTS.md` and `rules/`
+- Skills: read all SKILL.md files in `skills/` and `.agents/skills/`
+- Rules: read all files in `rules/` and `.agents/AGENTS.md`
 - Constitution: read `.pipeline/constitution.md` before any task
 - Profiles: read `.pipeline/profiles/ros2_cpp.md` or `.pipeline/profiles/px4_module.md` before implementing features
 ```
@@ -316,16 +324,16 @@ $$\text{Pipeline} = \text{Stage}_{\text{lint}} \xrightarrow{\text{pass}} \text{S
 
 ## 7. Closed-Loop Bidirectional SysML v2 Compilation (Zero Drift)
 
-To eliminate specification-model drift between systems engineering models and agile software backlogs, DEAP implements an automated **Closed-Loop Bidirectional SysML v2 Compilation & Synchronization Engine**. The canonical SysML v2 model (`schema/DEAP_MODEL.sysml`) serves as the Single Source of Truth (SSOT).
+To eliminate specification-model drift between systems engineering models and agile software backlogs, DEAP implements an automated **Closed-Loop Bidirectional SysML v2 Compilation & Synchronization Engine**. The canonical SysML v2 model (`docs/architecture/blueprints/DEAP_MODEL.sysml` or `schema/*.sysml`) serves as the Single Source of Truth (SSOT).
 
 ### 7.1 Bidirectional Compilation & Verification Commands
 
 ```bash
 # 1. Forward AST Ingestion: Compile SysML v2 formal model into agile specification scaffolding
-python3 skills/spec-orchestrator/scripts/sysmlv2_ingest.py --schema schema/DEAP_MODEL.sysml
+python3 skills/spec-orchestrator/scripts/sysmlv2_ingest.py --schema docs/architecture/blueprints/DEAP_MODEL.sysml
 
 # 2. Reverse AST Closed-Loop Synchronization: Extract markdown spec deltas back into SysML v2 SSOT
-python3 scripts/compile_sysml.py --reverse-sync --docs docs/ --schema schema/DEAP_MODEL.sysml --out .pipeline/schema.sysml
+python3 scripts/compile_sysml.py --reverse-sync --docs docs/ --schema docs/architecture/blueprints/DEAP_MODEL.sysml --out .pipeline/schema.sysml
 
 # 3. 22-Gate Mechanical Parity Lock: Verify 100% semantic alignment across all artifacts
 python3 skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
@@ -413,11 +421,12 @@ Primary Commercial Toolchain Integration Context:
 This project explicitly declares MATLAB / Simulink / Stateflow / Embedded Coder as the Primary Tier-1 Commercial Toolchain Integration Context (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada code generation).
 
 Directive:
-Execute front-end CONOPS synthesis for the target UAS flight mission profile by ingesting the input SysML v2 safety model file (`docs/architecture/blueprints/DEAP_MODEL.sysml`). Convert raw stakeholder intent, structural SysML v2 requirements, and airspace constraints into a structured Concept of Operations (`CONOPS.md`).
+Execute front-end CONOPS synthesis for the target UAS flight mission profile by ingesting raw stakeholder intent, operational airspace constraints, and flight mission profile parameters. Convert mission objectives, regulatory constraints, and operational flight envelopes into a structured Concept of Operations (`CONOPS.md`).
 
 1. Inputs & Constraints:
-   - Primary Input SysML v2 Model File: `docs/architecture/blueprints/DEAP_MODEL.sysml` (or custom input `.sysml` file path).
+   - Raw stakeholder intent, mission flight objectives, and operational concept statements.
    - Ingest operational mission envelope (flight altitude boundaries, max ground speed, payload configuration, population density, BVLOS vs VLOS flight operations).
+   - Operational airspace constraints, regulatory classification (e.g., JARUS SORA, FAA Part 107/135, EASA Specific Category), and geographic boundaries.
    - Identify stakeholder role definitions (Remote Pilot in Command, Fleet Operations Manager, Command Center Lead, Air Traffic Management / UTM interface).
    - Define flight operational phases (Pre-Flight Checkout, Launch/Takeoff, En-Route Cruise, Mission Execution, Approach & Landing, Fail-Safe Contingency RTL).
 
