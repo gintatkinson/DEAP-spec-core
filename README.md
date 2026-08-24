@@ -374,12 +374,16 @@ Pipeline 0 deploys three specialized, context-isolated subagent workers operatin
 
 ```mermaid
 flowchart LR
-    subgraph Ingestion["Customer Intent Ingestion"]
-        Mode1["Mode 1: docs/conops/MISSION_INTENT.md"]
-        Mode2["Mode 2: Prompt Directives (Auto-Persist MISSION_INTENT.md)"]
+    subgraph Ingestion["Universal Multi-Document & Schema Ingestion"]
+        Doc1["Operational Intent (docs/conops/*.md)"]
+        Doc2["Interface & Model Schemas (schema/*)"]
+        Doc3["Architectural Blueprints (docs/architecture/*.md)"]
+        Doc4["Prompt Directives (Fallback: Auto-Persist docs/conops/MISSION_INTENT.md)"]
     end
-    Mode1 --> Worker_0A["Worker 0A: CONOPS Synthesizer"]
-    Mode2 --> Worker_0A
+    Doc1 --> Worker_0A["Worker 0A: CONOPS Synthesizer"]
+    Doc2 --> Worker_0A
+    Doc3 --> Worker_0A
+    Doc4 --> Worker_0A
     Worker_0A -->|"docs/conops/CONOPS.md"| Worker_0B["Worker 0B: STPA / FMECA / SORA Assurer"]
     Worker_0B -->|"docs/safety/STPA_MATRIX.md & SORA SAIL"| Worker_0C["Worker 0C: SysML v2 Authoring Worker"]
     Worker_0C -->|"DEAP_MODEL.sysml & Handoff AST JSON"| Pipeline_1["Pipeline 1 Projection Engine"]
@@ -388,15 +392,17 @@ flowchart LR
 ### 8.2 Subagent Execution Roles
 
 #### 8.2.1 Worker 0A: CONOPS & Mission Scenario Synthesizer
-- **Role Description:** Context-isolated front-end synthesizer responsible for converting raw stakeholder statements, customer mission intent specifications, and operational flight envelopes into a structured Concept of Operations (`CONOPS.md`) and persisting intent in `MISSION_INTENT.md`.
-- **Primary Inputs (Dual-Mode Ingestion):**
-  - **Mode 1 (File-Based Contract):** `docs/conops/MISSION_INTENT.md` containing formal customer mission parameters, flight envelopes, and airspace rules.
-  - **Mode 2 (Prompt-Based Ingestion):** Raw natural language prompt parameters, stakeholder objectives, and operational constraints when `MISSION_INTENT.md` is not present.
+- **Role Description:** Context-isolated front-end synthesizer responsible for executing Universal Multi-Document & Schema Ingestion across operational intent documents, interface schemas, and architectural blueprints to produce a structured Concept of Operations (`CONOPS.md`) and persisting intent in `MISSION_INTENT.md` when operating from prompt fallback.
+- **Primary Inputs (Universal Multi-Document & Schema Ingestion):**
+  - **Operational Intent Documents (`docs/conops/*.md`):** All customer mission intent specifications and operational scenario markdown files in `docs/conops/` (excluding `README.md`).
+  - **Interface & Model Schemas (`schema/*`):** Pre-existing customer models and interface definitions (`*.sysml`, `*.proto`, `*.arxml`, `*.json`, `*.yaml`, `*.idl`) establishing physical and functional boundaries, port definitions, and telemetry contracts.
+  - **Architectural Blueprints (`docs/architecture/*.md`):** Existing system architectural specifications, network topology blueprints, and safety frameworks in `docs/architecture/` (and `docs/architecture/blueprints/`).
+  - **Prompt-Based Fallback Directives:** Raw natural language prompt parameters, stakeholder objectives, and operational constraints when no intent files exist in `docs/conops/` (triggering auto-persistence of `docs/conops/MISSION_INTENT.md`).
   - Flight mission envelope parameters (altitude boundaries, ground speed limits, payload type, airspace classification, population density).
   - Stakeholder role definitions (Remote Pilot, Command Center Operator, Fleet Manager, ATC/UTM interface).
 - **Deliverables & Outputs:**
   - `docs/conops/MISSION_INTENT.md`: Ingested or auto-persisted customer mission intent contract under git version control.
-  - `docs/conops/CONOPS.md`: Structured Concept of Operations detailing mission objectives, flight operational phases (Pre-Flight, Launch, Cruise, Mission Execution, Approach, Landing, Contingency RTL), system physical and functional boundaries, and environmental envelope constraints.
+  - `docs/conops/CONOPS.md`: Structured Concept of Operations detailing mission objectives, flight operational phases (Pre-Flight, Launch, Cruise, Mission Execution, Approach, Landing, Contingency RTL), system physical and functional boundaries reconciled with customer schemas and architectural blueprints, environmental envelope constraints, and MATLAB / Simulink / Stateflow control law synthesis hooks.
 
 #### 8.2.2 Worker 0B: STPA Hazard Analysis, FMECA & SORA SAIL Assurer
 - **Role Description:** Safety engineering subagent that performs System-Theoretic Process Analysis (STPA), Failure Mode, Effects, and Criticality Analysis (FMECA), and JARUS SORA v2.5 SAIL I–VI risk assessment on the system boundary defined by Worker 0A.
@@ -430,11 +436,13 @@ Primary Commercial Toolchain Integration Context:
 This project explicitly declares MATLAB / Simulink / Stateflow / Embedded Coder as the Primary Tier-1 Commercial Toolchain Integration Context (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada code generation).
 
 Directive:
-Execute front-end CONOPS synthesis for the target UAS flight mission profile using Dual-Mode Ingestion:
+Execute front-end CONOPS synthesis for the target UAS flight mission profile using Universal Multi-Document & Schema Ingestion:
 
-1. Dual-Mode Input Resolution:
-   - Mode 1 (File-Based Ingestion): Check if `docs/conops/MISSION_INTENT.md` exists on disk. If present, read `docs/conops/MISSION_INTENT.md` as the authoritative primary input contract.
-   - Mode 2 (Prompt-Based Ingestion): If `docs/conops/MISSION_INTENT.md` does not exist on disk, ingest raw stakeholder intent, operational airspace constraints, and flight mission profile parameters provided in the prompt/directives. Automatically emit and persist `docs/conops/MISSION_INTENT.md` capturing all customer intent parameters under git version control according to the canonical schema.
+1. Universal Multi-Document & Schema Discovery:
+   - Operational Intent Discovery: Scan `docs/conops/` for all mission intent markdown files (`*.md`, excluding `README.md`). If present, ingest all as authoritative operational specifications. If `docs/conops/` contains no intent files, ingest prompt directives and auto-persist `docs/conops/MISSION_INTENT.md`.
+   - Interface & Model Schema Ingestion: Scan `schema/` for pre-existing customer models and interface definitions (`*.sysml`, `*.proto`, `*.arxml`, `*.json`, `*.yaml`, `*.idl`). Ingest all port types, message structures, and subsystem definitions into the operational context.
+   - Architectural Blueprint Ingestion: Scan `docs/architecture/` (and `docs/architecture/blueprints/`) for existing architectural specifications, network blueprints, and safety frameworks (`*.md`). Ingest all system boundaries, subsystem mappings, and commercial toolchain hooks.
+   - Reconcile customer interface schemas and architectural blueprints with system boundaries and MATLAB / Simulink / Stateflow control law synthesis hooks.
 
 2. Ingestion & Analysis Scope:
    - Operational mission envelope (flight altitude boundaries, max ground speed, payload configuration, population density, BVLOS vs VLOS flight operations).
@@ -443,8 +451,8 @@ Execute front-end CONOPS synthesis for the target UAS flight mission profile usi
    - Flight operational phases (Pre-Flight Checkout, Launch/Takeoff, En-Route Cruise, Mission Execution, Approach & Landing, Fail-Safe Contingency RTL).
 
 3. Output Requirements:
-   - Persist/validate `docs/conops/MISSION_INTENT.md` under `docs/conops/MISSION_INTENT.md`.
-   - Generate `CONOPS.md` under `docs/conops/CONOPS.md`.
+   - Persist/validate `docs/conops/MISSION_INTENT.md` under `docs/conops/MISSION_INTENT.md` (if operating from prompt fallback or validating canonical format).
+   - Generate `CONOPS.md` under `docs/conops/CONOPS.md` integrating all discovered intent, schema, and architectural constraints.
    - Ensure clear operational phase boundaries, system physical and functional boundaries, and environmental envelope constraints.
    - Include MATLAB / Simulink / Stateflow model integration baseline hooks for downstream control law synthesis.
    - KaTeX / LaTeX Math Formatting Mandate: All multi-line aligned equations MUST be enclosed in `\begin{aligned} ... \end{aligned}` within `$$` delimiters on dedicated lines. Bare alignment tabs `&` outside an alignment environment (`aligned`, `matrix`, `cases`) and `\begin{align*}` environments are strictly forbidden.
@@ -513,7 +521,7 @@ flowchart TD
 
 ### 8.5 Pipeline 0 Handoff JSON Contract (`pipeline0_handoff_contract.json`)
 
-The interface between Pipeline 0 safety modeling, Pipeline 1 specification engineering, and Pipeline 2 ROS2/PX4 safety implementation is strictly governed by `pipeline0_handoff_contract.json` (synthesized from customer mission intent in `docs/conops/MISSION_INTENT.md`, `docs/conops/CONOPS.md`, and `docs/safety/STPA_MATRIX.md`):
+The interface between Pipeline 0 safety modeling, Pipeline 1 specification engineering, and Pipeline 2 ROS2/PX4 safety implementation is strictly governed by `pipeline0_handoff_contract.json` (synthesized from multi-document operational intent in `docs/conops/` (`MISSION_INTENT.md` or customer intent specifications), customer interface schemas in `schema/`, architectural blueprints in `docs/architecture/`, `docs/conops/CONOPS.md`, and `docs/safety/STPA_MATRIX.md`):
 
 ```json
 {
