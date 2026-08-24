@@ -6,6 +6,9 @@ TARGET_DIR=""
 PROVIDER="auto"
 GITLAB_URL="https://gitlab.com"
 GITLAB_GROUP=""
+JIRA_URL="https://your-domain.atlassian.net"
+JIRA_PROJECT=""
+JIRA_EMAIL=""
 
 show_help() {
   cat << 'EOF'
@@ -20,14 +23,19 @@ Arguments:
   TARGET_DIR                 Target project directory (default: current directory '.')
 
 Options:
-  -p, --provider PROVIDER    Target issue tracker and CI/CD provider: 'github', 'gitlab', or 'auto' (default: 'auto')
+  -p, --provider PROVIDER    Target issue tracker and CI/CD provider: 'github', 'gitlab', 'jira', or 'auto' (default: 'auto')
+  -t, --tracker TRACKER      Alias for --provider: 'github', 'gitlab', 'jira', or 'auto'
       --gitlab-url URL       GitLab instance base URL (default: 'https://gitlab.com')
       --gitlab-group GROUP   GitLab namespace/group path (e.g. 'uas-safety')
+      --jira-url URL         Jira instance base URL (default: 'https://your-domain.atlassian.net')
+      --jira-project PROJECT Jira project key code (e.g. 'UAS')
+      --jira-email EMAIL     Jira account email address (for Jira Cloud Basic Auth)
   -h, --help                 Display this help documentation and exit
 
 Examples:
   ./scripts/install_pipeline.sh /path/to/downstream-project
   ./scripts/install_pipeline.sh --provider gitlab --gitlab-url https://gitlab.internal.defense.gov /path/to/project
+  ./scripts/install_pipeline.sh --tracker jira --jira-url https://my-org.atlassian.net --jira-project UAS /path/to/project
   ./scripts/install_pipeline.sh --provider github .
 EOF
 }
@@ -39,15 +47,15 @@ while [[ $# -gt 0 ]]; do
       show_help
       exit 0
       ;;
-    -p|--provider)
+    -p|--provider|-t|--tracker)
       if [[ -z "$2" || "$2" == -* ]]; then
-        echo "Error: --provider requires an argument ('github', 'gitlab', or 'auto')." >&2
+        echo "Error: $1 requires an argument ('github', 'gitlab', 'jira', or 'auto')." >&2
         exit 1
       fi
       PROVIDER="$2"
       shift 2
       ;;
-    --provider=*)
+    --provider=*|--tracker=*)
       PROVIDER="${1#*=}"
       shift
       ;;
@@ -75,6 +83,42 @@ while [[ $# -gt 0 ]]; do
       GITLAB_GROUP="${1#*=}"
       shift
       ;;
+    --jira-url)
+      if [[ -z "$2" || "$2" == -* ]]; then
+        echo "Error: --jira-url requires a URL argument." >&2
+        exit 1
+      fi
+      JIRA_URL="$2"
+      shift 2
+      ;;
+    --jira-url=*)
+      JIRA_URL="${1#*=}"
+      shift
+      ;;
+    --jira-project)
+      if [[ -z "$2" || "$2" == -* ]]; then
+        echo "Error: --jira-project requires a project key argument." >&2
+        exit 1
+      fi
+      JIRA_PROJECT="$2"
+      shift 2
+      ;;
+    --jira-project=*)
+      JIRA_PROJECT="${1#*=}"
+      shift
+      ;;
+    --jira-email)
+      if [[ -z "$2" || "$2" == -* ]]; then
+        echo "Error: --jira-email requires an email argument." >&2
+        exit 1
+      fi
+      JIRA_EMAIL="$2"
+      shift 2
+      ;;
+    --jira-email=*)
+      JIRA_EMAIL="${1#*=}"
+      shift
+      ;;
     -*)
       echo "Error: Unknown option: $1" >&2
       show_help >&2
@@ -95,8 +139,8 @@ done
 
 TARGET_DIR="${TARGET_DIR:-.}"
 
-if [[ "$PROVIDER" != "auto" && "$PROVIDER" != "github" && "$PROVIDER" != "gitlab" ]]; then
-  echo "Error: Invalid provider '$PROVIDER'. Must be one of 'github', 'gitlab', or 'auto'." >&2
+if [[ "$PROVIDER" != "auto" && "$PROVIDER" != "github" && "$PROVIDER" != "gitlab" && "$PROVIDER" != "jira" ]]; then
+  echo "Error: Invalid provider '$PROVIDER'. Must be one of 'github', 'gitlab', 'jira', or 'auto'." >&2
   exit 1
 fi
 
@@ -132,12 +176,20 @@ mkdir -p "$TARGET_DIR/tests"
 cp -RP "$INSTALLER_ROOT/tests/test_baseline.py" "$TARGET_DIR/tests/" 2>/dev/null || true
 cp -RP "$INSTALLER_ROOT/tests/test_safety_integrity.py" "$TARGET_DIR/tests/" 2>/dev/null || true
 cp -RP "$INSTALLER_ROOT/tests/test_gitlab_provider.py" "$TARGET_DIR/tests/" 2>/dev/null || true
-mkdir -p "$TARGET_DIR/docs/conops" "$TARGET_DIR/docs/safety" "$TARGET_DIR/docs/architecture/blueprints" "$TARGET_DIR/docs/epics" "$TARGET_DIR/docs/features" "$TARGET_DIR/docs/user-stories" "$TARGET_DIR/docs/use-cases"
+cp -RP "$INSTALLER_ROOT/tests/test_jira_provider.py" "$TARGET_DIR/tests/" 2>/dev/null || true
+cp -RP "$INSTALLER_ROOT/tests/test_ground_truth_tooling.py" "$TARGET_DIR/tests/" 2>/dev/null || true
+mkdir -p "$TARGET_DIR/docs" "$TARGET_DIR/docs/conops" "$TARGET_DIR/docs/safety" "$TARGET_DIR/docs/architecture/blueprints" "$TARGET_DIR/docs/epics" "$TARGET_DIR/docs/features" "$TARGET_DIR/docs/user-stories" "$TARGET_DIR/docs/use-cases"
 if [ -f "$INSTALLER_ROOT/docs/conops/README.md" ]; then
   cp -P "$INSTALLER_ROOT/docs/conops/README.md" "$TARGET_DIR/docs/conops/"
 fi
 if [ -f "$INSTALLER_ROOT/docs/safety/README.md" ]; then
   cp -P "$INSTALLER_ROOT/docs/safety/README.md" "$TARGET_DIR/docs/safety/"
+fi
+if [ -f "$INSTALLER_ROOT/docs/OPERATOR_PROMPT_CATALOG.md" ]; then
+  cp -P "$INSTALLER_ROOT/docs/OPERATOR_PROMPT_CATALOG.md" "$TARGET_DIR/docs/"
+fi
+if [ -f "$INSTALLER_ROOT/docs/JIRA_INTEGRATION_GUIDE.md" ]; then
+  cp -P "$INSTALLER_ROOT/docs/JIRA_INTEGRATION_GUIDE.md" "$TARGET_DIR/docs/"
 fi
 mkdir -p "$TARGET_DIR/.pipeline/contracts" "$TARGET_DIR/.pipeline/domain_specs" "$TARGET_DIR/.pipeline/profiles"
 chmod +x "$TARGET_DIR"/scripts/*.sh "$TARGET_DIR"/scripts/*.py 2>/dev/null || true
@@ -173,6 +225,48 @@ with open(path, 'w', encoding='utf-8') as f:
 " 2>/dev/null || true
     fi
   done
+elif [ "$PROVIDER" = "jira" ] || [ -n "$JIRA_PROJECT" ] || [ -n "$JIRA_EMAIL" ] || [ "$JIRA_URL" != "https://your-domain.atlassian.net" ]; then
+  for rules_file in "$TARGET_DIR/.pipeline/logical-ui/codebase_rules.json" "$TARGET_DIR/codebase_rules.json"; do
+    if [ -f "$rules_file" ]; then
+      python3 -c "
+import json, sys
+path = '$rules_file'
+with open(path, 'r', encoding='utf-8') as f:
+    data = json.load(f)
+if 'tracker_rules' not in data:
+    data['tracker_rules'] = {}
+if '$PROVIDER' != 'auto':
+    data['tracker_rules']['provider'] = '$PROVIDER'
+if '$PROVIDER' == 'jira':
+    data['tracker_rules']['numeric_prefix'] = ''
+    data['tracker_rules']['alphanumeric_prefix'] = ''
+    data['tracker_rules']['keys'] = {
+        'issue_id': 'key',
+        'title': 'title',
+        'labels': 'labels',
+        'state': 'state',
+        'closed_state_value': 'CLOSED',
+        'open_state_value': 'OPEN'
+    }
+    data['tracker_rules']['labels'] = {
+        'epic': 'type::epic',
+        'feature': 'type::feature',
+        'user_story': 'type::user-story',
+        'use_case': 'type::use-case',
+        'ready_for_review': 'status::ready-for-review',
+        'resolved': 'status::fixed-resolved'
+    }
+if '$JIRA_URL':
+    data['tracker_rules']['server_url'] = '$JIRA_URL'
+if '$JIRA_PROJECT':
+    data['tracker_rules']['project_key'] = '$JIRA_PROJECT'
+if '$JIRA_EMAIL':
+    data['tracker_rules']['email'] = '$JIRA_EMAIL'
+with open(path, 'w', encoding='utf-8') as f:
+    json.dump(data, f, indent=2)
+" 2>/dev/null || true
+    fi
+  done
 elif [ "$PROVIDER" = "github" ]; then
   for rules_file in "$TARGET_DIR/.pipeline/logical-ui/codebase_rules.json" "$TARGET_DIR/codebase_rules.json"; do
     if [ -f "$rules_file" ]; then
@@ -190,6 +284,45 @@ with open(path, 'w', encoding='utf-8') as f:
     fi
   done
 fi
+
+# Generate .env.template in target workspace
+cat << 'EOF' > "$TARGET_DIR/.env.template"
+# Digital Engineering Agent Platform (DEAP) Environment Variables Template
+# Copy this file to .env or export variables in your shell / CI/CD environment.
+
+# ==============================================================================
+# GitHub Configuration (for --provider github)
+# ==============================================================================
+# GITHUB_TOKEN=ghp_your_github_personal_access_token
+# GITHUB_REPOSITORY=owner/repository_name
+
+# ==============================================================================
+# GitLab Configuration (for --provider gitlab)
+# ==============================================================================
+# GITLAB_URL=https://gitlab.com
+# GITLAB_PROJECT=group/project_name
+# GITLAB_TOKEN=glpat-your_gitlab_personal_access_token
+# CI_JOB_TOKEN=your_ci_job_token_if_in_gitlab_ci
+# GITLAB_CA_CERT_PATH=/path/to/custom_ca_cert.crt
+
+# ==============================================================================
+# Jira Cloud / Data Center Configuration (for --provider jira)
+# ==============================================================================
+# Base URL for Jira Cloud or Jira Data Center
+JIRA_SERVER_URL=https://your-domain.atlassian.net
+
+# Jira Project Key (e.g. UAS, SAFE, DEAP)
+JIRA_PROJECT_KEY=UAS
+
+# Atlassian Account Email (required for Jira Cloud Basic Authentication)
+JIRA_EMAIL=engineer@your-domain.com
+
+# Jira API Token (for Jira Cloud) or Personal Access Token (for Jira Data Center)
+JIRA_API_TOKEN=your_jira_api_token_or_pat_here
+
+# Optional: Path to custom Root CA bundle for self-hosted Jira Data Center
+# JIRA_CA_CERT_PATH=/etc/ssl/certs/internal-ca.pem
+EOF
 
 # Scaffold downstream root AGENTS.md if missing
 if [ ! -f "$TARGET_DIR/AGENTS.md" ]; then
@@ -625,6 +758,32 @@ def test_upstream_template_clean_landing_zones():
     assert not violations, (
         f"Upstream distribution template landing zones contain concrete specification files: {violations}"
     )
+
+
+def test_operator_prompt_catalog_accessible():
+    """Verify docs/OPERATOR_PROMPT_CATALOG.md exists, is non-empty, and contains headers for Pipeline 1 (Workers 1A-1D) and Pipeline 2."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isdir(repo_root):
+        repo_root = os.getcwd()
+
+    catalog_path = os.path.join(repo_root, "docs", "OPERATOR_PROMPT_CATALOG.md")
+    assert os.path.isfile(catalog_path), f"docs/OPERATOR_PROMPT_CATALOG.md missing at {repo_root}"
+    assert os.path.getsize(catalog_path) > 0, f"docs/OPERATOR_PROMPT_CATALOG.md is empty at {repo_root}"
+
+    with open(catalog_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    required_headers = [
+        "Pipeline 1",
+        "Worker 1A",
+        "Worker 1B",
+        "Worker 1C",
+        "Worker 1D",
+        "Pipeline 2",
+        "Synthesis Driver",
+    ]
+    for header in required_headers:
+        assert header in content, f"Missing required header/section '{header}' in docs/OPERATOR_PROMPT_CATALOG.md"
 EOF
 fi
 

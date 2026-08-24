@@ -324,6 +324,10 @@ def check_no_ds_store_files(repo_root):
 
 def check_no_duplicate_master_blueprints(dest):
     """Check 12: Verify downstream repositories do NOT contain duplicate master core blueprints."""
+    upstream_marker = os.path.join(dest, ".pipeline", "upstream")
+    if os.path.isdir(upstream_marker):
+        print("Success: Check 12 verified (Master core / upstream repository detected — skipping duplicate blueprint check).")
+        return
     master_blueprints = {
         "DEAP_MASTER_ARCHITECTURE.md",
         "THREE_TIER_GOVERNANCE_BLUEPRINT.md",

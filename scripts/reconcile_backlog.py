@@ -31,6 +31,7 @@ import tempfile
 import copy
 import ssl
 import time
+import base64
 import argparse
 import urllib.request
 import urllib.parse
@@ -54,7 +55,7 @@ DEFAULT_CODEBASE_RULES = {
     "meta": {
         "version": "1.0.0",
         "description": "Default pipeline and codebase compliance rules",
-        "upstream_repository": "gintatkinson/digital-pipeline-repo",
+        "upstream_repository": "gintatkinson/DEAP-spec-core",
     },
     "tracker_rules": {
         "provider": "github",
@@ -266,6 +267,48 @@ DEFAULT_GITLAB_STRUCTURAL_LABELS = {
     "use_case": "type::use-case",
 }
 
+DEFAULT_JIRA_TRACKER_RULES = {
+    "provider": "jira",
+    "issue_id_placeholder": "#[IssueID]",
+    "prefix_normalization_regex": r"^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+\s*[:\-]?|:)\s*",
+    "title_extraction_prefixes_regex": r"(?:Feature\s+\d+\s*:\s*|Use\s+Case\s+\d+\s*:\s*|User\s+Story\s+\d+\s*:\s*)?",
+    "truncation_headers": [
+        "## Acceptance Criteria",
+        "## User Stories"
+    ],
+    "truncation_message_template": "\n\n---\n*Warning: This issue body has been truncated because it exceeds the tracker size limit of {max_body_chars} characters.*\n*Please refer to the full specification file in the repository at `{rel_path}` for the complete details.*\n",
+    "numeric_prefix": "",
+    "alphanumeric_prefix": "",
+    "keys": {
+        "issue_id": "key",
+        "title": "title",
+        "labels": "labels",
+        "state": "state",
+        "closed_state_value": "CLOSED",
+        "open_state_value": "OPEN"
+    },
+    "labels": {
+        "epic": "type::epic",
+        "feature": "type::feature",
+        "user_story": "type::user-story",
+        "use_case": "type::use-case",
+        "ready_for_review": "status::ready-for-review",
+        "resolved": "status::fixed-resolved"
+    },
+    "close_comments": {
+        "epic": "Epic completed. All constituent features successfully delivered and verified.",
+        "user_story": "Resolved. All dependent features/tasks for BDD scenario '{title}' have been completed and verified.",
+        "use_case": "Resolved. All dependent user stories and features for use case '{title}' are completed."
+    }
+}
+
+DEFAULT_JIRA_STRUCTURAL_LABELS = {
+    "epic": "type::epic",
+    "feature": "type::feature",
+    "user_story": "type::user-story",
+    "use_case": "type::use-case",
+}
+
 def parse_git_remote_url(remote_url: str) -> Dict[str, Any]:
     """
     Parse a git remote origin URL into its components:
@@ -353,6 +396,18 @@ def detect_tracker_provider(cli_provider: Optional[str] = None, rules: Optional[
         configured = rules.get("tracker_rules", {}).get("provider")
         if configured and configured.lower() not in ("auto", "github"):
             return configured.lower()
+
+    # Detect from Jira environment variables
+    if (
+        os.environ.get("JIRA_SERVER_URL")
+        or os.environ.get("JIRA_URL")
+        or os.environ.get("JIRA_PROJECT_KEY")
+        or os.environ.get("JIRA_PROJECT")
+        or os.environ.get("JIRA_API_TOKEN")
+        or os.environ.get("JIRA_PAT")
+        or os.environ.get("JIRA_TOKEN")
+    ):
+        return "jira"
 
     # Detect from CI environment variables
     if os.environ.get("GITLAB_CI") or os.environ.get("CI_SERVER_URL") or os.environ.get("CI_PROJECT_PATH"):
@@ -766,6 +821,590 @@ class GitLabV4Provider:
         except Exception:
             return False
 
+class JiraV2V3Provider:
+    """
+    Native Jira REST API v2/v3 Provider Adapter.
+    Uses standard library urllib.request (zero external dependencies).
+    Supports Jira Cloud Basic Auth (email + API token) and Jira Data Center / Server Bearer PAT (Personal Access Token).
+    Supports .netrc credential resolution, self-hosted instances, custom root CA certs, and dynamic workflow transitions.
+    """
+
+    def __init__(
+        self,
+        server_url: Optional[str] = None,
+        project_key: Optional[str] = None,
+        email: Optional[str] = None,
+        token: Optional[str] = None,
+        token_type: Optional[str] = None,
+        ca_cert_path: Optional[str] = None,
+        timeout_sec: int = 30,
+        max_retries: int = 3,
+        backoff_base_sec: float = 1.0,
+        offline: bool = False,
+        workspace_dir: Optional[str] = None,
+    ):
+        self.workspace_dir = workspace_dir or os.getcwd()
+        self.offline = offline
+        resolved_server_url = self._resolve_server_url()
+        self.server_url = (server_url or resolved_server_url or "").rstrip("/")
+        self.project_key = (project_key or self._resolve_project_key() or "").strip()
+
+        resolved_email, resolved_token, resolved_token_type = self._resolve_auth()
+        self.email = email if email is not None else resolved_email
+        self.token = token if token is not None else resolved_token
+        self.token_type = token_type if token_type is not None else (resolved_token_type or ("Basic" if self.email else "Bearer"))
+        self.auth_type = self.token_type.lower() if self.token_type else ("basic" if self.email else "bearer")
+
+        self.timeout_sec = timeout_sec
+        self.max_retries = max_retries
+        self.backoff_base_sec = backoff_base_sec
+        self.ca_cert_path = ca_cert_path or os.environ.get("JIRA_CA_CERT_PATH") or os.environ.get("SSL_CERT_FILE")
+        self.ssl_context = self._create_ssl_context(self.ca_cert_path)
+
+    def _create_ssl_context(self, ca_cert_path: Optional[str]) -> ssl.SSLContext:
+        ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+        if ca_cert_path and os.path.isfile(ca_cert_path):
+            try:
+                ctx.load_verify_locations(cafile=ca_cert_path)
+            except Exception as e:
+                print(f"Warning: Failed to load CA certificate from {ca_cert_path}: {e}", file=sys.stderr)
+        return ctx
+
+    def _resolve_server_url(self) -> Optional[str]:
+        for env_var in ("JIRA_SERVER_URL", "JIRA_URL", "JIRA_HOST", "JIRA_BASE_URL"):
+            val = os.environ.get(env_var)
+            if val and val.strip():
+                url = val.strip().rstrip("/")
+                if not url.startswith("http://") and not url.startswith("https://"):
+                    url = f"https://{url}"
+                return url
+        return None
+
+    def _resolve_project_key(self) -> Optional[str]:
+        for env_var in ("JIRA_PROJECT_KEY", "JIRA_PROJECT", "JIRA_KEY"):
+            val = os.environ.get(env_var)
+            if val and val.strip():
+                return val.strip()
+        return None
+
+    def _resolve_auth(self) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        email = None
+        for env_var in ("JIRA_EMAIL", "JIRA_USER", "JIRA_USERNAME"):
+            val = os.environ.get(env_var)
+            if val and val.strip():
+                email = val.strip()
+                break
+
+        # Check PAT first (Data Center / Server Bearer)
+        pat = os.environ.get("JIRA_PAT")
+        if pat and pat.strip():
+            return email, pat.strip(), "Bearer"
+
+        # Check API token (Cloud basic auth)
+        api_token = os.environ.get("JIRA_API_TOKEN")
+        if api_token and api_token.strip():
+            return email, api_token.strip(), "Basic" if email else "Bearer"
+
+        # Generic token
+        token = os.environ.get("JIRA_TOKEN")
+        if token and token.strip():
+            token_type = "Basic" if email else "Bearer"
+            return email, token.strip(), token_type
+
+        # Netrc resolution fallback
+        try:
+            target_host = "jira.atlassian.net"
+            if self.server_url:
+                parsed = urllib.parse.urlparse(self.server_url)
+                if parsed.hostname:
+                    target_host = parsed.hostname
+            auth = netrc.netrc().authenticators(target_host)
+            if auth:
+                netrc_user, _, netrc_pwd = auth
+                res_email = email or (netrc_user.strip() if netrc_user else None)
+                res_token = netrc_pwd.strip() if netrc_pwd else None
+                res_type = "Basic" if res_email else "Bearer"
+                return res_email, res_token, res_type
+        except Exception:
+            pass
+
+        return email, None, "Basic" if email else "Bearer"
+
+    def _build_headers(self, has_data: bool = False) -> Dict[str, str]:
+        headers: Dict[str, str] = {
+            "Accept": "application/json",
+            "User-Agent": "DEAP-Backlog-Reconciler/1.0",
+        }
+        if has_data:
+            headers["Content-Type"] = "application/json; charset=utf-8"
+
+        if self.token:
+            if self.token_type and self.token_type.lower() in ("bearer", "pat"):
+                headers["Authorization"] = f"Bearer {self.token}"
+            elif self.email:
+                creds = f"{self.email}:{self.token}"
+                b64_creds = base64.b64encode(creds.encode("utf-8")).decode("utf-8")
+                headers["Authorization"] = f"Basic {b64_creds}"
+            else:
+                headers["Authorization"] = f"Bearer {self.token}"
+
+        return headers
+
+    def _api_request(
+        self,
+        endpoint: str,
+        method: str = "GET",
+        params: Optional[Dict[str, Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[int, Any, Dict[str, str]]:
+        if self.offline:
+            return 200, {}, {}
+
+        if not self.server_url:
+            raise ValueError("Jira server URL could not be resolved.")
+
+        clean_endpoint = endpoint.lstrip("/")
+        url = f"{self.server_url}/{clean_endpoint}"
+        if params:
+            query_str = urllib.parse.urlencode(params)
+            url = f"{url}?{query_str}"
+
+        headers = self._build_headers(has_data=(data is not None))
+
+        body_bytes = None
+        if data is not None:
+            body_bytes = json.dumps(data).encode("utf-8")
+
+        req = urllib.request.Request(url=url, data=body_bytes, headers=headers, method=method)
+
+        attempt = 0
+        while attempt < self.max_retries:
+            attempt += 1
+            try:
+                with urllib.request.urlopen(req, context=self.ssl_context, timeout=self.timeout_sec) as resp:
+                    status_code = resp.status
+                    resp_headers = {k: v for k, v in resp.headers.items()}
+                    raw_body = resp.read().decode("utf-8")
+                    parsed_body = json.loads(raw_body) if raw_body.strip() else {}
+                    return status_code, parsed_body, resp_headers
+            except urllib.error.HTTPError as e:
+                status_code = e.code
+                error_headers = {k: v for k, v in e.headers.items()} if e.headers else {}
+                raw_err = e.read().decode("utf-8", errors="ignore") if e.fp else ""
+
+                if status_code in (429, 502, 503, 504) and attempt < self.max_retries:
+                    retry_after = error_headers.get("Retry-After") or error_headers.get("retry-after")
+                    if retry_after:
+                        try:
+                            sleep_time = float(retry_after)
+                        except ValueError:
+                            sleep_time = self.backoff_base_sec * (2 ** (attempt - 1))
+                    else:
+                        sleep_time = self.backoff_base_sec * (2 ** (attempt - 1))
+                    time.sleep(sleep_time)
+                    continue
+
+                raise RuntimeError(
+                    f"Jira API HTTP {status_code} Error on {method} {url}: {raw_err}"
+                ) from e
+            except urllib.error.URLError as e:
+                if attempt >= self.max_retries:
+                    raise RuntimeError(
+                        f"Network transport failure connecting to {self.server_url}: {e.reason}"
+                    ) from e
+                time.sleep(self.backoff_base_sec * (2 ** (attempt - 1)))
+
+        raise TimeoutError(f"Exceeded maximum retries ({self.max_retries}) for Jira API request: {url}")
+
+    def list_issues(self) -> List[Dict[str, Any]]:
+        """
+        Fetch all project issues using Jira REST API search (JQL) with pagination.
+        Returns list of issue dicts matching DEAP tracker schema:
+        id, key, title, body, state, labels, issue_type.
+        """
+        if self.offline:
+            print("[Notice] Jira tracker in offline mode. Operating in offline/local specification mode.")
+            return []
+
+        if not self.server_url:
+            print("[Notice] Jira server URL not resolved (JIRA_SERVER_URL). Operating in offline/local specification mode.")
+            return []
+
+        if not self.token:
+            print("[Notice] No Jira authentication token found (JIRA_PAT, JIRA_API_TOKEN, JIRA_TOKEN). "
+                  "Operating in offline/local specification mode.")
+            return []
+
+        all_issues: List[Dict[str, Any]] = []
+        start_at = 0
+        max_results = 50
+        jql = f"project = '{self.project_key}' ORDER BY key ASC" if self.project_key else "ORDER BY key ASC"
+        endpoint = "rest/api/2/search"
+
+        try:
+            print(f"Fetching active and closed issues from Jira REST API ({self.server_url})...")
+            while True:
+                params = {
+                    "jql": jql,
+                    "startAt": start_at,
+                    "maxResults": max_results,
+                    "fields": "*all",
+                }
+                status_code, data, headers = self._api_request(endpoint, method="GET", params=params)
+                if not isinstance(data, dict):
+                    break
+
+                issues_batch = data.get("issues", [])
+                if not isinstance(issues_batch, list) or not issues_batch:
+                    break
+
+                for raw_issue in issues_batch:
+                    fields = raw_issue.get("fields", {}) or {}
+                    description = fields.get("description")
+                    if isinstance(description, (dict, list)):
+                        body = json.dumps(description)
+                    elif description is None:
+                        body = ""
+                    else:
+                        body = str(description)
+
+                    status_obj = fields.get("status", {}) or {}
+                    status_name = status_obj.get("name", "")
+                    issuetype_obj = fields.get("issuetype", {}) or {}
+                    issuetype_name = issuetype_obj.get("name", "")
+
+                    state = status_name.upper() if status_name else "OPEN"
+
+                    issue_dict = {
+                        "id": str(raw_issue.get("id", "")),
+                        "key": raw_issue.get("key", ""),
+                        "number": raw_issue.get("key", ""),
+                        "title": fields.get("summary", ""),
+                        "summary": fields.get("summary", ""),
+                        "body": body,
+                        "state": state,
+                        "status": status_name,
+                        "labels": fields.get("labels", []) or [],
+                        "issue_type": issuetype_name,
+                        "fields": fields,
+                    }
+                    all_issues.append(issue_dict)
+
+                total = data.get("total", len(all_issues))
+                if (start_at + len(issues_batch)) >= total:
+                    break
+                start_at += len(issues_batch)
+
+            return all_issues
+        except Exception as e:
+            err_msg = str(e)
+            print(f"[Notice] Jira issue tracker unavailable ({err_msg}). Operating in offline/local specification mode.")
+            return []
+
+    def get_issue(self, issue_key: str) -> Optional[Dict[str, Any]]:
+        """
+        Fetch a single Jira issue by key (e.g. 'DEAP-123') and convert to DEAP tracker schema.
+        """
+        if self.offline or not self.server_url or not self.token:
+            return None
+        endpoint = f"rest/api/2/issue/{issue_key}"
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="GET")
+            if isinstance(data, dict) and ("key" in data or "id" in data):
+                fields = data.get("fields", {}) or {}
+                description = fields.get("description")
+                if isinstance(description, (dict, list)):
+                    body = json.dumps(description)
+                elif description is None:
+                    body = ""
+                else:
+                    body = str(description)
+
+                status_obj = fields.get("status", {}) or {}
+                status_name = status_obj.get("name", "")
+                issuetype_obj = fields.get("issuetype", {}) or {}
+                issuetype_name = issuetype_obj.get("name", "")
+
+                return {
+                    "id": str(data.get("id", "")),
+                    "key": data.get("key", issue_key),
+                    "number": data.get("key", issue_key),
+                    "title": fields.get("summary", ""),
+                    "body": body,
+                    "state": status_name.upper() if status_name else "OPEN",
+                    "labels": fields.get("labels", []) or [],
+                    "issue_type": issuetype_name,
+                    "fields": fields,
+                }
+        except Exception as e:
+            print(f"  [Warning] Failed to fetch Jira issue '{issue_key}': {e}", file=sys.stderr)
+        return None
+
+    def create_issue(
+        self,
+        title: str,
+        body: str = "",
+        labels: Optional[List[str]] = None,
+        issue_type: str = "Task",
+        parent_key: Optional[str] = None,
+        custom_fields: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Create a new Jira issue via POST /rest/api/2/issue.
+        """
+        if self.offline or not self.server_url or not self.token:
+            return None
+        endpoint = "rest/api/2/issue"
+        fields: Dict[str, Any] = {
+            "summary": title,
+            "description": body or "",
+            "issuetype": {"name": issue_type or "Task"},
+        }
+        if self.project_key:
+            fields["project"] = {"key": self.project_key}
+        if labels:
+            fields["labels"] = labels if isinstance(labels, list) else [labels]
+        if parent_key:
+            fields["parent"] = {"key": parent_key}
+        if custom_fields:
+            fields.update(custom_fields)
+
+        payload = {"fields": fields}
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="POST", data=payload)
+            if isinstance(data, dict):
+                if "key" in data and "number" not in data:
+                    data["number"] = data["key"]
+                return data
+        except Exception as e:
+            print(f"  [Warning] Failed to create Jira issue '{title}': {e}", file=sys.stderr)
+        return None
+
+    def edit_issue(
+        self,
+        issue_key: str,
+        title: Optional[str] = None,
+        body: Optional[str] = None,
+        labels: Optional[List[str]] = None,
+        custom_fields: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> bool:
+        """
+        Edit an existing Jira issue via PUT /rest/api/2/issue/{issue_key}.
+        """
+        if self.offline or not self.server_url or not self.token:
+            return False
+
+        if body is None and "description" in kwargs:
+            body = kwargs["description"]
+        if title is not None and body is None and ("\n" in title or len(title) > 255 or title.startswith("#")):
+            body = title
+            title = None
+
+        endpoint = f"rest/api/2/issue/{issue_key}"
+        fields: Dict[str, Any] = {}
+        if title is not None:
+            fields["summary"] = title
+        if body is not None:
+            fields["description"] = body
+        if labels is not None:
+            fields["labels"] = labels if isinstance(labels, list) else [labels]
+        if custom_fields:
+            fields.update(custom_fields)
+
+        if not fields:
+            return True
+
+        payload = {"fields": fields}
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="PUT", data=payload)
+            return status_code in (200, 204)
+        except Exception as e:
+            print(f"  [Warning] Failed to edit Jira issue '{issue_key}': {e}", file=sys.stderr)
+            return False
+
+    def edit_issue_title(self, issue_key: Any, title: str) -> bool:
+        return self.edit_issue(str(issue_key), title=title)
+
+    def add_label(self, issue_key: str, label: str) -> bool:
+        """
+        Add a label to a Jira issue via PUT /rest/api/2/issue/{key} using Jira update operation.
+        """
+        if not label or self.offline or not self.server_url or not self.token:
+            return False
+        endpoint = f"rest/api/2/issue/{issue_key}"
+        payload = {
+            "update": {
+                "labels": [{"add": label}]
+            }
+        }
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="PUT", data=payload)
+            return status_code in (200, 204)
+        except Exception as e:
+            print(f"  [Warning] Failed to add label '{label}' to Jira issue '{issue_key}': {e}", file=sys.stderr)
+            return False
+
+    def create_label(self, label: str, description: str = "", color: str = "#0E8A16") -> bool:
+        """
+        In Jira, labels are created dynamically upon assignment; return True.
+        """
+        return True
+
+    def comment_issue(self, issue_key: str, comment_body: str) -> bool:
+        """
+        Add a comment to a Jira issue via POST /rest/api/2/issue/{key}/comment.
+        """
+        if not comment_body or self.offline or not self.server_url or not self.token:
+            return False
+        endpoint = f"rest/api/2/issue/{issue_key}/comment"
+        payload = {"body": comment_body}
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="POST", data=payload)
+            return status_code in (200, 201)
+        except Exception as e:
+            print(f"  [Warning] Failed to comment on Jira issue '{issue_key}': {e}", file=sys.stderr)
+            return False
+
+    def transition_issue(
+        self,
+        issue_key: str,
+        target_status: str,
+        resolution_note: Optional[str] = None,
+    ) -> bool:
+        """
+        Transition a Jira issue to a target workflow status via GET/POST /rest/api/2/issue/{key}/transitions.
+        Matches transition by name (case-insensitive for 'Done', 'Resolved', 'Fixed', 'Completed', 'Ready for Review', etc.)
+        and POSTs transition ID with optional comment.
+        """
+        if self.offline or not self.server_url or not self.token:
+            return False
+        endpoint = f"rest/api/2/issue/{issue_key}/transitions"
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="GET")
+            if not isinstance(data, dict):
+                return False
+            transitions = data.get("transitions", [])
+            if not isinstance(transitions, list) or not transitions:
+                print(f"  [Warning] No transitions available for Jira issue '{issue_key}'", file=sys.stderr)
+                return False
+
+            target_norm = target_status.strip().lower()
+            if target_norm.startswith("status::") or target_norm.startswith("status:"):
+                target_norm = target_norm.split(":", 1)[-1].lstrip(":")
+            target_norm_clean = target_norm.replace("-", " ").replace("_", " ")
+
+            matched_transition_id = None
+
+            # 1. Exact or normalized match against transition name or target status name
+            for t in transitions:
+                t_name = str(t.get("name", "")).strip().lower()
+                to_name = str(t.get("to", {}).get("name", "")).strip().lower()
+                t_name_clean = t_name.replace("-", " ").replace("_", " ")
+                to_name_clean = to_name.replace("-", " ").replace("_", " ")
+                if (
+                    target_norm in (t_name, to_name)
+                    or target_norm_clean in (t_name_clean, to_name_clean)
+                ):
+                    matched_transition_id = t.get("id")
+                    break
+
+            # 2. Case-insensitive alias matching for common completion / review states
+            if not matched_transition_id:
+                completion_aliases = {
+                    "done", "resolved", "fixed", "completed", "closed",
+                    "resolve issue", "close issue", "finish"
+                }
+                review_aliases = {
+                    "ready for review", "in review", "review", "ready-for-review", "under review"
+                }
+
+                is_completion_target = (
+                    target_norm_clean in completion_aliases
+                    or "fixed" in target_norm_clean
+                    or "resolved" in target_norm_clean
+                    or "done" in target_norm_clean
+                    or "complete" in target_norm_clean
+                    or "close" in target_norm_clean
+                )
+                is_review_target = (
+                    target_norm_clean in review_aliases
+                    or "review" in target_norm_clean
+                )
+
+                for t in transitions:
+                    t_name = str(t.get("name", "")).strip().lower()
+                    to_name = str(t.get("to", {}).get("name", "")).strip().lower()
+                    t_name_clean = t_name.replace("-", " ").replace("_", " ")
+                    to_name_clean = to_name.replace("-", " ").replace("_", " ")
+
+                    if is_completion_target and (
+                        t_name in completion_aliases
+                        or to_name in completion_aliases
+                        or t_name_clean in completion_aliases
+                        or to_name_clean in completion_aliases
+                    ):
+                        matched_transition_id = t.get("id")
+                        break
+                    elif is_review_target and (
+                        t_name in review_aliases
+                        or to_name in review_aliases
+                        or t_name_clean in review_aliases
+                        or to_name_clean in review_aliases
+                    ):
+                        matched_transition_id = t.get("id")
+                        break
+
+            if not matched_transition_id:
+                print(
+                    f"  [Warning] Could not find transition matching '{target_status}' for Jira issue '{issue_key}'. "
+                    f"Available: {[t.get('name') for t in transitions]}",
+                    file=sys.stderr,
+                )
+                return False
+
+            payload: Dict[str, Any] = {
+                "transition": {"id": str(matched_transition_id)}
+            }
+            if resolution_note:
+                payload["update"] = {
+                    "comment": [
+                        {"add": {"body": resolution_note}}
+                    ]
+                }
+
+            post_status, _, _ = self._api_request(endpoint, method="POST", data=payload)
+            return post_status in (200, 201, 204)
+        except Exception as e:
+            print(f"  [Warning] Failed to transition Jira issue '{issue_key}' to '{target_status}': {e}", file=sys.stderr)
+            return False
+
+    def create_issue_link(
+        self,
+        inward_key: str,
+        outward_key: str,
+        link_type: str = "Relates",
+    ) -> bool:
+        """
+        Link two Jira issues via POST /rest/api/2/issueLink.
+        """
+        if self.offline or not self.server_url or not self.token:
+            return False
+        endpoint = "rest/api/2/issueLink"
+        payload = {
+            "type": {"name": link_type or "Relates"},
+            "inwardIssue": {"key": inward_key},
+            "outwardIssue": {"key": outward_key},
+        }
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="POST", data=payload)
+            return status_code in (200, 201, 204)
+        except Exception as e:
+            print(f"  [Warning] Failed to create issue link between '{inward_key}' and '{outward_key}': {e}", file=sys.stderr)
+            return False
+
+JiraRESTProvider = JiraV2V3Provider
+
 class GitHubCLIProvider:
     """
     GitHub CLI (gh) tracker provider adapter.
@@ -864,6 +1503,9 @@ def create_tracker_provider(
     offline: bool = False,
     cli_gitlab_url: Optional[str] = None,
     cli_project: Optional[str] = None,
+    cli_jira_url: Optional[str] = None,
+    cli_jira_project: Optional[str] = None,
+    cli_jira_email: Optional[str] = None,
 ):
     if provider_name == "gitlab":
         server_url = cli_gitlab_url or (rules.get("tracker_rules", {}).get("server_url") if rules else None)
@@ -871,6 +1513,17 @@ def create_tracker_provider(
         return GitLabV4Provider(
             server_url=server_url,
             project_id=project_id,
+            offline=offline,
+            workspace_dir=workspace_dir,
+        )
+    elif provider_name == "jira":
+        server_url = cli_jira_url or (rules.get("tracker_rules", {}).get("server_url") if rules else None)
+        project_key = cli_jira_project or (rules.get("tracker_rules", {}).get("project_key") if rules else None) or (rules.get("tracker_rules", {}).get("project") if rules else None)
+        email = cli_jira_email or (rules.get("tracker_rules", {}).get("email") if rules else None)
+        return JiraV2V3Provider(
+            server_url=server_url,
+            project_key=project_key,
+            email=email,
             offline=offline,
             workspace_dir=workspace_dir,
         )
@@ -958,6 +1611,36 @@ def load_codebase_rules(workspace_dir, provider=None):
 
         rules["tracker_rules"]["provider"] = "gitlab"
 
+    elif effective_provider == "jira":
+        jira_defaults = {"tracker_rules": copy.deepcopy(DEFAULT_JIRA_TRACKER_RULES)}
+        rules = deep_merge(rules, jira_defaults)
+        if loaded.get("tracker_rules", {}).get("provider") == "jira":
+            rules["tracker_rules"] = deep_merge(rules["tracker_rules"], loaded["tracker_rules"])
+        else:
+            rules["tracker_rules"]["labels"] = copy.deepcopy(DEFAULT_JIRA_TRACKER_RULES["labels"])
+            rules["tracker_rules"]["keys"] = copy.deepcopy(DEFAULT_JIRA_TRACKER_RULES["keys"])
+        
+        # Ensure DEFAULT_JIRA_TRACKER_RULES["keys"] take precedence for Jira
+        jira_keys = copy.deepcopy(DEFAULT_JIRA_TRACKER_RULES["keys"])
+        if isinstance(rules.get("tracker_rules", {}).get("keys"), dict):
+            for k, v in rules["tracker_rules"]["keys"].items():
+                if k not in jira_keys:
+                    jira_keys[k] = v
+        rules["tracker_rules"]["keys"] = jira_keys
+
+        # Ensure Jira scoped labels take precedence whenever labels are absent or contain GitHub default unscoped label values
+        if "labels" not in rules["tracker_rules"] or not isinstance(rules["tracker_rules"]["labels"], dict):
+            rules["tracker_rules"]["labels"] = copy.deepcopy(DEFAULT_JIRA_TRACKER_RULES["labels"])
+        else:
+            github_unscoped = {"epic", "feature", "user-story", "use-case", "user_story", "use_case", "status:fixed-resolved"}
+            jira_default_labels = DEFAULT_JIRA_TRACKER_RULES["labels"]
+            for label_key, default_val in jira_default_labels.items():
+                curr_val = rules["tracker_rules"]["labels"].get(label_key)
+                if curr_val is None or curr_val in github_unscoped:
+                    rules["tracker_rules"]["labels"][label_key] = default_val
+
+        rules["tracker_rules"]["provider"] = "jira"
+
     return rules
 
 def get_git_remote_repo(workspace_dir):
@@ -977,8 +1660,8 @@ def get_upstream_repository(rules, workspace_dir):
     if git_repo:
         return git_repo
     if rules and isinstance(rules, dict):
-        return rules.get("meta", {}).get("upstream_repository", "gintatkinson/digital-pipeline-repo")
-    return "gintatkinson/digital-pipeline-repo"
+        return rules.get("meta", {}).get("upstream_repository", "gintatkinson/DEAP-spec-core")
+    return "gintatkinson/DEAP-spec-core"
 
 def format_issue_reference(issue_id, tracker_rules):
     issue_id_str = str(issue_id)
@@ -1218,6 +1901,13 @@ def get_all_issues(rules=None, provider_adapter=None):
             project_id=tracker_rules.get("project_id"),
         )
         return adapter.list_issues()
+    elif provider == "jira":
+        adapter = JiraV2V3Provider(
+            server_url=tracker_rules.get("server_url"),
+            project_key=tracker_rules.get("project_key") or tracker_rules.get("project"),
+            email=tracker_rules.get("email"),
+        )
+        return adapter.list_issues()
 
     commands = tracker_rules.get("commands")
     if not commands or "list_issues" not in commands:
@@ -1276,6 +1966,7 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
         if isinstance(dep_num_str, str) and PLACEHOLDER_PATTERN.match(dep_num_str):
             ref_str = format_issue_reference(dep_num_str, tracker_rules)
             print(f"  [Deferred] Unresolved placeholder {ref_str} in {os.path.basename(filepath)} — skipping")
+            all_deps_closed = False
             continue
         has_deps = True
         dep_num = int(dep_num_str) if dep_num_str.isdigit() else dep_num_str
@@ -1284,6 +1975,7 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
         if dep_issue is None:
             ref_str = format_issue_reference(dep_num, tracker_rules)
             print(f"  [Warning] Dependency {ref_str} not found in tracker for {os.path.basename(filepath)} — skipping item")
+            all_deps_closed = False
             continue
             
         is_closed = (str(dep_issue[state_key]).upper() == closed_state) or is_already_resolved(dep_issue, rules)
@@ -1382,7 +2074,7 @@ def rewrite_header_repository_urls(content, active_repo):
         is_target_repo = (
             (url_owner_lower == active_owner and url_repo_lower == active_name) or
             (url_repo_lower == active_name) or
-            (url_repo_lower == "digital-pipeline-repo") or
+            (url_repo_lower == "deap-spec-core") or
             ("pipeline-repo" in url_repo_lower)
         )
 
@@ -1400,7 +2092,7 @@ def sanitize_source_references(content, workspace_dir=None, rules=None):
     if workspace_dir is None:
         workspace_dir = find_workspace_dir(os.getcwd())
 
-    upstream_repo = get_upstream_repository(rules, workspace_dir) or "gintatkinson/digital-pipeline-repo"
+    upstream_repo = get_upstream_repository(rules, workspace_dir) or "gintatkinson/DEAP-spec-core"
     content = rewrite_header_repository_urls(content, upstream_repo)
     branch = get_current_branch(workspace_dir)
     if not branch or branch == "HEAD":
@@ -1539,6 +2231,8 @@ def get_structural_label(issue_type, rules=None):
     provider = tracker_rules.get("provider", "github")
     if provider == "gitlab":
         return DEFAULT_GITLAB_STRUCTURAL_LABELS.get(key)
+    elif provider == "jira":
+        return DEFAULT_JIRA_STRUCTURAL_LABELS.get(key)
     return DEFAULT_STRUCTURAL_LABELS.get(key)
 
 
@@ -1756,7 +2450,7 @@ RESOLVED_LABEL_DESCRIPTION = (
 def get_resolved_label(rules=None):
     tracker_rules = rules.get("tracker_rules", {}) if rules else {}
     provider = tracker_rules.get("provider", "github")
-    default_resolved = "status::fixed-resolved" if provider == "gitlab" else "status:fixed-resolved"
+    default_resolved = "status::fixed-resolved" if provider in ("gitlab", "jira") else "status:fixed-resolved"
     return tracker_rules.get("labels", {}).get("resolved", default_resolved)
 
 
@@ -2563,9 +3257,9 @@ def main():
     )
     parser.add_argument(
         "--provider",
-        choices=["github", "gitlab", "auto"],
+        choices=["github", "gitlab", "jira", "auto"],
         default=None,
-        help="Issue tracker provider ('github' or 'gitlab'). Defaults to auto-detection or codebase rules configuration.",
+        help="Issue tracker provider ('github', 'gitlab', or 'jira'). Defaults to auto-detection or codebase rules configuration.",
     )
     parser.add_argument(
         "--gitlab-url",
@@ -2576,6 +3270,21 @@ def main():
         "--project",
         default=None,
         help="GitLab project path or numeric ID (e.g. 'gintatkinson/DEAP-spec-core' or CI_PROJECT_PATH).",
+    )
+    parser.add_argument(
+        "--jira-url",
+        default=None,
+        help="Jira instance base URL (e.g. 'https://your-domain.atlassian.net' or JIRA_SERVER_URL environment variable).",
+    )
+    parser.add_argument(
+        "--jira-project",
+        default=None,
+        help="Jira project key code (e.g. 'UAS' or JIRA_PROJECT_KEY environment variable).",
+    )
+    parser.add_argument(
+        "--jira-email",
+        default=None,
+        help="Jira account email address (for Jira Cloud Basic Auth or JIRA_EMAIL environment variable).",
     )
     parser.add_argument(
         "--offline",
@@ -2651,6 +3360,9 @@ def main():
             offline=args.offline,
             cli_gitlab_url=args.gitlab_url,
             cli_project=args.project,
+            cli_jira_url=args.jira_url,
+            cli_jira_project=args.jira_project,
+            cli_jira_email=args.jira_email,
         )
 
         try:

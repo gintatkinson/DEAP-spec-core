@@ -22,35 +22,354 @@ import os
 import re
 import subprocess
 import json
+import netrc
 import sys
 import yaml
 import traceback
 import shutil
+import tempfile
+import copy
+import ssl
+import time
+import base64
+import argparse
+import urllib.request
+import urllib.parse
+import urllib.error
+from typing import Dict, List, Optional, Tuple, Any, Set, Union
 
 def sanitize_github_token_env():
     """
-    Sanitize environment by removing dummy or placeholder GITHUB_TOKEN and GH_TOKEN
-    values that interfere with git/gh terminal operations.
+    Sanitize environment by removing dummy or placeholder tokens
+    that interfere with git/gh/glab terminal operations.
     """
     dummy_keywords = ("antigravity", "dummy", "placeholder", "invalid", "mock")
-    for var in ("GITHUB_TOKEN", "GH_TOKEN"):
+    for var in ("GITHUB_TOKEN", "GH_TOKEN", "GITLAB_TOKEN", "GL_TOKEN", "CI_JOB_TOKEN"):
         val = os.environ.get(var)
         if val and any(kw in val.lower() for kw in dummy_keywords):
             os.environ.pop(var, None)
 
 sanitize_github_token_env()
 
-def load_codebase_rules(workspace_dir):
-    rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")
-    if os.path.exists(rules_path):
-        try:
-            with open(rules_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"Warning: Failed to load codebase_rules.json: {e}")
-    return {}
+DEFAULT_CODEBASE_RULES = {
+    "meta": {
+        "version": "1.0.0",
+        "description": "Default pipeline and codebase compliance rules",
+        "upstream_repository": "gintatkinson/DEAP-spec-core",
+    },
+    "tracker_rules": {
+        "provider": "github",
+        "issue_id_placeholder": "#[IssueID]",
+        "prefix_normalization_regex": r"^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+\s*[:\-]?|:)\s*",
+        "title_extraction_prefixes_regex": r"(?:Feature\s+\d+\s*:\s*|Use\s+Case\s+\d+\s*:\s*|User\s+Story\s+\d+\s*:\s*)?",
+        "truncation_headers": [
+            "## Acceptance Criteria",
+            "## User Stories"
+        ],
+        "truncation_message_template": "\n\n---\n*Warning: This issue body has been truncated because it exceeds the tracker size limit of {max_body_chars} characters.*\n*Please refer to the full specification file in the repository at `{rel_path}` for the complete details.*\n",
+        "numeric_prefix": "#",
+        "alphanumeric_prefix": "",
+        "keys": {
+            "issue_id": "number",
+            "title": "title",
+            "labels": "labels",
+            "state": "state",
+            "closed_state_value": "CLOSED",
+            "open_state_value": "OPEN"
+        },
+        "labels": {
+            "epic": "epic",
+            "feature": "feature",
+            "user_story": "user-story",
+            "use_case": "use-case",
+            "resolved": "status:fixed-resolved"
+        },
+        "close_comments": {
+            "epic": "Epic completed. All constituent features successfully delivered and verified.",
+            "user_story": "Resolved. All dependent features/tasks for BDD scenario '{title}' have been completed and verified.",
+            "use_case": "Resolved. All dependent user stories and features for use case '{title}' are completed."
+        },
+        "commands": {
+            "list_issues": [
+                "gh",
+                "issue",
+                "list",
+                "--limit",
+                "1000",
+                "--state",
+                "all",
+                "--json",
+                "number,title,state,labels"
+            ],
+            "edit_issue": [
+                "gh",
+                "issue",
+                "edit",
+                "{number}",
+                "--body-file",
+                "{temp_path}"
+            ],
+            "edit_issue_title": [
+                "gh",
+                "issue",
+                "edit",
+                "{number}",
+                "--title",
+                "{title}"
+            ],
+            "add_label": [
+                "gh",
+                "issue",
+                "edit",
+                "{number}",
+                "--add-label",
+                "{label}"
+            ],
+            "resolve_issue": [
+                "gh",
+                "issue",
+                "edit",
+                "{number}",
+                "--add-label",
+                "{label}"
+            ],
+            "comment_issue": [
+                "gh",
+                "issue",
+                "comment",
+                "{number}",
+                "--body",
+                "{comment}"
+            ],
+            "create_label": [
+                "gh",
+                "label",
+                "create",
+                "{label}",
+                "--description",
+                "{description}",
+                "--color",
+                "0E8A16",
+                "--force"
+            ]
+        }
+    },
+    "backlog_directories": {
+        "epics": "docs/epics",
+        "features": "docs/features",
+        "user_stories": "docs/user-stories",
+        "use_cases": "docs/use-cases",
+        "schemas": "schema"
+    }
+}
 
-def get_git_remote_repo(workspace_dir):
+DEFAULT_GITLAB_TRACKER_RULES = {
+    "provider": "gitlab",
+    "issue_id_placeholder": "#[IssueID]",
+    "prefix_normalization_regex": r"^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+\s*[:\-]?|:)\s*",
+    "title_extraction_prefixes_regex": r"(?:Feature\s+\d+\s*:\s*|Use\s+Case\s+\d+\s*:\s*|User\s+Story\s+\d+\s*:\s*)?",
+    "truncation_headers": [
+        "## Acceptance Criteria",
+        "## User Stories"
+    ],
+    "truncation_message_template": "\n\n---\n*Warning: This issue body has been truncated because it exceeds the tracker size limit of {max_body_chars} characters.*\n*Please refer to the full specification file in the repository at `{rel_path}` for the complete details.*\n",
+    "numeric_prefix": "#",
+    "alphanumeric_prefix": "",
+    "keys": {
+        "issue_id": "iid",
+        "title": "title",
+        "labels": "labels",
+        "state": "state",
+        "closed_state_value": "CLOSED",
+        "open_state_value": "OPENED"
+    },
+    "labels": {
+        "epic": "type::epic",
+        "feature": "type::feature",
+        "user_story": "type::user-story",
+        "use_case": "type::use-case",
+        "ready_for_review": "status::ready-for-review",
+        "resolved": "status::fixed-resolved"
+    },
+    "close_comments": {
+        "epic": "Epic completed. All constituent features successfully delivered and verified.",
+        "user_story": "Resolved. All dependent features/tasks for BDD scenario '{title}' have been completed and verified.",
+        "use_case": "Resolved. All dependent user stories and features for use case '{title}' are completed."
+    },
+    "commands": {
+        "list_issues": [
+            "glab",
+            "issue",
+            "list",
+            "--all",
+            "--per-page",
+            "1000",
+            "--output",
+            "json"
+        ],
+        "edit_issue": [
+            "glab",
+            "issue",
+            "update",
+            "{number}",
+            "--description",
+            "{temp_path}"
+        ],
+        "edit_issue_title": [
+            "glab",
+            "issue",
+            "update",
+            "{number}",
+            "--title",
+            "{title}"
+        ],
+        "add_label": [
+            "glab",
+            "issue",
+            "update",
+            "{number}",
+            "--label",
+            "{label}"
+        ],
+        "resolve_issue": [
+            "glab",
+            "issue",
+            "update",
+            "{number}",
+            "--label",
+            "{label}"
+        ],
+        "comment_issue": [
+            "glab",
+            "issue",
+            "note",
+            "{number}",
+            "--message",
+            "{comment}"
+        ],
+        "create_label": [
+            "glab",
+            "label",
+            "create",
+            "{label}",
+            "--description",
+            "{description}",
+            "--color",
+            "#0E8A16"
+        ]
+    }
+}
+
+DEFAULT_GITLAB_STRUCTURAL_LABELS = {
+    "epic": "type::epic",
+    "feature": "type::feature",
+    "user_story": "type::user-story",
+    "use_case": "type::use-case",
+}
+
+DEFAULT_JIRA_TRACKER_RULES = {
+    "provider": "jira",
+    "issue_id_placeholder": "#[IssueID]",
+    "prefix_normalization_regex": r"^(epic|feature|feat|user[- ]story|use[- ]case|us|uc)[s]?(?:[- ]*\d+\s*[:\-]?|:)\s*",
+    "title_extraction_prefixes_regex": r"(?:Feature\s+\d+\s*:\s*|Use\s+Case\s+\d+\s*:\s*|User\s+Story\s+\d+\s*:\s*)?",
+    "truncation_headers": [
+        "## Acceptance Criteria",
+        "## User Stories"
+    ],
+    "truncation_message_template": "\n\n---\n*Warning: This issue body has been truncated because it exceeds the tracker size limit of {max_body_chars} characters.*\n*Please refer to the full specification file in the repository at `{rel_path}` for the complete details.*\n",
+    "numeric_prefix": "",
+    "alphanumeric_prefix": "",
+    "keys": {
+        "issue_id": "key",
+        "title": "title",
+        "labels": "labels",
+        "state": "state",
+        "closed_state_value": "CLOSED",
+        "open_state_value": "OPEN"
+    },
+    "labels": {
+        "epic": "type::epic",
+        "feature": "type::feature",
+        "user_story": "type::user-story",
+        "use_case": "type::use-case",
+        "ready_for_review": "status::ready-for-review",
+        "resolved": "status::fixed-resolved"
+    },
+    "close_comments": {
+        "epic": "Epic completed. All constituent features successfully delivered and verified.",
+        "user_story": "Resolved. All dependent features/tasks for BDD scenario '{title}' have been completed and verified.",
+        "use_case": "Resolved. All dependent user stories and features for use case '{title}' are completed."
+    }
+}
+
+DEFAULT_JIRA_STRUCTURAL_LABELS = {
+    "epic": "type::epic",
+    "feature": "type::feature",
+    "user_story": "type::user-story",
+    "use_case": "type::use-case",
+}
+
+def parse_git_remote_url(remote_url: str) -> Dict[str, Any]:
+    """
+    Parse a git remote origin URL into its components:
+    - raw: raw URL string
+    - is_gitlab: True if domain contains 'gitlab'
+    - project_path: repository path (e.g. 'gintatkinson/DEAP-spec-core' or 'group/subgroup/project')
+    - server_url: base server URL (e.g. 'https://gitlab.com' or 'https://gitlab.internal.corp')
+    - host: domain host name (e.g. 'gitlab.com' or 'github.com')
+    """
+    if not remote_url:
+        return {"raw": "", "is_gitlab": False, "project_path": None, "server_url": None, "host": None}
+    
+    clean_url = remote_url.strip()
+    if clean_url.endswith(".git"):
+        clean_url = clean_url[:-4]
+        
+    # Check if HTTP(S) / SSH URL with scheme (e.g. https://gitlab.com/owner/repo or ssh://git@gitlab.com/owner/repo)
+    if "://" in clean_url:
+        parsed = urllib.parse.urlparse(clean_url)
+        path = parsed.path.lstrip("/")
+        netloc = parsed.netloc
+        host = netloc.split("@")[-1].split(":")[0]
+        scheme = parsed.scheme if parsed.scheme in ("http", "https") else "https"
+        server_url = f"{scheme}://{netloc.split('@')[-1]}"
+        is_gitlab = "gitlab" in host.lower()
+        return {
+            "raw": remote_url,
+            "is_gitlab": is_gitlab,
+            "project_path": path,
+            "server_url": server_url,
+            "host": host
+        }
+    
+    # Check if SCP-style SSH URL (e.g. git@gitlab.com:owner/repo or git@gitlab.internal.corp:group/sub/repo)
+    scp_match = re.match(r'^(?:[^@]+@)?([^:]+):(.+)$', clean_url)
+    if scp_match:
+        host = scp_match.group(1)
+        path = scp_match.group(2).lstrip("/")
+        is_gitlab = "gitlab" in host.lower()
+        server_url = f"https://{host}"
+        return {
+            "raw": remote_url,
+            "is_gitlab": is_gitlab,
+            "project_path": path,
+            "server_url": server_url,
+            "host": host
+        }
+        
+    # Fallback parsing
+    parts = clean_url.split("/")
+    project_path = f"{parts[-2]}/{parts[-1]}" if len(parts) >= 2 else clean_url
+    is_gitlab = "gitlab" in clean_url.lower()
+    return {
+        "raw": remote_url,
+        "is_gitlab": is_gitlab,
+        "project_path": project_path,
+        "server_url": "https://gitlab.com" if is_gitlab else "https://github.com",
+        "host": "gitlab.com" if is_gitlab else "github.com"
+    }
+
+def get_git_remote_info(workspace_dir: str) -> Optional[Dict[str, Any]]:
     try:
         res = subprocess.run(
             ["git", "remote", "get-url", "origin"],
@@ -61,13 +380,1274 @@ def get_git_remote_repo(workspace_dir):
             timeout=30
         )
         url = res.stdout.strip()
-        if url.endswith(".git"):
-            url = url[:-4]
-        if "github.com" in url:
-            url = re.split(r'github\.com[:/]', url)[-1]
-        parts = url.split("/")
-        if len(parts) >= 2:
-            return f"{parts[-2]}/{parts[-1]}"
+        return parse_git_remote_url(url)
+    except Exception:
+        return None
+
+def detect_tracker_provider(cli_provider: Optional[str] = None, rules: Optional[Dict[str, Any]] = None, workspace_dir: Optional[str] = None) -> str:
+    if cli_provider and cli_provider.lower() != "auto":
+        return cli_provider.lower()
+        
+    env_provider = os.environ.get("TRACKER_PROVIDER") or os.environ.get("PROVIDER")
+    if env_provider and env_provider.lower() != "auto":
+        return env_provider.lower()
+
+    if rules and isinstance(rules, dict):
+        configured = rules.get("tracker_rules", {}).get("provider")
+        if configured and configured.lower() not in ("auto", "github"):
+            return configured.lower()
+
+    # Detect from Jira environment variables
+    if (
+        os.environ.get("JIRA_SERVER_URL")
+        or os.environ.get("JIRA_URL")
+        or os.environ.get("JIRA_PROJECT_KEY")
+        or os.environ.get("JIRA_PROJECT")
+        or os.environ.get("JIRA_API_TOKEN")
+        or os.environ.get("JIRA_PAT")
+        or os.environ.get("JIRA_TOKEN")
+    ):
+        return "jira"
+
+    # Detect from CI environment variables
+    if os.environ.get("GITLAB_CI") or os.environ.get("CI_SERVER_URL") or os.environ.get("CI_PROJECT_PATH"):
+        return "gitlab"
+    if os.environ.get("GITHUB_ACTIONS") or os.environ.get("GITHUB_REPOSITORY"):
+        return "github"
+
+    # Detect from git remote
+    if workspace_dir:
+        remote_info = get_git_remote_info(workspace_dir)
+        if remote_info and remote_info.get("is_gitlab"):
+            return "gitlab"
+
+    # Fallback to configured provider or "github"
+    if rules and isinstance(rules, dict):
+        configured = rules.get("tracker_rules", {}).get("provider")
+        if configured:
+            return configured.lower()
+            
+    return "github"
+
+class GitLabV4Provider:
+    """
+    Native GitLab REST API v4 Provider Adapter.
+    Uses standard library urllib.request (zero external dependencies).
+    Supports personal/project access tokens (PRIVATE-TOKEN) and CI job tokens (JOB-TOKEN).
+    Supports self-hosted instances, custom root CA certs, and glab CLI fallback.
+    """
+
+    def __init__(
+        self,
+        server_url: Optional[str] = None,
+        project_id: Optional[str] = None,
+        token: Optional[str] = None,
+        token_type: Optional[str] = None,
+        ca_cert_path: Optional[str] = None,
+        timeout_sec: int = 30,
+        max_retries: int = 3,
+        backoff_base_sec: float = 1.0,
+        offline: bool = False,
+        workspace_dir: Optional[str] = None,
+    ):
+        self.workspace_dir = workspace_dir or os.getcwd()
+        self.offline = offline
+        self.server_url = (server_url or self._resolve_server_url()).rstrip("/")
+        self.raw_project_id = project_id or self._resolve_project_id()
+        if self.raw_project_id:
+            raw_str = str(self.raw_project_id).strip()
+            if raw_str.isdigit():
+                self.project_id_encoded = raw_str
+            else:
+                self.project_id_encoded = urllib.parse.quote(raw_str, safe="")
+        else:
+            self.project_id_encoded = ""
+
+        resolved_token, resolved_token_type = self._resolve_token()
+        self.token = token or resolved_token
+        self.token_type = token_type or resolved_token_type or "PRIVATE-TOKEN"
+
+        self.timeout_sec = timeout_sec
+        self.max_retries = max_retries
+        self.backoff_base_sec = backoff_base_sec
+        self.ca_cert_path = ca_cert_path or os.environ.get("GITLAB_CA_CERT_PATH") or os.environ.get("SSL_CERT_FILE")
+        self.ssl_context = self._create_ssl_context(self.ca_cert_path)
+
+    def _create_ssl_context(self, ca_cert_path: Optional[str]) -> ssl.SSLContext:
+        ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+        if ca_cert_path and os.path.isfile(ca_cert_path):
+            try:
+                ctx.load_verify_locations(cafile=ca_cert_path)
+            except Exception as e:
+                print(f"Warning: Failed to load CA certificate from {ca_cert_path}: {e}", file=sys.stderr)
+        return ctx
+
+    def _resolve_server_url(self) -> str:
+        for env_var in ("GITLAB_URL", "CI_SERVER_URL", "GL_SERVER_URL"):
+            val = os.environ.get(env_var)
+            if val and val.strip():
+                return val.strip().rstrip("/")
+        remote_info = get_git_remote_info(self.workspace_dir)
+        if remote_info and remote_info.get("server_url") and remote_info.get("is_gitlab"):
+            return remote_info["server_url"]
+        return "https://gitlab.com"
+
+    def _resolve_project_id(self) -> Optional[str]:
+        for env_var in ("CI_PROJECT_PATH", "CI_PROJECT_ID", "GITLAB_PROJECT", "GL_PROJECT"):
+            val = os.environ.get(env_var)
+            if val and val.strip():
+                return val.strip()
+        remote_info = get_git_remote_info(self.workspace_dir)
+        if remote_info and remote_info.get("project_path"):
+            return remote_info["project_path"]
+        env_repo = os.environ.get("UPSTREAM_REPOSITORY") or os.environ.get("GIT_REMOTE_ORIGIN")
+        if env_repo:
+            return env_repo.strip()
+        return None
+
+    def _resolve_token(self) -> Tuple[Optional[str], str]:
+        for var in ("GITLAB_TOKEN", "GL_TOKEN"):
+            val = os.environ.get(var)
+            if val and val.strip():
+                return val.strip(), "PRIVATE-TOKEN"
+        job_token = os.environ.get("CI_JOB_TOKEN")
+        if job_token and job_token.strip():
+            return job_token.strip(), "JOB-TOKEN"
+        glab_path = shutil.which("glab")
+        if glab_path:
+            try:
+                res = subprocess.run([glab_path, "auth", "token"], capture_output=True, text=True, timeout=5)
+                if res.returncode == 0 and res.stdout.strip():
+                    return res.stdout.strip(), "PRIVATE-TOKEN"
+            except Exception:
+                pass
+        try:
+            hostname = urllib.parse.urlparse(self.server_url).hostname or "gitlab.com"
+            auth = netrc.netrc().authenticators(hostname)
+            if auth and auth[2] and auth[2].strip():
+                return auth[2].strip(), "PRIVATE-TOKEN"
+        except Exception:
+            pass
+        return None, "PRIVATE-TOKEN"
+
+    def _api_request(
+        self,
+        endpoint: str,
+        method: str = "GET",
+        params: Optional[Dict[str, Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[int, Any, Dict[str, str]]:
+        if self.offline:
+            return 200, [], {}
+
+        if not self.project_id_encoded:
+            raise ValueError("GitLab project ID / path could not be resolved.")
+
+        clean_endpoint = endpoint.lstrip("/")
+        url = f"{self.server_url}/api/v4/{clean_endpoint}"
+        if params:
+            query_str = urllib.parse.urlencode(params)
+            url = f"{url}?{query_str}"
+
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": "DEAP-Backlog-Reconciler/1.0",
+        }
+        if self.token:
+            if self.token_type == "JOB-TOKEN":
+                headers["JOB-TOKEN"] = self.token
+            else:
+                headers["PRIVATE-TOKEN"] = self.token
+
+        body_bytes = None
+        if data is not None:
+            body_bytes = json.dumps(data).encode("utf-8")
+            headers["Content-Type"] = "application/json; charset=utf-8"
+
+        req = urllib.request.Request(url=url, data=body_bytes, headers=headers, method=method)
+
+        attempt = 0
+        while attempt < self.max_retries:
+            attempt += 1
+            try:
+                with urllib.request.urlopen(req, context=self.ssl_context, timeout=self.timeout_sec) as resp:
+                    status_code = resp.status
+                    resp_headers = {k: v for k, v in resp.headers.items()}
+                    raw_body = resp.read().decode("utf-8")
+                    parsed_body = json.loads(raw_body) if raw_body.strip() else {}
+                    return status_code, parsed_body, resp_headers
+            except urllib.error.HTTPError as e:
+                status_code = e.code
+                error_headers = {k: v for k, v in e.headers.items()} if e.headers else {}
+                raw_err = e.read().decode("utf-8", errors="ignore") if e.fp else ""
+                
+                if status_code in (429, 502, 503, 504) and attempt < self.max_retries:
+                    retry_after = error_headers.get("Retry-After")
+                    if retry_after and retry_after.isdigit():
+                        sleep_time = float(retry_after)
+                    else:
+                        sleep_time = self.backoff_base_sec * (2 ** (attempt - 1))
+                    time.sleep(sleep_time)
+                    continue
+                
+                raise RuntimeError(
+                    f"GitLab API HTTP {status_code} Error on {method} {url}: {raw_err}"
+                ) from e
+            except urllib.error.URLError as e:
+                if attempt >= self.max_retries:
+                    raise RuntimeError(
+                        f"Network transport failure connecting to {self.server_url}: {e.reason}"
+                    ) from e
+                time.sleep(self.backoff_base_sec * (2 ** (attempt - 1)))
+
+        raise TimeoutError(f"Exceeded maximum retries ({self.max_retries}) for GitLab API request: {url}")
+
+    def list_issues(self) -> List[Dict[str, Any]]:
+        """
+        Fetch all project issues using GitLab REST API v4 with pagination.
+        Falls back to glab CLI if token is absent and glab is available,
+        or returns empty list in offline/unauthenticated mode with notice.
+        """
+        if self.offline:
+            print("[Notice] GitLab tracker in offline mode. Operating in offline/local specification mode.")
+            return []
+
+        if not self.token and shutil.which("glab"):
+            return self._list_issues_via_glab()
+
+        if not self.token:
+            print("[Notice] No GitLab authentication token found (GITLAB_TOKEN, GL_TOKEN, CI_JOB_TOKEN). "
+                  "Operating in offline/local specification mode.")
+            return []
+
+        if not self.project_id_encoded:
+            print("[Notice] GitLab project path/ID not resolved. Operating in offline/local specification mode.")
+            return []
+
+        all_issues = []
+        page = 1
+        endpoint = f"projects/{self.project_id_encoded}/issues"
+
+        try:
+            print(f"Fetching active and closed issues from GitLab REST API v4 ({self.server_url})...")
+            while True:
+                params = {
+                    "scope": "all",
+                    "state": "all",
+                    "per_page": 100,
+                    "page": page,
+                }
+                status_code, issues, headers = self._api_request(endpoint, method="GET", params=params)
+                if not isinstance(issues, list):
+                    break
+
+                for issue in issues:
+                    if "iid" in issue:
+                        issue["number"] = issue["iid"]
+                    if "state" in issue:
+                        issue["state"] = str(issue["state"]).upper()
+                    all_issues.append(issue)
+
+                next_page_hdr = headers.get("X-Next-Page") or headers.get("x-next-page")
+                if next_page_hdr and str(next_page_hdr).strip() and str(next_page_hdr).strip() != "0":
+                    page = int(next_page_hdr)
+                elif len(issues) == 100:
+                    page += 1
+                else:
+                    break
+
+            return all_issues
+        except Exception as e:
+            err_msg = str(e)
+            print(f"[Notice] GitLab issue tracker unavailable ({err_msg}). Operating in offline/local specification mode.")
+            return []
+
+    def _list_issues_via_glab(self) -> List[Dict[str, Any]]:
+        try:
+            cmd = ["glab", "issue", "list", "--all", "--per-page", "1000", "--output", "json"]
+            res = subprocess.run(cmd, cwd=self.workspace_dir, capture_output=True, text=True, timeout=30)
+            if res.returncode == 0 and res.stdout.strip():
+                issues = json.loads(res.stdout)
+                for issue in issues:
+                    if "iid" in issue:
+                        issue["number"] = issue["iid"]
+                    if "state" in issue:
+                        issue["state"] = str(issue["state"]).upper()
+                return issues
+        except Exception as e:
+            print(f"[Notice] glab CLI fallback failed: {e}")
+        return []
+
+    def create_issue(self, title: str, description: str, labels: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+        if self.offline or not self.token or not self.project_id_encoded:
+            return None
+        endpoint = f"projects/{self.project_id_encoded}/issues"
+        payload = {
+            "title": title,
+            "description": description or "",
+        }
+        if labels:
+            if isinstance(labels, list):
+                payload["labels"] = ",".join(str(l) for l in labels if l)
+            else:
+                payload["labels"] = str(labels)
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="POST", data=payload)
+            if isinstance(data, dict):
+                if "iid" in data:
+                    data["number"] = data["iid"]
+                return data
+        except Exception as e:
+            print(f"  [Warning] Failed to create GitLab issue '{title}': {e}", file=sys.stderr)
+        return None
+
+    def edit_issue(self, iid: Any, description: str) -> bool:
+        if self.offline or not self.token or not self.project_id_encoded:
+            if shutil.which("glab"):
+                return self._edit_issue_via_glab(iid, description)
+            return False
+        endpoint = f"projects/{self.project_id_encoded}/issues/{iid}"
+        payload = {"description": description}
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="PUT", data=payload)
+            return status_code in (200, 201)
+        except Exception as e:
+            print(f"  [Warning] Failed to update GitLab issue #{iid} description: {e}", file=sys.stderr)
+            if shutil.which("glab"):
+                return self._edit_issue_via_glab(iid, description)
+            return False
+
+    def edit_issue_title(self, iid: Any, title: str) -> bool:
+        if self.offline or not self.token or not self.project_id_encoded:
+            if shutil.which("glab"):
+                return self._edit_issue_title_via_glab(iid, title)
+            return False
+        endpoint = f"projects/{self.project_id_encoded}/issues/{iid}"
+        payload = {"title": title}
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="PUT", data=payload)
+            return status_code in (200, 201)
+        except Exception as e:
+            print(f"  [Warning] Failed to update GitLab issue #{iid} title: {e}", file=sys.stderr)
+            if shutil.which("glab"):
+                return self._edit_issue_title_via_glab(iid, title)
+            return False
+
+    def add_label(self, iid: Any, label: str) -> bool:
+        if not label:
+            return False
+        if self.offline or not self.token or not self.project_id_encoded:
+            if shutil.which("glab"):
+                return self._add_label_via_glab(iid, label)
+            return False
+        endpoint = f"projects/{self.project_id_encoded}/issues/{iid}"
+        payload = {"add_labels": label}
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="PUT", data=payload)
+            return status_code in (200, 201)
+        except Exception as e:
+            print(f"  [Warning] Failed to add label '{label}' to GitLab issue #{iid}: {e}", file=sys.stderr)
+            if shutil.which("glab"):
+                return self._add_label_via_glab(iid, label)
+            return False
+
+    def comment_issue(self, iid: Any, comment: str) -> bool:
+        if not comment:
+            return False
+        if self.offline or not self.token or not self.project_id_encoded:
+            if shutil.which("glab"):
+                return self._comment_issue_via_glab(iid, comment)
+            return False
+        endpoint = f"projects/{self.project_id_encoded}/issues/{iid}/notes"
+        payload = {"body": comment}
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="POST", data=payload)
+            return status_code in (200, 201)
+        except Exception as e:
+            print(f"  [Warning] Failed to post comment on GitLab issue #{iid}: {e}", file=sys.stderr)
+            if shutil.which("glab"):
+                return self._comment_issue_via_glab(iid, comment)
+            return False
+
+    def create_label(self, label: str, description: str = "", color: str = "#0E8A16") -> bool:
+        if not label:
+            return False
+        if self.offline or not self.token or not self.project_id_encoded:
+            return False
+        endpoint = f"projects/{self.project_id_encoded}/labels"
+        payload = {
+            "name": label,
+            "description": description or "",
+            "color": color or "#0E8A16",
+        }
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="POST", data=payload)
+            return status_code in (200, 201)
+        except Exception as e:
+            err_str = str(e)
+            if "409" in err_str or "already exists" in err_str.lower():
+                return True
+            return False
+
+    def _edit_issue_via_glab(self, iid: Any, description: str) -> bool:
+        try:
+            cmd = ["glab", "issue", "update", str(iid), "--description", description]
+            res = subprocess.run(cmd, cwd=self.workspace_dir, capture_output=True, text=True, timeout=30)
+            return res.returncode == 0
+        except Exception:
+            return False
+
+    def _edit_issue_title_via_glab(self, iid: Any, title: str) -> bool:
+        try:
+            cmd = ["glab", "issue", "update", str(iid), "--title", title]
+            res = subprocess.run(cmd, cwd=self.workspace_dir, capture_output=True, text=True, timeout=30)
+            return res.returncode == 0
+        except Exception:
+            return False
+
+    def _add_label_via_glab(self, iid: Any, label: str) -> bool:
+        try:
+            cmd = ["glab", "issue", "update", str(iid), "--label", label]
+            res = subprocess.run(cmd, cwd=self.workspace_dir, capture_output=True, text=True, timeout=30)
+            return res.returncode == 0
+        except Exception:
+            return False
+
+    def _comment_issue_via_glab(self, iid: Any, comment: str) -> bool:
+        try:
+            cmd = ["glab", "issue", "note", str(iid), "--message", comment]
+            res = subprocess.run(cmd, cwd=self.workspace_dir, capture_output=True, text=True, timeout=30)
+            return res.returncode == 0
+        except Exception:
+            return False
+
+class JiraV2V3Provider:
+    """
+    Native Jira REST API v2/v3 Provider Adapter.
+    Uses standard library urllib.request (zero external dependencies).
+    Supports Jira Cloud Basic Auth (email + API token) and Jira Data Center / Server Bearer PAT (Personal Access Token).
+    Supports .netrc credential resolution, self-hosted instances, custom root CA certs, and dynamic workflow transitions.
+    """
+
+    def __init__(
+        self,
+        server_url: Optional[str] = None,
+        project_key: Optional[str] = None,
+        email: Optional[str] = None,
+        token: Optional[str] = None,
+        token_type: Optional[str] = None,
+        ca_cert_path: Optional[str] = None,
+        timeout_sec: int = 30,
+        max_retries: int = 3,
+        backoff_base_sec: float = 1.0,
+        offline: bool = False,
+        workspace_dir: Optional[str] = None,
+    ):
+        self.workspace_dir = workspace_dir or os.getcwd()
+        self.offline = offline
+        resolved_server_url = self._resolve_server_url()
+        self.server_url = (server_url or resolved_server_url or "").rstrip("/")
+        self.project_key = (project_key or self._resolve_project_key() or "").strip()
+
+        resolved_email, resolved_token, resolved_token_type = self._resolve_auth()
+        self.email = email if email is not None else resolved_email
+        self.token = token if token is not None else resolved_token
+        self.token_type = token_type if token_type is not None else (resolved_token_type or ("Basic" if self.email else "Bearer"))
+        self.auth_type = self.token_type.lower() if self.token_type else ("basic" if self.email else "bearer")
+
+        self.timeout_sec = timeout_sec
+        self.max_retries = max_retries
+        self.backoff_base_sec = backoff_base_sec
+        self.ca_cert_path = ca_cert_path or os.environ.get("JIRA_CA_CERT_PATH") or os.environ.get("SSL_CERT_FILE")
+        self.ssl_context = self._create_ssl_context(self.ca_cert_path)
+
+    def _create_ssl_context(self, ca_cert_path: Optional[str]) -> ssl.SSLContext:
+        ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+        if ca_cert_path and os.path.isfile(ca_cert_path):
+            try:
+                ctx.load_verify_locations(cafile=ca_cert_path)
+            except Exception as e:
+                print(f"Warning: Failed to load CA certificate from {ca_cert_path}: {e}", file=sys.stderr)
+        return ctx
+
+    def _resolve_server_url(self) -> Optional[str]:
+        for env_var in ("JIRA_SERVER_URL", "JIRA_URL", "JIRA_HOST", "JIRA_BASE_URL"):
+            val = os.environ.get(env_var)
+            if val and val.strip():
+                url = val.strip().rstrip("/")
+                if not url.startswith("http://") and not url.startswith("https://"):
+                    url = f"https://{url}"
+                return url
+        return None
+
+    def _resolve_project_key(self) -> Optional[str]:
+        for env_var in ("JIRA_PROJECT_KEY", "JIRA_PROJECT", "JIRA_KEY"):
+            val = os.environ.get(env_var)
+            if val and val.strip():
+                return val.strip()
+        return None
+
+    def _resolve_auth(self) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        email = None
+        for env_var in ("JIRA_EMAIL", "JIRA_USER", "JIRA_USERNAME"):
+            val = os.environ.get(env_var)
+            if val and val.strip():
+                email = val.strip()
+                break
+
+        # Check PAT first (Data Center / Server Bearer)
+        pat = os.environ.get("JIRA_PAT")
+        if pat and pat.strip():
+            return email, pat.strip(), "Bearer"
+
+        # Check API token (Cloud basic auth)
+        api_token = os.environ.get("JIRA_API_TOKEN")
+        if api_token and api_token.strip():
+            return email, api_token.strip(), "Basic" if email else "Bearer"
+
+        # Generic token
+        token = os.environ.get("JIRA_TOKEN")
+        if token and token.strip():
+            token_type = "Basic" if email else "Bearer"
+            return email, token.strip(), token_type
+
+        # Netrc resolution fallback
+        try:
+            target_host = "jira.atlassian.net"
+            if self.server_url:
+                parsed = urllib.parse.urlparse(self.server_url)
+                if parsed.hostname:
+                    target_host = parsed.hostname
+            auth = netrc.netrc().authenticators(target_host)
+            if auth:
+                netrc_user, _, netrc_pwd = auth
+                res_email = email or (netrc_user.strip() if netrc_user else None)
+                res_token = netrc_pwd.strip() if netrc_pwd else None
+                res_type = "Basic" if res_email else "Bearer"
+                return res_email, res_token, res_type
+        except Exception:
+            pass
+
+        return email, None, "Basic" if email else "Bearer"
+
+    def _build_headers(self, has_data: bool = False) -> Dict[str, str]:
+        headers: Dict[str, str] = {
+            "Accept": "application/json",
+            "User-Agent": "DEAP-Backlog-Reconciler/1.0",
+        }
+        if has_data:
+            headers["Content-Type"] = "application/json; charset=utf-8"
+
+        if self.token:
+            if self.token_type and self.token_type.lower() in ("bearer", "pat"):
+                headers["Authorization"] = f"Bearer {self.token}"
+            elif self.email:
+                creds = f"{self.email}:{self.token}"
+                b64_creds = base64.b64encode(creds.encode("utf-8")).decode("utf-8")
+                headers["Authorization"] = f"Basic {b64_creds}"
+            else:
+                headers["Authorization"] = f"Bearer {self.token}"
+
+        return headers
+
+    def _api_request(
+        self,
+        endpoint: str,
+        method: str = "GET",
+        params: Optional[Dict[str, Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[int, Any, Dict[str, str]]:
+        if self.offline:
+            return 200, {}, {}
+
+        if not self.server_url:
+            raise ValueError("Jira server URL could not be resolved.")
+
+        clean_endpoint = endpoint.lstrip("/")
+        url = f"{self.server_url}/{clean_endpoint}"
+        if params:
+            query_str = urllib.parse.urlencode(params)
+            url = f"{url}?{query_str}"
+
+        headers = self._build_headers(has_data=(data is not None))
+
+        body_bytes = None
+        if data is not None:
+            body_bytes = json.dumps(data).encode("utf-8")
+
+        req = urllib.request.Request(url=url, data=body_bytes, headers=headers, method=method)
+
+        attempt = 0
+        while attempt < self.max_retries:
+            attempt += 1
+            try:
+                with urllib.request.urlopen(req, context=self.ssl_context, timeout=self.timeout_sec) as resp:
+                    status_code = resp.status
+                    resp_headers = {k: v for k, v in resp.headers.items()}
+                    raw_body = resp.read().decode("utf-8")
+                    parsed_body = json.loads(raw_body) if raw_body.strip() else {}
+                    return status_code, parsed_body, resp_headers
+            except urllib.error.HTTPError as e:
+                status_code = e.code
+                error_headers = {k: v for k, v in e.headers.items()} if e.headers else {}
+                raw_err = e.read().decode("utf-8", errors="ignore") if e.fp else ""
+
+                if status_code in (429, 502, 503, 504) and attempt < self.max_retries:
+                    retry_after = error_headers.get("Retry-After") or error_headers.get("retry-after")
+                    if retry_after:
+                        try:
+                            sleep_time = float(retry_after)
+                        except ValueError:
+                            sleep_time = self.backoff_base_sec * (2 ** (attempt - 1))
+                    else:
+                        sleep_time = self.backoff_base_sec * (2 ** (attempt - 1))
+                    time.sleep(sleep_time)
+                    continue
+
+                raise RuntimeError(
+                    f"Jira API HTTP {status_code} Error on {method} {url}: {raw_err}"
+                ) from e
+            except urllib.error.URLError as e:
+                if attempt >= self.max_retries:
+                    raise RuntimeError(
+                        f"Network transport failure connecting to {self.server_url}: {e.reason}"
+                    ) from e
+                time.sleep(self.backoff_base_sec * (2 ** (attempt - 1)))
+
+        raise TimeoutError(f"Exceeded maximum retries ({self.max_retries}) for Jira API request: {url}")
+
+    def list_issues(self) -> List[Dict[str, Any]]:
+        """
+        Fetch all project issues using Jira REST API search (JQL) with pagination.
+        Returns list of issue dicts matching DEAP tracker schema:
+        id, key, title, body, state, labels, issue_type.
+        """
+        if self.offline:
+            print("[Notice] Jira tracker in offline mode. Operating in offline/local specification mode.")
+            return []
+
+        if not self.server_url:
+            print("[Notice] Jira server URL not resolved (JIRA_SERVER_URL). Operating in offline/local specification mode.")
+            return []
+
+        if not self.token:
+            print("[Notice] No Jira authentication token found (JIRA_PAT, JIRA_API_TOKEN, JIRA_TOKEN). "
+                  "Operating in offline/local specification mode.")
+            return []
+
+        all_issues: List[Dict[str, Any]] = []
+        start_at = 0
+        max_results = 50
+        jql = f"project = '{self.project_key}' ORDER BY key ASC" if self.project_key else "ORDER BY key ASC"
+        endpoint = "rest/api/2/search"
+
+        try:
+            print(f"Fetching active and closed issues from Jira REST API ({self.server_url})...")
+            while True:
+                params = {
+                    "jql": jql,
+                    "startAt": start_at,
+                    "maxResults": max_results,
+                    "fields": "*all",
+                }
+                status_code, data, headers = self._api_request(endpoint, method="GET", params=params)
+                if not isinstance(data, dict):
+                    break
+
+                issues_batch = data.get("issues", [])
+                if not isinstance(issues_batch, list) or not issues_batch:
+                    break
+
+                for raw_issue in issues_batch:
+                    fields = raw_issue.get("fields", {}) or {}
+                    description = fields.get("description")
+                    if isinstance(description, (dict, list)):
+                        body = json.dumps(description)
+                    elif description is None:
+                        body = ""
+                    else:
+                        body = str(description)
+
+                    status_obj = fields.get("status", {}) or {}
+                    status_name = status_obj.get("name", "")
+                    issuetype_obj = fields.get("issuetype", {}) or {}
+                    issuetype_name = issuetype_obj.get("name", "")
+
+                    state = status_name.upper() if status_name else "OPEN"
+
+                    issue_dict = {
+                        "id": str(raw_issue.get("id", "")),
+                        "key": raw_issue.get("key", ""),
+                        "number": raw_issue.get("key", ""),
+                        "title": fields.get("summary", ""),
+                        "summary": fields.get("summary", ""),
+                        "body": body,
+                        "state": state,
+                        "status": status_name,
+                        "labels": fields.get("labels", []) or [],
+                        "issue_type": issuetype_name,
+                        "fields": fields,
+                    }
+                    all_issues.append(issue_dict)
+
+                total = data.get("total", len(all_issues))
+                if (start_at + len(issues_batch)) >= total:
+                    break
+                start_at += len(issues_batch)
+
+            return all_issues
+        except Exception as e:
+            err_msg = str(e)
+            print(f"[Notice] Jira issue tracker unavailable ({err_msg}). Operating in offline/local specification mode.")
+            return []
+
+    def get_issue(self, issue_key: str) -> Optional[Dict[str, Any]]:
+        """
+        Fetch a single Jira issue by key (e.g. 'DEAP-123') and convert to DEAP tracker schema.
+        """
+        if self.offline or not self.server_url or not self.token:
+            return None
+        endpoint = f"rest/api/2/issue/{issue_key}"
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="GET")
+            if isinstance(data, dict) and ("key" in data or "id" in data):
+                fields = data.get("fields", {}) or {}
+                description = fields.get("description")
+                if isinstance(description, (dict, list)):
+                    body = json.dumps(description)
+                elif description is None:
+                    body = ""
+                else:
+                    body = str(description)
+
+                status_obj = fields.get("status", {}) or {}
+                status_name = status_obj.get("name", "")
+                issuetype_obj = fields.get("issuetype", {}) or {}
+                issuetype_name = issuetype_obj.get("name", "")
+
+                return {
+                    "id": str(data.get("id", "")),
+                    "key": data.get("key", issue_key),
+                    "number": data.get("key", issue_key),
+                    "title": fields.get("summary", ""),
+                    "body": body,
+                    "state": status_name.upper() if status_name else "OPEN",
+                    "labels": fields.get("labels", []) or [],
+                    "issue_type": issuetype_name,
+                    "fields": fields,
+                }
+        except Exception as e:
+            print(f"  [Warning] Failed to fetch Jira issue '{issue_key}': {e}", file=sys.stderr)
+        return None
+
+    def create_issue(
+        self,
+        title: str,
+        body: str = "",
+        labels: Optional[List[str]] = None,
+        issue_type: str = "Task",
+        parent_key: Optional[str] = None,
+        custom_fields: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Create a new Jira issue via POST /rest/api/2/issue.
+        """
+        if self.offline or not self.server_url or not self.token:
+            return None
+        endpoint = "rest/api/2/issue"
+        fields: Dict[str, Any] = {
+            "summary": title,
+            "description": body or "",
+            "issuetype": {"name": issue_type or "Task"},
+        }
+        if self.project_key:
+            fields["project"] = {"key": self.project_key}
+        if labels:
+            fields["labels"] = labels if isinstance(labels, list) else [labels]
+        if parent_key:
+            fields["parent"] = {"key": parent_key}
+        if custom_fields:
+            fields.update(custom_fields)
+
+        payload = {"fields": fields}
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="POST", data=payload)
+            if isinstance(data, dict):
+                if "key" in data and "number" not in data:
+                    data["number"] = data["key"]
+                return data
+        except Exception as e:
+            print(f"  [Warning] Failed to create Jira issue '{title}': {e}", file=sys.stderr)
+        return None
+
+    def edit_issue(
+        self,
+        issue_key: str,
+        title: Optional[str] = None,
+        body: Optional[str] = None,
+        labels: Optional[List[str]] = None,
+        custom_fields: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> bool:
+        """
+        Edit an existing Jira issue via PUT /rest/api/2/issue/{issue_key}.
+        """
+        if self.offline or not self.server_url or not self.token:
+            return False
+
+        if body is None and "description" in kwargs:
+            body = kwargs["description"]
+        if title is not None and body is None and ("\n" in title or len(title) > 255 or title.startswith("#")):
+            body = title
+            title = None
+
+        endpoint = f"rest/api/2/issue/{issue_key}"
+        fields: Dict[str, Any] = {}
+        if title is not None:
+            fields["summary"] = title
+        if body is not None:
+            fields["description"] = body
+        if labels is not None:
+            fields["labels"] = labels if isinstance(labels, list) else [labels]
+        if custom_fields:
+            fields.update(custom_fields)
+
+        if not fields:
+            return True
+
+        payload = {"fields": fields}
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="PUT", data=payload)
+            return status_code in (200, 204)
+        except Exception as e:
+            print(f"  [Warning] Failed to edit Jira issue '{issue_key}': {e}", file=sys.stderr)
+            return False
+
+    def edit_issue_title(self, issue_key: Any, title: str) -> bool:
+        return self.edit_issue(str(issue_key), title=title)
+
+    def add_label(self, issue_key: str, label: str) -> bool:
+        """
+        Add a label to a Jira issue via PUT /rest/api/2/issue/{key} using Jira update operation.
+        """
+        if not label or self.offline or not self.server_url or not self.token:
+            return False
+        endpoint = f"rest/api/2/issue/{issue_key}"
+        payload = {
+            "update": {
+                "labels": [{"add": label}]
+            }
+        }
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="PUT", data=payload)
+            return status_code in (200, 204)
+        except Exception as e:
+            print(f"  [Warning] Failed to add label '{label}' to Jira issue '{issue_key}': {e}", file=sys.stderr)
+            return False
+
+    def create_label(self, label: str, description: str = "", color: str = "#0E8A16") -> bool:
+        """
+        In Jira, labels are created dynamically upon assignment; return True.
+        """
+        return True
+
+    def comment_issue(self, issue_key: str, comment_body: str) -> bool:
+        """
+        Add a comment to a Jira issue via POST /rest/api/2/issue/{key}/comment.
+        """
+        if not comment_body or self.offline or not self.server_url or not self.token:
+            return False
+        endpoint = f"rest/api/2/issue/{issue_key}/comment"
+        payload = {"body": comment_body}
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="POST", data=payload)
+            return status_code in (200, 201)
+        except Exception as e:
+            print(f"  [Warning] Failed to comment on Jira issue '{issue_key}': {e}", file=sys.stderr)
+            return False
+
+    def transition_issue(
+        self,
+        issue_key: str,
+        target_status: str,
+        resolution_note: Optional[str] = None,
+    ) -> bool:
+        """
+        Transition a Jira issue to a target workflow status via GET/POST /rest/api/2/issue/{key}/transitions.
+        Matches transition by name (case-insensitive for 'Done', 'Resolved', 'Fixed', 'Completed', 'Ready for Review', etc.)
+        and POSTs transition ID with optional comment.
+        """
+        if self.offline or not self.server_url or not self.token:
+            return False
+        endpoint = f"rest/api/2/issue/{issue_key}/transitions"
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="GET")
+            if not isinstance(data, dict):
+                return False
+            transitions = data.get("transitions", [])
+            if not isinstance(transitions, list) or not transitions:
+                print(f"  [Warning] No transitions available for Jira issue '{issue_key}'", file=sys.stderr)
+                return False
+
+            target_norm = target_status.strip().lower()
+            if target_norm.startswith("status::") or target_norm.startswith("status:"):
+                target_norm = target_norm.split(":", 1)[-1].lstrip(":")
+            target_norm_clean = target_norm.replace("-", " ").replace("_", " ")
+
+            matched_transition_id = None
+
+            # 1. Exact or normalized match against transition name or target status name
+            for t in transitions:
+                t_name = str(t.get("name", "")).strip().lower()
+                to_name = str(t.get("to", {}).get("name", "")).strip().lower()
+                t_name_clean = t_name.replace("-", " ").replace("_", " ")
+                to_name_clean = to_name.replace("-", " ").replace("_", " ")
+                if (
+                    target_norm in (t_name, to_name)
+                    or target_norm_clean in (t_name_clean, to_name_clean)
+                ):
+                    matched_transition_id = t.get("id")
+                    break
+
+            # 2. Case-insensitive alias matching for common completion / review states
+            if not matched_transition_id:
+                completion_aliases = {
+                    "done", "resolved", "fixed", "completed", "closed",
+                    "resolve issue", "close issue", "finish"
+                }
+                review_aliases = {
+                    "ready for review", "in review", "review", "ready-for-review", "under review"
+                }
+
+                is_completion_target = (
+                    target_norm_clean in completion_aliases
+                    or "fixed" in target_norm_clean
+                    or "resolved" in target_norm_clean
+                    or "done" in target_norm_clean
+                    or "complete" in target_norm_clean
+                    or "close" in target_norm_clean
+                )
+                is_review_target = (
+                    target_norm_clean in review_aliases
+                    or "review" in target_norm_clean
+                )
+
+                for t in transitions:
+                    t_name = str(t.get("name", "")).strip().lower()
+                    to_name = str(t.get("to", {}).get("name", "")).strip().lower()
+                    t_name_clean = t_name.replace("-", " ").replace("_", " ")
+                    to_name_clean = to_name.replace("-", " ").replace("_", " ")
+
+                    if is_completion_target and (
+                        t_name in completion_aliases
+                        or to_name in completion_aliases
+                        or t_name_clean in completion_aliases
+                        or to_name_clean in completion_aliases
+                    ):
+                        matched_transition_id = t.get("id")
+                        break
+                    elif is_review_target and (
+                        t_name in review_aliases
+                        or to_name in review_aliases
+                        or t_name_clean in review_aliases
+                        or to_name_clean in review_aliases
+                    ):
+                        matched_transition_id = t.get("id")
+                        break
+
+            if not matched_transition_id:
+                print(
+                    f"  [Warning] Could not find transition matching '{target_status}' for Jira issue '{issue_key}'. "
+                    f"Available: {[t.get('name') for t in transitions]}",
+                    file=sys.stderr,
+                )
+                return False
+
+            payload: Dict[str, Any] = {
+                "transition": {"id": str(matched_transition_id)}
+            }
+            if resolution_note:
+                payload["update"] = {
+                    "comment": [
+                        {"add": {"body": resolution_note}}
+                    ]
+                }
+
+            post_status, _, _ = self._api_request(endpoint, method="POST", data=payload)
+            return post_status in (200, 201, 204)
+        except Exception as e:
+            print(f"  [Warning] Failed to transition Jira issue '{issue_key}' to '{target_status}': {e}", file=sys.stderr)
+            return False
+
+    def create_issue_link(
+        self,
+        inward_key: str,
+        outward_key: str,
+        link_type: str = "Relates",
+    ) -> bool:
+        """
+        Link two Jira issues via POST /rest/api/2/issueLink.
+        """
+        if self.offline or not self.server_url or not self.token:
+            return False
+        endpoint = "rest/api/2/issueLink"
+        payload = {
+            "type": {"name": link_type or "Relates"},
+            "inwardIssue": {"key": inward_key},
+            "outwardIssue": {"key": outward_key},
+        }
+        try:
+            status_code, data, _ = self._api_request(endpoint, method="POST", data=payload)
+            return status_code in (200, 201, 204)
+        except Exception as e:
+            print(f"  [Warning] Failed to create issue link between '{inward_key}' and '{outward_key}': {e}", file=sys.stderr)
+            return False
+
+JiraRESTProvider = JiraV2V3Provider
+
+class GitHubCLIProvider:
+    """
+    GitHub CLI (gh) tracker provider adapter.
+    Preserves full backwards compatibility with existing gh CLI workflows.
+    """
+    def __init__(self, workspace_dir: Optional[str] = None, offline: bool = False, tracker_rules: Optional[Dict[str, Any]] = None):
+        self.workspace_dir = workspace_dir or os.getcwd()
+        self.offline = offline
+        self.tracker_rules = tracker_rules or DEFAULT_CODEBASE_RULES.get("tracker_rules", {})
+
+    def list_issues(self) -> List[Dict[str, Any]]:
+        if self.offline:
+            print("[Notice] GitHub tracker in offline mode. Operating in offline/local specification mode.")
+            return []
+        commands = self.tracker_rules.get("commands", {})
+        cmd = commands.get("list_issues")
+        if not cmd:
+            raise ValueError("Missing 'tracker_rules.commands.list_issues' in codebase_rules.json")
+        print(f"Fetching active and closed issues from tracker provider 'github'...")
+        res = subprocess.run(cmd, cwd=self.workspace_dir, capture_output=True, text=True, timeout=30)
+        if res.returncode != 0:
+            err_msg = res.stderr.strip() if res.stderr else ""
+            err_lower = err_msg.lower()
+            if "no git remotes found" in err_lower or "not a git repository" in err_lower or "could not read username" in err_lower:
+                print(f"[Notice] Issue tracker unavailable ({err_msg}). Operating in offline/local specification mode.")
+                return []
+            raise Exception(f"Failed to fetch issues: {err_msg}")
+        try:
+            return json.loads(res.stdout)
+        except json.JSONDecodeError:
+            return []
+
+    def create_issue(self, title: str, description: str, labels: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+        return None
+
+    def edit_issue(self, issue_num: Any, description: str) -> bool:
+        commands = self.tracker_rules.get("commands", {})
+        edit_cmd_template = commands.get("edit_issue")
+        if not edit_cmd_template:
+            raise ValueError("Missing 'tracker_rules.commands.edit_issue' in codebase_rules.json")
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".md", delete=False) as tf:
+                tf.write(description)
+                temp_path = tf.name
+            cmd = [str(issue_num) if c == "{number}" else (temp_path if c == "{temp_path}" else c) for c in edit_cmd_template]
+            res = subprocess.run(cmd, cwd=self.workspace_dir, check=True, capture_output=True, timeout=30)
+            return res.returncode == 0
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def edit_issue_title(self, issue_num: Any, title: str) -> bool:
+        commands = self.tracker_rules.get("commands", {})
+        template = commands.get("edit_issue_title")
+        if not template:
+            return False
+        cmd = [str(issue_num) if c == "{number}" else (title if c == "{title}" else c) for c in template]
+        res = subprocess.run(cmd, cwd=self.workspace_dir, check=True, capture_output=True, timeout=30)
+        return res.returncode == 0
+
+    def add_label(self, issue_num: Any, label: str) -> bool:
+        commands = self.tracker_rules.get("commands", {})
+        add_template = commands.get("add_label") or commands.get("resolve_issue")
+        if not add_template:
+            return False
+        cmd = [str(issue_num) if c == "{number}" else (label if c == "{label}" else c) for c in add_template]
+        res = subprocess.run(cmd, cwd=self.workspace_dir, check=True, capture_output=True, timeout=30)
+        return res.returncode == 0
+
+    def comment_issue(self, issue_num: Any, comment: str) -> bool:
+        commands = self.tracker_rules.get("commands", {})
+        comment_template = commands.get("comment_issue")
+        if not comment_template or not comment:
+            return False
+        cmd = [str(issue_num) if c == "{number}" else (comment if c == "{comment}" else c) for c in comment_template]
+        res = subprocess.run(cmd, cwd=self.workspace_dir, check=True, capture_output=True, timeout=30)
+        return res.returncode == 0
+
+    def create_label(self, label: str, description: str = "", color: str = "0E8A16") -> bool:
+        commands = self.tracker_rules.get("commands", {})
+        create_template = commands.get("create_label")
+        if not create_template:
+            return False
+        cmd = [
+            label if c == "{label}" else (description if c == "{description}" else c)
+            for c in create_template
+        ]
+        res = subprocess.run(cmd, cwd=self.workspace_dir, capture_output=True, timeout=30)
+        return res.returncode == 0
+
+def create_tracker_provider(
+    provider_name: str,
+    rules: Optional[Dict[str, Any]] = None,
+    workspace_dir: Optional[str] = None,
+    offline: bool = False,
+    cli_gitlab_url: Optional[str] = None,
+    cli_project: Optional[str] = None,
+    cli_jira_url: Optional[str] = None,
+    cli_jira_project: Optional[str] = None,
+    cli_jira_email: Optional[str] = None,
+):
+    if provider_name == "gitlab":
+        server_url = cli_gitlab_url or (rules.get("tracker_rules", {}).get("server_url") if rules else None)
+        project_id = cli_project or (rules.get("tracker_rules", {}).get("project_id") if rules else None)
+        return GitLabV4Provider(
+            server_url=server_url,
+            project_id=project_id,
+            offline=offline,
+            workspace_dir=workspace_dir,
+        )
+    elif provider_name == "jira":
+        server_url = cli_jira_url or (rules.get("tracker_rules", {}).get("server_url") if rules else None)
+        project_key = cli_jira_project or (rules.get("tracker_rules", {}).get("project_key") if rules else None) or (rules.get("tracker_rules", {}).get("project") if rules else None)
+        email = cli_jira_email or (rules.get("tracker_rules", {}).get("email") if rules else None)
+        return JiraV2V3Provider(
+            server_url=server_url,
+            project_key=project_key,
+            email=email,
+            offline=offline,
+            workspace_dir=workspace_dir,
+        )
+    else:
+        return GitHubCLIProvider(
+            workspace_dir=workspace_dir,
+            offline=offline,
+            tracker_rules=(rules.get("tracker_rules", {}) if rules else None),
+        )
+
+def resolve_codebase_rules_path(workspace_dir: str):
+    candidate_paths = [
+        os.environ.get("CODEBASE_RULES_PATH"),
+        os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json"),
+        os.path.join(workspace_dir, ".pipeline", "codebase_rules.json"),
+        os.path.join(workspace_dir, "codebase_rules.json"),
+    ]
+    for path in candidate_paths:
+        if path and os.path.exists(path):
+            return path
+    return None
+
+def resolve_linter_script(workspace_dir: str):
+    candidates = [
+        os.path.join(workspace_dir, "skills", "spec-orchestrator", "scripts", "verify_model_coverage.py"),
+        os.path.join(workspace_dir, "scripts", "verify_model_coverage.py"),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return None
+
+def deep_merge(base, override):
+    result = dict(base)
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+def load_codebase_rules(workspace_dir, provider=None):
+    rules = copy.deepcopy(DEFAULT_CODEBASE_RULES)
+    rules_path = resolve_codebase_rules_path(workspace_dir)
+    loaded = {}
+    if rules_path:
+        try:
+            with open(rules_path, "r", encoding="utf-8") as f:
+                content = json.load(f)
+                if isinstance(content, dict):
+                    loaded = content
+                    rules = deep_merge(rules, loaded)
+        except Exception as e:
+            print(f"Warning: Failed to load codebase_rules.json from {rules_path}: {e}")
+    
+    # If provider is gitlab (either passed explicitly, in env, or configured in loaded rules)
+    effective_provider = provider or rules.get("tracker_rules", {}).get("provider")
+    if effective_provider == "gitlab":
+        gitlab_defaults = {"tracker_rules": copy.deepcopy(DEFAULT_GITLAB_TRACKER_RULES)}
+        rules = deep_merge(rules, gitlab_defaults)
+        if loaded.get("tracker_rules", {}).get("provider") == "gitlab":
+            rules["tracker_rules"] = deep_merge(rules["tracker_rules"], loaded["tracker_rules"])
+        else:
+            rules["tracker_rules"]["labels"] = copy.deepcopy(DEFAULT_GITLAB_TRACKER_RULES["labels"])
+            rules["tracker_rules"]["keys"] = copy.deepcopy(DEFAULT_GITLAB_TRACKER_RULES["keys"])
+        
+        # Ensure DEFAULT_GITLAB_TRACKER_RULES["keys"] take precedence for GitLab
+        gitlab_keys = copy.deepcopy(DEFAULT_GITLAB_TRACKER_RULES["keys"])
+        if isinstance(rules.get("tracker_rules", {}).get("keys"), dict):
+            for k, v in rules["tracker_rules"]["keys"].items():
+                if k not in gitlab_keys:
+                    gitlab_keys[k] = v
+        rules["tracker_rules"]["keys"] = gitlab_keys
+
+        # Ensure GitLab scoped labels take precedence whenever labels are absent or contain GitHub default unscoped label values
+        if "labels" not in rules["tracker_rules"] or not isinstance(rules["tracker_rules"]["labels"], dict):
+            rules["tracker_rules"]["labels"] = copy.deepcopy(DEFAULT_GITLAB_TRACKER_RULES["labels"])
+        else:
+            github_unscoped = {"epic", "feature", "user-story", "use-case", "user_story", "use_case", "status:fixed-resolved"}
+            gitlab_default_labels = DEFAULT_GITLAB_TRACKER_RULES["labels"]
+            for label_key, default_val in gitlab_default_labels.items():
+                curr_val = rules["tracker_rules"]["labels"].get(label_key)
+                if curr_val is None or curr_val in github_unscoped:
+                    rules["tracker_rules"]["labels"][label_key] = default_val
+
+        rules["tracker_rules"]["provider"] = "gitlab"
+
+    elif effective_provider == "jira":
+        jira_defaults = {"tracker_rules": copy.deepcopy(DEFAULT_JIRA_TRACKER_RULES)}
+        rules = deep_merge(rules, jira_defaults)
+        if loaded.get("tracker_rules", {}).get("provider") == "jira":
+            rules["tracker_rules"] = deep_merge(rules["tracker_rules"], loaded["tracker_rules"])
+        else:
+            rules["tracker_rules"]["labels"] = copy.deepcopy(DEFAULT_JIRA_TRACKER_RULES["labels"])
+            rules["tracker_rules"]["keys"] = copy.deepcopy(DEFAULT_JIRA_TRACKER_RULES["keys"])
+        
+        # Ensure DEFAULT_JIRA_TRACKER_RULES["keys"] take precedence for Jira
+        jira_keys = copy.deepcopy(DEFAULT_JIRA_TRACKER_RULES["keys"])
+        if isinstance(rules.get("tracker_rules", {}).get("keys"), dict):
+            for k, v in rules["tracker_rules"]["keys"].items():
+                if k not in jira_keys:
+                    jira_keys[k] = v
+        rules["tracker_rules"]["keys"] = jira_keys
+
+        # Ensure Jira scoped labels take precedence whenever labels are absent or contain GitHub default unscoped label values
+        if "labels" not in rules["tracker_rules"] or not isinstance(rules["tracker_rules"]["labels"], dict):
+            rules["tracker_rules"]["labels"] = copy.deepcopy(DEFAULT_JIRA_TRACKER_RULES["labels"])
+        else:
+            github_unscoped = {"epic", "feature", "user-story", "use-case", "user_story", "use_case", "status:fixed-resolved"}
+            jira_default_labels = DEFAULT_JIRA_TRACKER_RULES["labels"]
+            for label_key, default_val in jira_default_labels.items():
+                curr_val = rules["tracker_rules"]["labels"].get(label_key)
+                if curr_val is None or curr_val in github_unscoped:
+                    rules["tracker_rules"]["labels"][label_key] = default_val
+
+        rules["tracker_rules"]["provider"] = "jira"
+
+    return rules
+
+def get_git_remote_repo(workspace_dir):
+    try:
+        remote_info = get_git_remote_info(workspace_dir)
+        if remote_info and remote_info.get("project_path"):
+            return remote_info["project_path"]
     except Exception as e:
         print(f"Warning: Failed to auto-detect git remote: {e}")
     return None
@@ -80,8 +1660,8 @@ def get_upstream_repository(rules, workspace_dir):
     if git_repo:
         return git_repo
     if rules and isinstance(rules, dict):
-        return rules.get("meta", {}).get("upstream_repository", "gintatkinson/digital-pipeline-repo")
-    return "gintatkinson/digital-pipeline-repo"
+        return rules.get("meta", {}).get("upstream_repository", "gintatkinson/DEAP-spec-core")
+    return "gintatkinson/DEAP-spec-core"
 
 def format_issue_reference(issue_id, tracker_rules):
     issue_id_str = str(issue_id)
@@ -305,15 +1885,30 @@ def extract_epic_from_body(body_content):
                 
     return None
 
-def get_all_issues(rules=None):
+def get_all_issues(rules=None, provider_adapter=None):
+    if provider_adapter:
+        return provider_adapter.list_issues()
     if not rules:
         raise ValueError("Configuration rules are missing.")
     tracker_rules = rules.get("tracker_rules")
     if not tracker_rules:
         raise ValueError("Missing 'tracker_rules' in codebase_rules.json")
-    provider = tracker_rules.get("provider")
-    if not provider:
-        raise ValueError("Missing 'tracker_rules.provider' in codebase_rules.json")
+    provider = tracker_rules.get("provider", "github")
+    
+    if provider == "gitlab":
+        adapter = GitLabV4Provider(
+            server_url=tracker_rules.get("server_url"),
+            project_id=tracker_rules.get("project_id"),
+        )
+        return adapter.list_issues()
+    elif provider == "jira":
+        adapter = JiraV2V3Provider(
+            server_url=tracker_rules.get("server_url"),
+            project_key=tracker_rules.get("project_key") or tracker_rules.get("project"),
+            email=tracker_rules.get("email"),
+        )
+        return adapter.list_issues()
+
     commands = tracker_rules.get("commands")
     if not commands or "list_issues" not in commands:
         raise ValueError("Missing 'tracker_rules.commands.list_issues' in codebase_rules.json")
@@ -322,8 +1917,16 @@ def get_all_issues(rules=None):
     cmd = commands["list_issues"]
     res = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
     if res.returncode != 0:
-        raise Exception(f"Failed to fetch issues: {res.stderr.strip()}")
-    return json.loads(res.stdout)
+        err_msg = res.stderr.strip() if res.stderr else ""
+        err_lower = err_msg.lower()
+        if "no git remotes found" in err_lower or "not a git repository" in err_lower or "could not read username" in err_lower:
+            print(f"[Notice] Issue tracker unavailable ({err_msg}). Operating in offline/local specification mode.")
+            return []
+        raise Exception(f"Failed to fetch issues: {err_msg}")
+    try:
+        return json.loads(res.stdout)
+    except json.JSONDecodeError:
+        return []
 
 def update_checklist_in_file(filepath, issue_dict, rules=None):
     with open(filepath, "r", encoding="utf-8") as f:
@@ -363,6 +1966,7 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
         if isinstance(dep_num_str, str) and PLACEHOLDER_PATTERN.match(dep_num_str):
             ref_str = format_issue_reference(dep_num_str, tracker_rules)
             print(f"  [Deferred] Unresolved placeholder {ref_str} in {os.path.basename(filepath)} — skipping")
+            all_deps_closed = False
             continue
         has_deps = True
         dep_num = int(dep_num_str) if dep_num_str.isdigit() else dep_num_str
@@ -371,9 +1975,10 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
         if dep_issue is None:
             ref_str = format_issue_reference(dep_num, tracker_rules)
             print(f"  [Warning] Dependency {ref_str} not found in tracker for {os.path.basename(filepath)} — skipping item")
+            all_deps_closed = False
             continue
             
-        is_closed = (str(dep_issue[state_key]).upper() == closed_state)
+        is_closed = (str(dep_issue[state_key]).upper() == closed_state) or is_already_resolved(dep_issue, rules)
         target_mark = 'x' if is_closed else ' '
         
         if mark != target_mark:
@@ -469,7 +2074,7 @@ def rewrite_header_repository_urls(content, active_repo):
         is_target_repo = (
             (url_owner_lower == active_owner and url_repo_lower == active_name) or
             (url_repo_lower == active_name) or
-            (url_repo_lower == "digital-pipeline-repo") or
+            (url_repo_lower == "deap-spec-core") or
             ("pipeline-repo" in url_repo_lower)
         )
 
@@ -487,7 +2092,7 @@ def sanitize_source_references(content, workspace_dir=None, rules=None):
     if workspace_dir is None:
         workspace_dir = find_workspace_dir(os.getcwd())
 
-    upstream_repo = get_upstream_repository(rules, workspace_dir) or "gintatkinson/digital-pipeline-repo"
+    upstream_repo = get_upstream_repository(rules, workspace_dir) or "gintatkinson/DEAP-spec-core"
     content = rewrite_header_repository_urls(content, upstream_repo)
     branch = get_current_branch(workspace_dir)
     if not branch or branch == "HEAD":
@@ -621,7 +2226,14 @@ def get_structural_label(issue_type, rules=None):
     tracker_rules = rules.get("tracker_rules", {}) if rules else {}
     key = structural_label_key(issue_type)
     labels = tracker_rules.get("labels", {})
-    return labels.get(key) or DEFAULT_STRUCTURAL_LABELS.get(key)
+    if key in labels and labels[key]:
+        return labels[key]
+    provider = tracker_rules.get("provider", "github")
+    if provider == "gitlab":
+        return DEFAULT_GITLAB_STRUCTURAL_LABELS.get(key)
+    elif provider == "jira":
+        return DEFAULT_JIRA_STRUCTURAL_LABELS.get(key)
+    return DEFAULT_STRUCTURAL_LABELS.get(key)
 
 
 def issue_has_label(issue_record, label):
@@ -644,7 +2256,7 @@ def issue_has_label(issue_record, label):
     return False
 
 
-def sync_issue_title_to_tracker(issue_num, filepath, rules=None, issue_record=None):
+def sync_issue_title_to_tracker(issue_num, filepath, rules=None, issue_record=None, provider_adapter=None):
     """Push the frontmatter title to the tracker when the two have drifted (#315).
 
     Tracker issues are created with a generic title derived from the schema node, while
@@ -670,6 +2282,9 @@ def sync_issue_title_to_tracker(issue_num, filepath, rules=None, issue_record=No
     if current_title is not None and str(current_title) == title:
         return False
 
+    if provider_adapter:
+        return provider_adapter.edit_issue_title(issue_num, title)
+
     template = tracker_rules.get("commands", {}).get("edit_issue_title")
     if not template:
         print(
@@ -688,7 +2303,7 @@ def sync_issue_title_to_tracker(issue_num, filepath, rules=None, issue_record=No
     return True
 
 
-def apply_structural_label(issue_num, issue_type, rules=None, issue_record=None):
+def apply_structural_label(issue_num, issue_type, rules=None, issue_record=None, provider_adapter=None):
     """Apply the configured structural label for this item type (#313).
 
     Bootstrapping reuses the `create_label` command #309 added — `--force` makes it a
@@ -703,7 +2318,6 @@ def apply_structural_label(issue_num, issue_type, rules=None, issue_record=None)
     Returns True when the label was applied.
     """
     tracker_rules = rules.get("tracker_rules", {}) if rules else {}
-    commands = tracker_rules.get("commands", {})
     label = get_structural_label(issue_type, rules)
     if not label:
         print(
@@ -716,9 +2330,18 @@ def apply_structural_label(issue_num, issue_type, rules=None, issue_record=None)
     if issue_has_label(issue_record, label):
         return False
 
+    description = STRUCTURAL_LABEL_DESCRIPTION_TEMPLATE.format(item_type=issue_type)
+
+    if provider_adapter:
+        provider_adapter.create_label(label, description=description, color="#0E8A16")
+        success = provider_adapter.add_label(issue_num, label)
+        if success:
+            print(f"  [Sync Issue Body] Applied structural label '{label}'.")
+        return success
+
+    commands = tracker_rules.get("commands", {})
     create_template = commands.get("create_label")
     if create_template:
-        description = STRUCTURAL_LABEL_DESCRIPTION_TEMPLATE.format(item_type=issue_type)
         cmd = [
             label if c == "{label}" else (description if c == "{description}" else c)
             for c in create_template
@@ -745,7 +2368,7 @@ def apply_structural_label(issue_num, issue_type, rules=None, issue_record=None)
 
 
 def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=None,
-                               issue_record=None):
+                               issue_record=None, provider_adapter=None):
     """Push the specification to its tracker issue: body, title (#315) and label (#313).
 
     `issue_record` is the tracker's own payload for this issue, when the caller has it.
@@ -756,64 +2379,68 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
     ref_str = format_issue_reference(issue_num, tracker_rules)
     print(f"  [Sync Issue Body] Syncing {ref_str} ({issue_type}) to tracker...")
     
-    temp_path = filepath + ".temp-body"
-    try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            content = f.read()
-            
-        workspace_dir = find_workspace_dir(filepath)
-        content = sanitize_source_references(content, workspace_dir=workspace_dir, rules=rules)
-        content = sanitize_mermaid_diagrams(content)
-        content = convert_frontmatter_to_table(content)
-        content = deduplicate_markdown_sections(content)
-            
-        val_rules = rules.get("validation_rules", {}) if rules else {}
-        max_body_chars = val_rules.get("max_body_characters", 65536)
-        trunc_limit = max_body_chars - 5536
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
         
-        if len(content) > trunc_limit:
-            truncation_headers = tracker_rules.get("truncation_headers", ["## Acceptance Criteria", "## User Stories"])
-            header_index = -1
-            for header in truncation_headers:
-                header_index = content.find(header)
-                if header_index != -1:
-                    break
-            
-            project_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
-            rel_path = os.path.relpath(filepath, project_root)
-            
-            truncation_template = tracker_rules.get("truncation_message_template", (
-                "\n\n---\n*Warning: This issue body has been truncated because it exceeds the tracker size limit of {max_body_chars} characters.*\n"
-                "*Please refer to the full specification file in the repository at `{rel_path}` for the complete details.*\n\n"
-            )).format(max_body_chars=max_body_chars, rel_path=rel_path)
-            
+    workspace_dir = find_workspace_dir(filepath)
+    content = sanitize_source_references(content, workspace_dir=workspace_dir, rules=rules)
+    content = sanitize_mermaid_diagrams(content)
+    content = convert_frontmatter_to_table(content)
+    content = deduplicate_markdown_sections(content)
+        
+    val_rules = rules.get("validation_rules", {}) if rules else {}
+    max_body_chars = val_rules.get("max_body_characters", 65536)
+    trunc_limit = max_body_chars - 5536
+    
+    if len(content) > trunc_limit:
+        truncation_headers = tracker_rules.get("truncation_headers", ["## Acceptance Criteria", "## User Stories"])
+        header_index = -1
+        for header in truncation_headers:
+            header_index = content.find(header)
             if header_index != -1:
-                preserved_tail = content[header_index:]
-                avail_head_len = trunc_limit - len(preserved_tail) - len(truncation_template)
-                if avail_head_len > 0:
-                    content = content[:avail_head_len] + truncation_template + preserved_tail
-                else:
-                    content = content[:trunc_limit] + truncation_template
+                break
+        
+        project_root = workspace_dir if workspace_dir else find_workspace_dir(filepath)
+        rel_path = os.path.relpath(filepath, project_root)
+        
+        truncation_template = tracker_rules.get("truncation_message_template", (
+            "\n\n---\n*Warning: This issue body has been truncated because it exceeds the tracker size limit of {max_body_chars} characters.*\n"
+            "*Please refer to the full specification file in the repository at `{rel_path}` for the complete details.*\n\n"
+        )).format(max_body_chars=max_body_chars, rel_path=rel_path)
+        
+        if header_index != -1:
+            preserved_tail = content[header_index:]
+            avail_head_len = trunc_limit - len(preserved_tail) - len(truncation_template)
+            if avail_head_len > 0:
+                content = content[:avail_head_len] + truncation_template + preserved_tail
             else:
                 content = content[:trunc_limit] + truncation_template
-            
-        with open(temp_path, "w", encoding="utf-8") as tf:
-            tf.write(content)
+        else:
+            content = content[:trunc_limit] + truncation_template
         
-        edit_cmd_template = tracker_rules.get("commands", {}).get("edit_issue")
-        if not edit_cmd_template:
-            raise ValueError("Missing 'tracker_rules.commands.edit_issue' in codebase_rules.json")
-        cmd = [str(issue_num) if c == "{number}" else (temp_path if c == "{temp_path}" else c) for c in edit_cmd_template]
-        subprocess.run(cmd, check=True, capture_output=True, timeout=30)
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+    if provider_adapter:
+        provider_adapter.edit_issue(issue_num, content)
+    else:
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".md", delete=False) as tf:
+                tf.write(content)
+                temp_path = tf.name
+            
+            edit_cmd_template = tracker_rules.get("commands", {}).get("edit_issue")
+            if not edit_cmd_template:
+                raise ValueError("Missing 'tracker_rules.commands.edit_issue' in codebase_rules.json")
+            cmd = [str(issue_num) if c == "{number}" else (temp_path if c == "{temp_path}" else c) for c in edit_cmd_template]
+            subprocess.run(cmd, check=True, capture_output=True, timeout=30)
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.remove(temp_path)
 
     # The body is only part of the update. The tracker title drifts from the frontmatter
     # (#315) and generated issues carry no structural tier (#313); both are this call
     # site sending too little.
-    sync_issue_title_to_tracker(issue_num, filepath, rules=rules, issue_record=issue_record)
-    apply_structural_label(issue_num, issue_type, rules=rules, issue_record=issue_record)
+    sync_issue_title_to_tracker(issue_num, filepath, rules=rules, issue_record=issue_record, provider_adapter=provider_adapter)
+    apply_structural_label(issue_num, issue_type, rules=rules, issue_record=issue_record, provider_adapter=provider_adapter)
 
 RESOLVED_LABEL_DESCRIPTION = (
     "Dev complete, tests pass, merged to main. Awaiting Product Owner validation."
@@ -822,7 +2449,9 @@ RESOLVED_LABEL_DESCRIPTION = (
 
 def get_resolved_label(rules=None):
     tracker_rules = rules.get("tracker_rules", {}) if rules else {}
-    return tracker_rules.get("labels", {}).get("resolved", "status:fixed-resolved")
+    provider = tracker_rules.get("provider", "github")
+    default_resolved = "status::fixed-resolved" if provider in ("gitlab", "jira") else "status:fixed-resolved"
+    return tracker_rules.get("labels", {}).get("resolved", default_resolved)
 
 
 def is_already_resolved(issue_record, rules=None):
@@ -848,7 +2477,7 @@ def is_already_resolved(issue_record, rules=None):
     return False
 
 
-def resolve_issue_on_tracker(issue_num, comment, rules=None):
+def resolve_issue_on_tracker(issue_num, comment, rules=None, provider_adapter=None):
     """Mark an issue Fixed / Resolved. Never closes it.
 
     `.pipeline/constitution.md:161` makes `Closed` unreachable without Product Owner
@@ -856,13 +2485,18 @@ def resolve_issue_on_tracker(issue_num, comment, rules=None):
     leaving the issue open for that decision.
     """
     tracker_rules = rules.get("tracker_rules", {}) if rules else {}
-    commands = tracker_rules.get("commands", {})
     label = get_resolved_label(rules)
     ref_str = format_issue_reference(issue_num, tracker_rules)
     print(f"  [Resolve Issue] Marking {ref_str} Fixed / Resolved via label '{label}'...")
 
-    # Bootstrap the label first — a downstream repository will not have it, and applying
-    # a non-existent label fails. --force makes this idempotent where it already exists.
+    if provider_adapter:
+        provider_adapter.create_label(label, description=RESOLVED_LABEL_DESCRIPTION, color="#0E8A16")
+        provider_adapter.add_label(issue_num, label)
+        if comment:
+            provider_adapter.comment_issue(issue_num, comment)
+        return
+
+    commands = tracker_rules.get("commands", {})
     create_template = commands.get("create_label")
     if create_template:
         cmd = [
@@ -1578,6 +3212,10 @@ def find_workspace_dir(start_path):
     while True:
         if os.path.exists(os.path.join(curr, ".pipeline", "logical-ui", "codebase_rules.json")):
             return curr
+        if os.path.exists(os.path.join(curr, ".pipeline", "codebase_rules.json")):
+            return curr
+        if os.path.exists(os.path.join(curr, "codebase_rules.json")):
+            return curr
         if os.path.exists(os.path.join(curr, ".git")):
             return curr
         parent = os.path.dirname(curr)
@@ -1592,7 +3230,7 @@ def assert_no_mock_cli(workspace_dir=None):
     workspace_dir = os.path.abspath(workspace_dir)
     scratch_dir = os.path.abspath(os.path.join(workspace_dir, "scratch"))
     scratch_bin = os.path.join(scratch_dir, "bin")
-    forbidden_cmds = ["gh", "git", "flutter"]
+    forbidden_cmds = ["gh", "glab", "git", "flutter"]
 
     for cmd in forbidden_cmds:
         binary_path = os.path.join(scratch_bin, cmd)
@@ -1608,6 +3246,53 @@ def assert_no_mock_cli(workspace_dir=None):
                 sys.exit(1)
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Backlog reconciliation script that synchronises local markdown spec files with an external issue tracker (e.g. GitHub Issues, GitLab Issues)."
+    )
+    parser.add_argument(
+        "docs_dir",
+        nargs="?",
+        default=None,
+        help="Optional path to the documentation directory containing epics, features, user_stories, and use_cases. Defaults to workspace root.",
+    )
+    parser.add_argument(
+        "--provider",
+        choices=["github", "gitlab", "jira", "auto"],
+        default=None,
+        help="Issue tracker provider ('github', 'gitlab', or 'jira'). Defaults to auto-detection or codebase rules configuration.",
+    )
+    parser.add_argument(
+        "--gitlab-url",
+        default=None,
+        help="GitLab instance URL (default: https://gitlab.com or GITLAB_URL / CI_SERVER_URL environment variables).",
+    )
+    parser.add_argument(
+        "--project",
+        default=None,
+        help="GitLab project path or numeric ID (e.g. 'gintatkinson/DEAP-spec-core' or CI_PROJECT_PATH).",
+    )
+    parser.add_argument(
+        "--jira-url",
+        default=None,
+        help="Jira instance base URL (e.g. 'https://your-domain.atlassian.net' or JIRA_SERVER_URL environment variable).",
+    )
+    parser.add_argument(
+        "--jira-project",
+        default=None,
+        help="Jira project key code (e.g. 'UAS' or JIRA_PROJECT_KEY environment variable).",
+    )
+    parser.add_argument(
+        "--jira-email",
+        default=None,
+        help="Jira account email address (for Jira Cloud Basic Auth or JIRA_EMAIL environment variable).",
+    )
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="Run in offline mode without contacting external tracker.",
+    )
+    args = parser.parse_args()
+
     sanitize_github_token_env()
     script_dir = os.path.dirname(os.path.abspath(__file__))
     workspace_dir = find_workspace_dir(script_dir)
@@ -1615,75 +3300,76 @@ def main():
 
     # Programmatic gate: Run linter before proceeding with reconciliation
     blocked_specs = set()
-    try:
-        with open(os.path.join(workspace_dir, ".pipeline", "logical-ui",
-                               "codebase_rules.json"), encoding="utf-8") as _fh:
-            rules_preview = json.load(_fh)
-    except Exception:
-        rules_preview = {}
-    print("Running pre-reconciliation linter validation...")
-    linter_script = os.path.join(workspace_dir, "skills", "spec-orchestrator", "scripts", "verify_model_coverage.py")
-    cmd = [sys.executable, linter_script, "--spec-only", "--allow-missing-specs"]
-    try:
-        res = subprocess.run(cmd, cwd=workspace_dir, capture_output=True, text=True, timeout=30)
-        if res.returncode != 0:
-            output_text = (res.stdout or "") + "\n" + (res.stderr or "")
-            lines = [line.strip() for line in output_text.splitlines()]
-            error_lines = [line for line in lines if line.startswith("- ")]
-            
-            is_exclusive_checklist_placeholder = False
-            if error_lines:
-                is_exclusive_checklist_placeholder = True
-                for err in error_lines:
-                    err_lower = err.lower()
-                    if "placeholder" not in err_lower and "checklist" not in err_lower and "required features matrix" not in err_lower:
-                        is_exclusive_checklist_placeholder = False
-                        break
-            
-            if is_exclusive_checklist_placeholder:
-                print("[Warning] Pre-reconciliation linter validation found only checklist warning issues/placeholders. Proceeding with warnings.", file=sys.stderr)
-                for err in error_lines:
-                    print(f"  [Warning Detail] {err}", file=sys.stderr)
+    rules_preview = load_codebase_rules(workspace_dir)
+    linter_script = resolve_linter_script(workspace_dir)
+    if linter_script and os.path.exists(linter_script):
+        print("Running pre-reconciliation linter validation...")
+        cmd = [sys.executable, linter_script, "--spec-only", "--allow-missing-specs"]
+        try:
+            res = subprocess.run(cmd, cwd=workspace_dir, capture_output=True, text=True, timeout=30)
+            if res.returncode != 0:
+                output_text = (res.stdout or "") + "\n" + (res.stderr or "")
+                lines = [line.strip() for line in output_text.splitlines()]
+                error_lines = [line for line in lines if line.startswith("- ")]
+                
+                is_exclusive_checklist_placeholder = False
+                if error_lines:
+                    is_exclusive_checklist_placeholder = True
+                    for err in error_lines:
+                        err_lower = err.lower()
+                        if "placeholder" not in err_lower and "checklist" not in err_lower and "required features matrix" not in err_lower:
+                            is_exclusive_checklist_placeholder = False
+                            break
+                
+                if is_exclusive_checklist_placeholder:
+                    print("[Warning] Pre-reconciliation linter validation found only checklist warning issues/placeholders. Proceeding with warnings.", file=sys.stderr)
+                    for err in error_lines:
+                        print(f"  [Warning Detail] {err}", file=sys.stderr)
+                else:
+                    # Issue #321 - a failing linter used to abort the entire run, so one
+                    # incomplete work-in-progress draft withheld synchronisation from every
+                    # finished, unrelated specification. The gate is not weakened: the
+                    # offending items are skipped and the run still exits non-zero at the
+                    # end. What changes is that valid work is no longer held hostage.
+                    blocked_specs = blocked_specs_from_linter_output(
+                        output_text, workspace_dir, rules_preview
+                    )
+                    print("[BLOCKED] Pre-reconciliation linter validation failed for "
+                          f"{len(blocked_specs)} specification(s). These will be SKIPPED; "
+                          "everything else still synchronises, and this run will exit "
+                          "non-zero.", file=sys.stderr)
+                    for name in sorted(blocked_specs):
+                        print(f"  [Blocked] {name}", file=sys.stderr)
+                    print(res.stdout, file=sys.stderr)
             else:
-                # Issue #321 - a failing linter used to abort the entire run, so one
-                # incomplete work-in-progress draft withheld synchronisation from every
-                # finished, unrelated specification. The gate is not weakened: the
-                # offending items are skipped and the run still exits non-zero at the
-                # end. What changes is that valid work is no longer held hostage.
-                blocked_specs = blocked_specs_from_linter_output(
-                    output_text, workspace_dir, rules_preview
-                )
-                print("[BLOCKED] Pre-reconciliation linter validation failed for "
-                      f"{len(blocked_specs)} specification(s). These will be SKIPPED; "
-                      "everything else still synchronises, and this run will exit "
-                      "non-zero.", file=sys.stderr)
-                for name in sorted(blocked_specs):
-                    print(f"  [Blocked] {name}", file=sys.stderr)
-                print(res.stdout, file=sys.stderr)
-        else:
-            print("Pre-reconciliation linter validation passed successfully.")
-    except subprocess.TimeoutExpired:
-        print("[FATAL] Pre-reconciliation linter validation timed out after 30 seconds. Aborting.", file=sys.stderr)
-        sys.exit(1)
+                print("Pre-reconciliation linter validation passed successfully.")
+        except subprocess.TimeoutExpired:
+            print("[FATAL] Pre-reconciliation linter validation timed out after 30 seconds. Aborting.", file=sys.stderr)
+            sys.exit(1)
+    else:
+        print("[INFO] Pre-reconciliation linter not found; skipping pre-validation.")
 
     try:
-        rules_path = os.path.join(workspace_dir, ".pipeline", "logical-ui", "codebase_rules.json")
-        if not os.path.exists(rules_path):
-            print(f"Error: codebase_rules.json not found at: {rules_path}")
-            print("Please ensure the configuration file is present at '.pipeline/logical-ui/codebase_rules.json'.")
-            sys.exit(1)
+        provider_name = detect_tracker_provider(cli_provider=args.provider, rules=rules_preview, workspace_dir=workspace_dir)
+        rules = load_codebase_rules(workspace_dir, provider=provider_name)
 
-        rules = load_codebase_rules(workspace_dir)
-        if not rules:
-            print("Error: codebase_rules.json is empty, invalid, or could not be loaded.")
-            print("Please check '.pipeline/logical-ui/codebase_rules.json' and ensure it contains valid configuration.")
-            sys.exit(1)
+        provider_adapter = create_tracker_provider(
+            provider_name=provider_name,
+            rules=rules,
+            workspace_dir=workspace_dir,
+            offline=args.offline,
+            cli_gitlab_url=args.gitlab_url,
+            cli_project=args.project,
+            cli_jira_url=args.jira_url,
+            cli_jira_project=args.jira_project,
+            cli_jira_email=args.jira_email,
+        )
 
         try:
-            issues = get_all_issues(rules)
+            issues = get_all_issues(rules, provider_adapter=provider_adapter)
         except Exception as e:
             print(f"Error fetching issues: {e}")
-            print("Please ensure issue tracker CLI is authenticated and configured.")
+            print("Please ensure issue tracker CLI / API is authenticated and configured.")
             sys.exit(1)
 
         tracker_rules = rules.get("tracker_rules", {}) if rules else {}
@@ -1758,8 +3444,8 @@ def main():
         if not upstream_repo:
             raise ValueError("Missing 'meta.upstream_repository' in codebase_rules.json and remote origin is not configured")
 
-        if len(sys.argv) > 1:
-            docs_dir = os.path.abspath(sys.argv[1])
+        if args.docs_dir:
+            docs_dir = os.path.abspath(args.docs_dir)
             epics_dir = os.path.join(docs_dir, os.path.basename(epics_rel))
             features_dir = os.path.join(docs_dir, os.path.basename(features_rel))
             stories_dir = os.path.join(docs_dir, os.path.basename(stories_rel))
@@ -1973,13 +3659,14 @@ def main():
                     if is_open:
                         sync_issue_body_to_tracker(
                             issue_num, filepath, issue_type="Epic", rules=rules,
-                            issue_record=issue_dict[issue_num],
+                            issue_record=issue_dict[issue_num], provider_adapter=provider_adapter,
                         )
                         if completed and not is_already_resolved(issue_dict[issue_num], rules):
                             resolve_issue_on_tracker(
                                 issue_num, 
                                 epic_comment,
-                                rules=rules
+                                rules=rules,
+                                provider_adapter=provider_adapter,
                             )
                             issue_dict[issue_num].setdefault("labels", []).append(
                                 {"name": get_resolved_label(rules)}
@@ -2013,7 +3700,7 @@ def main():
                     if is_open:
                         sync_issue_body_to_tracker(
                             issue_num, filepath, issue_type="Feature", rules=rules,
-                            issue_record=issue_dict[issue_num],
+                            issue_record=issue_dict[issue_num], provider_adapter=provider_adapter,
                         )
                 else:
                     print(
@@ -2045,13 +3732,14 @@ def main():
                     if is_open:
                         sync_issue_body_to_tracker(
                             issue_num, filepath, issue_type="User Story", rules=rules,
-                            issue_record=issue_dict[issue_num],
+                            issue_record=issue_dict[issue_num], provider_adapter=provider_adapter,
                         )
                         if completed and not is_already_resolved(issue_dict[issue_num], rules):
                             resolve_issue_on_tracker(
                                 issue_num,
                                 story_comment_template.format(title=title),
-                                rules=rules
+                                rules=rules,
+                                provider_adapter=provider_adapter,
                             )
                             issue_dict[issue_num].setdefault("labels", []).append(
                                 {"name": get_resolved_label(rules)}
@@ -2086,13 +3774,14 @@ def main():
                     if is_open:
                         sync_issue_body_to_tracker(
                             issue_num, filepath, issue_type="Use Case", rules=rules,
-                            issue_record=issue_dict[issue_num],
+                            issue_record=issue_dict[issue_num], provider_adapter=provider_adapter,
                         )
                         if completed and not is_already_resolved(issue_dict[issue_num], rules):
                             resolve_issue_on_tracker(
                                 issue_num,
                                 usecase_comment_template.format(title=title),
-                                rules=rules
+                                rules=rules,
+                                provider_adapter=provider_adapter,
                             )
                             issue_dict[issue_num].setdefault("labels", []).append(
                                 {"name": get_resolved_label(rules)}
