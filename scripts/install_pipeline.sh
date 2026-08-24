@@ -132,6 +132,12 @@ mkdir -p "$TARGET_DIR/tests"
 cp -RP "$INSTALLER_ROOT/tests/test_baseline.py" "$TARGET_DIR/tests/" 2>/dev/null || true
 cp -RP "$INSTALLER_ROOT/tests/test_gitlab_provider.py" "$TARGET_DIR/tests/" 2>/dev/null || true
 mkdir -p "$TARGET_DIR/docs/conops" "$TARGET_DIR/docs/safety" "$TARGET_DIR/docs/architecture/blueprints" "$TARGET_DIR/docs/epics" "$TARGET_DIR/docs/features" "$TARGET_DIR/docs/user-stories" "$TARGET_DIR/docs/use-cases"
+if [ -f "$INSTALLER_ROOT/docs/conops/README.md" ]; then
+  cp -P "$INSTALLER_ROOT/docs/conops/README.md" "$TARGET_DIR/docs/conops/"
+fi
+if [ -f "$INSTALLER_ROOT/docs/safety/README.md" ]; then
+  cp -P "$INSTALLER_ROOT/docs/safety/README.md" "$TARGET_DIR/docs/safety/"
+fi
 mkdir -p "$TARGET_DIR/.pipeline/contracts" "$TARGET_DIR/.pipeline/domain_specs" "$TARGET_DIR/.pipeline/profiles"
 chmod +x "$TARGET_DIR"/scripts/*.sh "$TARGET_DIR"/scripts/*.py 2>/dev/null || true
 
@@ -263,9 +269,14 @@ Pipeline 0 (**Pre-Spec Safety Engineering Engine**) ingests mission flight envel
 
 ```mermaid
 flowchart LR
-    CustomerIntent["Unstructured Intent & Flight Envelope"] --> Worker_0A["Worker 0A: CONOPS Synthesizer"]
-    Worker_0A -->|"CONOPS.md"| Worker_0B["Worker 0B: STPA / FMECA / SORA Assurer"]
-    Worker_0B -->|"STPA_MATRIX.md & SORA SAIL"| Worker_0C["Worker 0C: SysML v2 Authoring Worker"]
+    subgraph Ingestion["Customer Intent Ingestion"]
+        Mode1["Mode 1: docs/conops/MISSION_INTENT.md"]
+        Mode2["Mode 2: Prompt Directives (Auto-Persist MISSION_INTENT.md)"]
+    end
+    Mode1 --> Worker_0A["Worker 0A: CONOPS Synthesizer"]
+    Mode2 --> Worker_0A
+    Worker_0A -->|"docs/conops/CONOPS.md"| Worker_0B["Worker 0B: STPA / FMECA / SORA Assurer"]
+    Worker_0B -->|"docs/safety/STPA_MATRIX.md & SORA SAIL"| Worker_0C["Worker 0C: SysML v2 Authoring Worker"]
     Worker_0C -->|"DEAP_MODEL.sysml & Handoff AST JSON"| Pipeline_1["Pipeline 1 Projection Engine"]
 ```
 
@@ -282,16 +293,20 @@ Primary Commercial Toolchain Integration Context:
 This project explicitly declares MATLAB / Simulink / Stateflow / Embedded Coder as the Primary Tier-1 Commercial Toolchain Integration Context (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada code generation).
 
 Directive:
-Execute front-end CONOPS synthesis for the target UAS flight mission profile by ingesting raw stakeholder intent, operational airspace constraints, and flight mission profile parameters. Convert mission objectives, regulatory constraints, and operational flight envelopes into a structured Concept of Operations (`CONOPS.md`).
+Execute front-end CONOPS synthesis for the target UAS flight mission profile using Dual-Mode Ingestion:
 
-1. Inputs & Constraints:
-   - Raw stakeholder intent, mission flight objectives, and operational concept statements.
-   - Ingest operational mission envelope (flight altitude boundaries, max ground speed, payload configuration, population density, BVLOS vs VLOS flight operations).
+1. Dual-Mode Input Resolution:
+   - Mode 1 (File-Based Ingestion): Check if `docs/conops/MISSION_INTENT.md` exists on disk. If present, read `docs/conops/MISSION_INTENT.md` as the authoritative primary input contract.
+   - Mode 2 (Prompt-Based Ingestion): If `docs/conops/MISSION_INTENT.md` does not exist on disk, ingest raw stakeholder intent, operational airspace constraints, and flight mission profile parameters provided in the prompt/directives. Automatically emit and persist `docs/conops/MISSION_INTENT.md` capturing all customer intent parameters under git version control according to the canonical schema.
+
+2. Ingestion & Analysis Scope:
+   - Operational mission envelope (flight altitude boundaries, max ground speed, payload configuration, population density, BVLOS vs VLOS flight operations).
    - Operational airspace constraints, regulatory classification (e.g., JARUS SORA, FAA Part 107/135, EASA Specific Category), and geographic boundaries.
-   - Identify stakeholder role definitions (Remote Pilot in Command, Fleet Operations Manager, Command Center Lead, Air Traffic Management / UTM interface).
-   - Define flight operational phases (Pre-Flight Checkout, Launch/Takeoff, En-Route Cruise, Mission Execution, Approach & Landing, Fail-Safe Contingency RTL).
+   - Stakeholder role definitions (Remote Pilot in Command, Fleet Operations Manager, Command Center Lead, Air Traffic Management / UTM interface).
+   - Flight operational phases (Pre-Flight Checkout, Launch/Takeoff, En-Route Cruise, Mission Execution, Approach & Landing, Fail-Safe Contingency RTL).
 
-2. Output Requirement:
+3. Output Requirements:
+   - Persist/validate `docs/conops/MISSION_INTENT.md` under `docs/conops/MISSION_INTENT.md`.
    - Generate `CONOPS.md` under `docs/conops/CONOPS.md`.
    - Ensure clear operational phase boundaries, system physical and functional boundaries, and environmental envelope constraints.
    - Include MATLAB / Simulink / Stateflow model integration baseline hooks for downstream control law synthesis.
@@ -556,9 +571,9 @@ def test_upstream_template_clean_landing_zones():
     """Verify upstream template landing zones remain pristine with zero concrete specs.
 
     If repository is an upstream template (.pipeline/upstream/ exists), asserts that
-    docs/epics/, docs/features/, docs/user-stories/, docs/use-cases/, and schema/
-    contain only .gitkeep and README.md, and zero concrete specification files or
-    concrete .sysml domain models.
+    docs/conops/, docs/safety/, docs/epics/, docs/features/, docs/user-stories/,
+    docs/use-cases/, and schema/ contain only .gitkeep and README.md, and zero concrete
+    specification files or concrete .sysml domain models.
     """
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if not os.path.isdir(repo_root):
@@ -569,6 +584,8 @@ def test_upstream_template_clean_landing_zones():
         pytest.skip("Downstream project detected — skipping upstream landing zone clean check.")
 
     landing_zones = [
+        os.path.join("docs", "conops"),
+        os.path.join("docs", "safety"),
         os.path.join("docs", "epics"),
         os.path.join("docs", "features"),
         os.path.join("docs", "user-stories"),
