@@ -512,8 +512,235 @@ def check_upstream_template_clean_landing_zones(repo_root):
 
     print("Success: Check 16 verified (Upstream distribution template landing zones are clean with zero concrete specs).")
 
+def count_fmeca_rows(content: str) -> int:
+    """Extract and count data rows from the FMECA table in content."""
+    lines = content.splitlines()
+    in_fmeca_section = False
+    row_count = 0
+    header_skipped = False
+
+    for line in lines:
+        stripped = line.strip()
+        # Check for section header (level 2+ or specific FMECA header)
+        if stripped.startswith("##") or (stripped.startswith("#") and "criticality" in stripped.lower()):
+            if re.search(r'\b(?:FMECA|Failure\s+Mode)\b', stripped, re.IGNORECASE):
+                in_fmeca_section = True
+                header_skipped = False
+                continue
+            elif in_fmeca_section:
+                # Reached next section header
+                in_fmeca_section = False
+
+        if in_fmeca_section:
+            if stripped.startswith("|") and stripped.endswith("|"):
+                # Skip separator rows like |:---|:---| or |---|---|
+                if re.match(r"^\|(?:\s*:?-+:?\s*\|)+$", stripped):
+                    header_skipped = True
+                    continue
+                # If header row hasn't been skipped yet, check for common table header keywords
+                if not header_skipped:
+                    lower = stripped.lower()
+                    if any(kw in lower for kw in ["component", "failure", "subsystem", "severity", "rpn", "local effect"]):
+                        continue
+                cells = [c.strip() for c in stripped.split("|")[1:-1]]
+                if any(cells):
+                    row_count += 1
+
+    # Fallback: if no rows found via section header, scan for table with FMECA columns
+    if row_count == 0:
+        in_fmeca_table = False
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("|") and stripped.endswith("|"):
+                lower = stripped.lower()
+                if "failure" in lower and ("rpn" in lower or "severity" in lower or "component" in lower):
+                    in_fmeca_table = True
+                    header_skipped = False
+                    continue
+                if re.match(r"^\|(?:\s*:?-+:?\s*\|)+$", stripped):
+                    header_skipped = True
+                    continue
+                if in_fmeca_table and header_skipped:
+                    cells = [c.strip() for c in stripped.split("|")[1:-1]]
+                    if any(cells):
+                        row_count += 1
+            else:
+                if in_fmeca_table and stripped and not stripped.startswith("|"):
+                    in_fmeca_table = False
+
+    return row_count
+
+def check_uca_categories(content: str) -> list:
+    """Verify that all 4 STPA UCA failure modes are covered in content."""
+    missing_categories = []
+
+    # 1. Not providing causes hazard
+    if not re.search(r'\b(?:not\s+provid(?:ing|ed)|omission)\b', content, re.IGNORECASE):
+        missing_categories.append("1. Not providing causes hazard")
+
+    # 2. Providing causes hazard
+    if not re.search(r'\b(?:providing\s+(?:causes|incorrectly)|providing(?!\s+too)|commission)\b', content, re.IGNORECASE):
+        missing_categories.append("2. Providing causes hazard")
+
+    # 3. Too early / too late / out of order
+    if not re.search(r'\b(?:too\s+early|too\s+late|out\s+of\s+order|timing|early/late)\b', content, re.IGNORECASE):
+        missing_categories.append("3. Providing too early, too late, or out of order")
+
+    # 4. Stopped too soon / applied too long
+    if not re.search(r'\b(?:stopped\s+too\s+soon|applied\s+too\s+long|duration|stopped\s+early)\b', content, re.IGNORECASE):
+        missing_categories.append("4. Stopped too soon or applied too long")
+
+    return missing_categories
+
+def check_sora_osos(content: str) -> list:
+    """Verify all 24 SORA OSOs (OSO-01 through OSO-24) are present in content."""
+    missing = []
+    for i in range(1, 25):
+        oso_id = f"OSO-{i:02d}"
+        pattern = r'\b(?:OSO-' + f'{i:02d}' + r'|OSO-' + str(i) + r')\b'
+        if not re.search(pattern, content, re.IGNORECASE):
+            missing.append(oso_id)
+    return missing
+
+def validate_safety_matrix_content(content: str) -> list:
+    """Validate 8-pillar schema, 24 SORA OSOs, 15+ FMECA rows, 4 UCA categories, ASTM F3269-17 RTA, and MATLAB/Simulink hooks.
+
+    Returns a list of violation error strings (empty if valid).
+    """
+    errors = []
+
+    # Pillar 1: System Losses (L-1..N)
+    if not (re.search(r'Loss(?:es)?', content, re.IGNORECASE) and re.search(r'\bL-\d+\b|\$L-\d+', content)):
+        errors.append("Pillar 1 violation: Missing System Losses ($L-1..N$) identification.")
+
+    # Pillar 2: System Hazards (H-1..N)
+    if not (re.search(r'Hazard(?:s)?', content, re.IGNORECASE) and re.search(r'\bH-\d+\b|\$H-\d+', content)):
+        errors.append("Pillar 2 violation: Missing System Hazards ($H-1..N$) identification.")
+
+    # Pillar 3: Hierarchical Control Structure Topology
+    if not (re.search(r'Control\s+Structure', content, re.IGNORECASE) or (re.search(r'Controller', content, re.IGNORECASE) and re.search(r'Actuator', content, re.IGNORECASE))):
+        errors.append("Pillar 3 violation: Missing Hierarchical Control Structure Topology.")
+
+    # Pillar 4: Unsafe Control Actions (UCA-1..N)
+    if not (re.search(r'Unsafe\s+Control\s+Actions?', content, re.IGNORECASE) or re.search(r'\bUCA-\d+\b', content)):
+        errors.append("Pillar 4 violation: Missing Unsafe Control Actions ($UCA-1..N$).")
+    missing_uca_cats = check_uca_categories(content)
+    if missing_uca_cats:
+        errors.append(f"Pillar 4 violation: Missing UCA failure mode categories: {', '.join(missing_uca_cats)}.")
+
+    # Pillar 5: Loss Scenarios (LS-1..N)
+    if not (re.search(r'Loss\s+Scenarios?|Causal\s+Scenarios?', content, re.IGNORECASE) and re.search(r'\bLS-\d+\b|\$LS-\d+', content)):
+        errors.append("Pillar 5 violation: Missing Loss Scenarios ($LS-1..N$) & Causal Factors.")
+
+    # Pillar 6: Formal Safety Constraints (SC-1..N)
+    if not (re.search(r'Safety\s+Constraints?', content, re.IGNORECASE) and re.search(r'\bSC-\d+\b|\$SC-\d+', content)):
+        errors.append("Pillar 6 violation: Missing Formal Safety Constraints ($SC-1..N$).")
+
+    # Pillar 7: FMECA Criticality Matrix (15+ rows)
+    if not re.search(r'FMECA|Failure\s+Mode', content, re.IGNORECASE):
+        errors.append("Pillar 7 violation: Missing FMECA Criticality Matrix.")
+    else:
+        fmeca_rows = count_fmeca_rows(content)
+        if fmeca_rows < 15:
+            errors.append(f"Pillar 7 violation: FMECA Criticality Matrix contains {fmeca_rows} row(s); minimum required is 15 rows.")
+        if not re.search(r'\bRPN\b|Risk\s+Priority\s+Number', content, re.IGNORECASE):
+            errors.append("Pillar 7 violation: FMECA table missing RPN (Risk Priority Number) calculation.")
+
+    # Pillar 8: SORA SAIL Risk Mitigations & OSO Traceability Table
+    if not (re.search(r'\bSORA\b', content) and re.search(r'\bSAIL\b', content)):
+        errors.append("Pillar 8 violation: Missing SORA SAIL risk assessment.")
+    if not (re.search(r'\bGRC\b|Ground\s+Risk\s+Class', content, re.IGNORECASE) and re.search(r'\bARC\b|Air\s+Risk\s+Class', content, re.IGNORECASE)):
+        errors.append("Pillar 8 violation: Missing GRC (Ground Risk Class) or ARC (Air Risk Class) determinations.")
+    missing_osos = check_sora_osos(content)
+    if missing_osos:
+        errors.append(f"Pillar 8 violation: Missing mandatory SORA Operational Safety Objectives: {', '.join(missing_osos)}.")
+
+    # ASTM F3269-17 RTA Architecture
+    if not (re.search(r'ASTM\s+F3269', content, re.IGNORECASE) and re.search(r'Run-Time\s+Assurance|\bRTA\b|Safety\s+Net', content, re.IGNORECASE)):
+        errors.append("Safety Architecture violation: Missing ASTM F3269-17 Run-Time Assurance (RTA) / Safety Net specification.")
+
+    # MATLAB / Simulink / Stateflow hooks
+    if not re.search(r'MATLAB|Simulink|Stateflow|Embedded\s+Coder|SLDV', content, re.IGNORECASE):
+        errors.append("Commercial Toolchain violation: Missing MATLAB / Simulink / Stateflow / Embedded Coder integration hooks.")
+
+    return errors
+
+def check_safety_integrity_and_sora_completeness(repo_root):
+    """Check 17: Safety Integrity Quality Gate and SORA OSO-01..24 Completeness Verification.
+
+    Validates:
+    1. Upstream clean landing zone invariant for docs/safety/ (zero concrete specifications in templates).
+    2. Downstream 8-pillar STPA/FMECA/SORA specification schema in docs/safety/STPA_MATRIX.md:
+       - Pillar 1: System Losses (L-1..N)
+       - Pillar 2: System Hazards (H-1..N)
+       - Pillar 3: Hierarchical Control Structure Topology
+       - Pillar 4: Unsafe Control Actions (UCA-1..N) covering all 4 failure modes
+       - Pillar 5: Loss Scenarios (LS-1..N) & Causal Factors
+       - Pillar 6: Formal Safety Constraints (SC-1..N)
+       - Pillar 7: FMECA Criticality Matrix with 15+ component failure mode rows and RPN
+       - Pillar 8: SORA SAIL Risk Mitigations with all 24 OSOs (OSO-01 through OSO-24), GRC, and ARC
+       - ASTM F3269-17 Run-Time Assurance (RTA) architecture
+       - MATLAB / Simulink / Stateflow model integration baseline hooks.
+    """
+    upstream_marker = os.path.join(repo_root, ".pipeline", "upstream")
+    safety_dir = os.path.join(repo_root, "docs", "safety")
+
+    if os.path.isdir(upstream_marker):
+        if os.path.isdir(safety_dir):
+            allowed_files = {".gitkeep", "README.md"}
+            violations = []
+            for root, dirs, files in os.walk(safety_dir):
+                dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
+                for f in files:
+                    if f not in allowed_files:
+                        rel_path = os.path.relpath(os.path.join(root, f), repo_root)
+                        violations.append(rel_path)
+            if violations:
+                print(f"ERROR: Check 17 failed: Upstream distribution template safety landing zone contains concrete specification files: {', '.join(violations)}", file=sys.stderr)
+                sys.exit(1)
+        print("Success: Check 17 verified (Upstream distribution template safety landing zone is clean).")
+        return
+
+    # Downstream repository validation
+    if not os.path.isdir(safety_dir):
+        print("Success: Check 17 verified (Downstream repository detected — docs/safety/ directory not present).")
+        return
+
+    safety_files = []
+    for root, dirs, files in os.walk(safety_dir):
+        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
+        for f in files:
+            if f.endswith(".md") and f != "README.md":
+                safety_files.append(os.path.join(root, f))
+
+    if not safety_files:
+        print("Success: Check 17 verified (Downstream repository detected — safety specifications pending or clean).")
+        return
+
+    all_errors = []
+    for s_file in safety_files:
+        rel_path = os.path.relpath(s_file, repo_root)
+        try:
+            with open(s_file, "r", encoding="utf-8") as f:
+                content = f.read()
+        except Exception as e:
+            all_errors.append(f"Failed to read {rel_path}: {e}")
+            continue
+
+        file_errors = validate_safety_matrix_content(content)
+        for err in file_errors:
+            all_errors.append(f"{rel_path}: {err}")
+
+    if all_errors:
+        print("ERROR: Check 17 failed (Safety Integrity Quality Gate and SORA OSO-01..24 Completeness violations found):", file=sys.stderr)
+        for err in all_errors:
+            print(f"  - {err}", file=sys.stderr)
+        sys.exit(1)
+
+    print("Success: Check 17 verified (Safety Integrity Quality Gate: 8 pillars, 24 SORA OSOs, 15+ FMECA rows, 4 UCA categories, ASTM F3269-17 RTA, and MATLAB/Simulink hooks).")
+
 def _run_verification(args, dest, repo_root, is_flutter, is_react):
-    # Run Checks 10, 11, 12, 13, 14, 15, and 16
+    # Run Checks 10, 11, 12, 13, 14, 15, 16, and 17
     check_gitignore_exists(repo_root)
     check_no_ds_store_files(repo_root)
     check_no_duplicate_master_blueprints(dest)
@@ -521,6 +748,7 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
     check_downstream_instructions_exist(repo_root)
     check_reconcile_backlog_tooling_exists(repo_root)
     check_upstream_template_clean_landing_zones(repo_root)
+    check_safety_integrity_and_sora_completeness(repo_root)
 
     if is_flutter:
         print(f"Verifying conformance for platform 'flutter' at '{dest}'...")
