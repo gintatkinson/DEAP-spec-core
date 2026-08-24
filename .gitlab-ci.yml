@@ -1,0 +1,65 @@
+# ==============================================================================
+# DEAP Production GitLab CI/CD Pipeline Specification
+# Standard: RTCA DO-178C / DO-331 / ISO 15288 / ASTM F3269-17 / SORA v2.5
+# Primary Commercial Toolchain Context: MATLAB / Simulink / Stateflow / Embedded Coder
+# ==============================================================================
+
+image: python:3.11-slim
+
+variables:
+  PYTHONUNBUFFERED: "1"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  TRACKER_PROVIDER: "gitlab"
+  GIT_DEPTH: "50"
+
+cache:
+  key:
+    files:
+      - requirements.txt
+  paths:
+    - .cache/pip
+
+stages:
+  - lint
+  - test
+  - verify
+
+default:
+  before_script:
+    - python3 --version
+    - which git || (apt-get update && apt-get install -y --no-install-recommends git)
+    - python3 -m pip install --upgrade pip
+    - python3 -m pip install -r requirements.txt
+    - export PYTHONPATH=".:skills/spec-orchestrator/parity_auditor/src:$PYTHONPATH"
+
+# ------------------------------------------------------------------------------
+# Stage 1: Lint (Downstream Baseline Conformance Checks 10-16)
+# ------------------------------------------------------------------------------
+
+lint:downstream-baseline:
+  stage: lint
+  script:
+    - echo "=== Stage 1: Verifying Downstream Baseline Conformance (Checks 10-16) ==="
+    - python3 scripts/verify_downstream_baseline.py --no-domain
+
+# ------------------------------------------------------------------------------
+# Stage 2: Test (Baseline, Parity Auditor, and GitLab Provider Test Suites)
+# ------------------------------------------------------------------------------
+
+test:unit-and-parity:
+  stage: test
+  script:
+    - echo "=== Stage 2: Executing Test Suites (38+ Parity Tests, Baseline, GitLab Provider) ==="
+    - pytest tests/ -v
+    - pytest skills/spec-orchestrator/parity_auditor/tests/ -v
+
+# ------------------------------------------------------------------------------
+# Stage 3: Verify (22-Gate Parity Lock & Specification Model Coverage)
+# ------------------------------------------------------------------------------
+
+verify:model-coverage:
+  stage: verify
+  script:
+    - echo "=== Stage 3: Executing 22-Gate Mechanical Parity Lock & Model Coverage (Checks 1-22) ==="
+    - python3 skills/spec-orchestrator/scripts/verify_model_coverage.py --spec-only
