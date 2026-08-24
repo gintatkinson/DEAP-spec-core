@@ -1,4 +1,5 @@
 import json
+import netrc
 import os
 import sys
 import tempfile
@@ -268,6 +269,43 @@ class TestGitLabV4LabelProvider(unittest.TestCase):
             prov = GitLabV4LabelProvider(project_id="123")
             self.assertEqual(prov.token, "job-token-123")
             self.assertEqual(prov.token_type, "JOB-TOKEN")
+
+    @patch("shutil.which", return_value=None)
+    @patch("netrc.netrc")
+    def test_netrc_token_resolution(self, mock_netrc_class, mock_which):
+        with patch.dict(os.environ, {}, clear=True):
+            mock_netrc_inst = MagicMock()
+            mock_netrc_inst.authenticators.return_value = ("user", "account", "netrc-secret-token")
+            mock_netrc_class.return_value = mock_netrc_inst
+
+            prov = GitLabV4LabelProvider(project_id="123")
+            self.assertEqual(prov.token, "netrc-secret-token")
+            self.assertEqual(prov.token_type, "PRIVATE-TOKEN")
+            mock_netrc_inst.authenticators.assert_called_once_with("gitlab.com")
+
+    @patch("shutil.which", return_value=None)
+    @patch("netrc.netrc")
+    def test_netrc_token_resolution_custom_host(self, mock_netrc_class, mock_which):
+        with patch.dict(os.environ, {}, clear=True):
+            mock_netrc_inst = MagicMock()
+            mock_netrc_inst.authenticators.return_value = ("user", "account", "custom-netrc-token")
+            mock_netrc_class.return_value = mock_netrc_inst
+
+            prov = GitLabV4LabelProvider(
+                server_url="https://gitlab.internal.defense.gov",
+                project_id="uas/safety",
+            )
+            self.assertEqual(prov.token, "custom-netrc-token")
+            self.assertEqual(prov.token_type, "PRIVATE-TOKEN")
+            mock_netrc_inst.authenticators.assert_called_once_with("gitlab.internal.defense.gov")
+
+    @patch("shutil.which", return_value=None)
+    @patch("netrc.netrc", side_effect=FileNotFoundError("~/.netrc not found"))
+    def test_netrc_token_resolution_missing_file(self, mock_netrc_class, mock_which):
+        with patch.dict(os.environ, {}, clear=True):
+            prov = GitLabV4LabelProvider(project_id="123")
+            self.assertIsNone(prov.token)
+            self.assertEqual(prov.token_type, "PRIVATE-TOKEN")
 
     @patch("urllib.request.urlopen")
     def test_create_label_success(self, mock_urlopen):
