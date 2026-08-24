@@ -23,6 +23,42 @@
 - Always sync local state with the tracker state using the backlog reconciliation script (e.g., `reconcile_backlog.py`).
 - The authoritative "done" state lives in the issue tracker, not in local frontmatter.
 
+## Multi-Provider Issue Tracker Standards (GitHub & GitLab)
+
+DEAP supports multi-provider issue tracking across GitHub (SaaS/Enterprise) and GitLab (GitLab.com, Self-Hosted EE/CE, and Air-Gapped / SCIF defense enclaves). All issue lifecycle management operations adhere to unified semantics across providers.
+
+### GitLab Scoped Label Taxonomy
+
+GitLab issue tracking uses native scoped labels (`key::value`) to ensure mutual exclusivity and deterministic state tracking:
+
+- **Artifact Type Scoped Labels**:
+  - `type::epic`: Architectural Epic specifications.
+  - `type::feature`: Subsystem / Component Feature specifications.
+  - `type::user-story`: Behavioral User Story specifications.
+  - `type::use-case`: System Interaction UML Use Case specifications.
+- **Lifecycle Status Scoped Labels**:
+  - `status::ready-for-review`: Specification elaboration complete and ready for automated / peer review.
+  - `status::fixed-resolved`: Verification gates passed; implementation / specification completed.
+
+Applying a scoped label (e.g., `status::fixed-resolved`) automatically supersedes any conflicting label in the same scope (such as `status::ready-for-review` or `status::in-progress`).
+
+### Environment Token Hierarchy & Authentication
+
+Authentication tokens for issue tracker API callers and CLI tooling are resolved in the following priority order:
+
+1. **GitLab Provider**:
+   - `GITLAB_TOKEN`: Primary Personal Access Token (PAT) for GitLab REST API v4 operations.
+   - `GL_TOKEN`: Standard CLI token for `glab` operations.
+   - `CI_JOB_TOKEN`: Ephemeral pipeline execution token within GitLab CI/CD jobs.
+2. **GitHub Provider**:
+   - `GITHUB_TOKEN` / `GH_TOKEN`: Personal Access Token or workflow installation token for GitHub (`gh`) operations.
+
+If no valid token is present in the environment for the detected or configured provider, automation scripts halt immediately to prevent unauthenticated drift.
+
+### Product Owner Issue Closure Authority
+
+Product Owner (PO) issue closure authority applies **identically across both GitHub and GitLab**. Automated agents, subagents, and background scripts are strictly permitted to transition issues only up to `status::fixed-resolved` (or `status:fixed-resolved` on GitHub) with verified evidence comments. Transitioning an issue to `Closed` (or applying `status::closed`) requires formal Product Owner / Certification Authority validation.
+
 ## Relationship to other rules
 
 - See `rules/platform-independence.md` for specification content rules (WHAT vs HOW) and for all Mermaid syntax constraints.
