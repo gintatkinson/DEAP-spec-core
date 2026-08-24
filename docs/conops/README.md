@@ -1,6 +1,6 @@
 # Concept of Operations (CONOPS) Directory
 
-This directory contains high-level operational concepts, customer mission intent specifications (`MISSION_INTENT.md`), and synthesized Concept of Operations models (`CONOPS.md`) for the Digital Engineering Agent Platform (DEAP).
+This directory contains high-level operational concepts, customer mission intent specifications (`MISSION_INTENT.md` or multi-document intent specifications `*.md`), and synthesized Concept of Operations models (`CONOPS.md`) for the Digital Engineering Agent Platform (DEAP).
 
 ## Purpose & Scope
 
@@ -16,31 +16,33 @@ This project explicitly declares **MATLAB / Simulink / Stateflow / Embedded Code
 
 ---
 
-## Dual-Mode Ingestion Specification Contract
+## Universal Multi-Document & Schema Ingestion Contract
 
-Pipeline 0 Worker 0A (**CONOPS & Mission Scenario Synthesizer**) supports **Dual-Mode Ingestion** to accommodate both structured file-based customer specifications and unstructured interactive prompts:
+Pipeline 0 Worker 0A (**CONOPS & Mission Scenario Synthesizer**) executes **Universal Multi-Document & Schema Ingestion** across operational intent specifications, customer interface schemas, and architectural blueprints:
 
 ```mermaid
 flowchart TD
-    subgraph Mode1["Mode 1: File-Based Ingestion (Authoritative Contract)"]
-        IntentFile["Customer Specification: docs/conops/MISSION_INTENT.md"] --> Worker0A_1["Worker 0A: CONOPS Synthesizer"]
-        Worker0A_1 --> ConopsOut1["Emit docs/conops/CONOPS.md"]
+    subgraph MultiDoc["Universal Multi-Document & Schema Ingestion"]
+        IntentFiles["Operational Intent: docs/conops/*.md (excluding README.md)"]
+        SchemaFiles["Customer Interface Schemas: schema/* (*.sysml, *.proto, *.arxml, *.json, *.yaml, *.idl)"]
+        ArchFiles["Architectural Blueprints: docs/architecture/*.md"]
+        PromptFallback["Prompt Directives Fallback: Auto-Persist docs/conops/MISSION_INTENT.md"]
     end
 
-    subgraph Mode2["Mode 2: Prompt-Based Ingestion (Auto-Persisting)"]
-        PromptInput["Operator Prompt / Directives"] --> Worker0A_2["Worker 0A: CONOPS Synthesizer"]
-        Worker0A_2 --> PersistIntent["Auto-Persist docs/conops/MISSION_INTENT.md (Git Version Control)"]
-        Worker0A_2 --> ConopsOut2["Emit docs/conops/CONOPS.md"]
-    end
+    IntentFiles --> Worker0A["Worker 0A: CONOPS Synthesizer"]
+    SchemaFiles --> Worker0A
+    ArchFiles --> Worker0A
+    PromptFallback --> Worker0A
+
+    Worker0A --> ConopsOut["Emit docs/conops/CONOPS.md"]
+    Worker0A --> AutoPersist["Auto-Persist docs/conops/MISSION_INTENT.md (Prompt Fallback Mode)"]
 ```
 
-### Mode 1: File-Based Specification Contract (Recommended)
-When `docs/conops/MISSION_INTENT.md` exists on disk, Worker 0A treats it as the authoritative primary input contract. The worker reads the structured mission parameters, flight envelopes, and airspace rules directly from the file, ensuring full determinism and repeatable synthesis into `docs/conops/CONOPS.md`.
-
-### Mode 2: Prompt-Based Ingestion with Auto-Persisting
-When `docs/conops/MISSION_INTENT.md` does not exist on disk, Worker 0A ingests raw natural language parameters and operational directives from the execution prompt. To maintain provenance and semantic traceability under version control, Worker 0A automatically generates and persists BOTH:
-1. `docs/conops/MISSION_INTENT.md`: Captures and standardizes the customer's input parameters under git version control according to the canonical schema.
-2. `docs/conops/CONOPS.md`: Synthesizes the full structured Concept of Operations.
+### Multi-Document Discovery & Ingestion Guidelines
+1. **Operational Intent Discovery (`docs/conops/*.md`)**: Worker 0A scans `docs/conops/` for all mission intent markdown files (`*.md`, excluding `README.md`). If present, all discovered documents are ingested as authoritative operational specifications. When `docs/conops/` contains no intent files, Worker 0A ingests prompt directives and auto-persists `docs/conops/MISSION_INTENT.md` adhering to the canonical schema.
+2. **Customer Interface & Model Schemas (`schema/*`)**: Worker 0A scans `schema/` for pre-existing customer models and interface definitions (`*.sysml`, `*.proto`, `*.arxml`, `*.json`, `*.yaml`, `*.idl`). Discovered port definitions, telemetry streams, message structures, and subsystem boundaries are ingested to inform functional and physical boundaries in `CONOPS.md`.
+3. **Architectural Blueprint Ingestion (`docs/architecture/*.md`)**: Worker 0A scans `docs/architecture/` (and `docs/architecture/blueprints/`) for existing architectural specifications, network blueprints, and safety frameworks (`*.md`), reconciling system boundaries with MATLAB / Simulink / Stateflow control law synthesis hooks.
+4. **Prompt Fallback with Auto-Persisting**: When no intent markdown files exist in `docs/conops/`, Worker 0A ingests raw natural language parameters and operational directives from the execution prompt. To maintain provenance and semantic traceability under version control, Worker 0A automatically generates and persists `docs/conops/MISSION_INTENT.md` capturing and standardizing the customer's input parameters according to the canonical schema.
 
 ---
 
