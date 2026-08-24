@@ -928,6 +928,26 @@ def load_codebase_rules(workspace_dir, provider=None):
         else:
             rules["tracker_rules"]["labels"] = copy.deepcopy(DEFAULT_GITLAB_TRACKER_RULES["labels"])
             rules["tracker_rules"]["keys"] = copy.deepcopy(DEFAULT_GITLAB_TRACKER_RULES["keys"])
+        
+        # Ensure DEFAULT_GITLAB_TRACKER_RULES["keys"] take precedence for GitLab
+        gitlab_keys = copy.deepcopy(DEFAULT_GITLAB_TRACKER_RULES["keys"])
+        if isinstance(rules.get("tracker_rules", {}).get("keys"), dict):
+            for k, v in rules["tracker_rules"]["keys"].items():
+                if k not in gitlab_keys:
+                    gitlab_keys[k] = v
+        rules["tracker_rules"]["keys"] = gitlab_keys
+
+        # Ensure GitLab scoped labels take precedence whenever labels are absent or contain GitHub default unscoped label values
+        if "labels" not in rules["tracker_rules"] or not isinstance(rules["tracker_rules"]["labels"], dict):
+            rules["tracker_rules"]["labels"] = copy.deepcopy(DEFAULT_GITLAB_TRACKER_RULES["labels"])
+        else:
+            github_unscoped = {"epic", "feature", "user-story", "use-case", "user_story", "use_case", "status:fixed-resolved"}
+            gitlab_default_labels = DEFAULT_GITLAB_TRACKER_RULES["labels"]
+            for label_key, default_val in gitlab_default_labels.items():
+                curr_val = rules["tracker_rules"]["labels"].get(label_key)
+                if curr_val is None or curr_val in github_unscoped:
+                    rules["tracker_rules"]["labels"][label_key] = default_val
+
         rules["tracker_rules"]["provider"] = "gitlab"
 
     return rules
