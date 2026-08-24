@@ -2,7 +2,104 @@
 set -e
 
 INSTALLER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET_DIR="${1:-.}"
+TARGET_DIR=""
+PROVIDER="auto"
+GITLAB_URL="https://gitlab.com"
+GITLAB_GROUP=""
+
+show_help() {
+  cat << 'EOF'
+Usage: install_pipeline.sh [OPTIONS] [TARGET_DIR]
+
+Installs the DEAP safety-critical engineering pipeline and governance baseline into a downstream project repository.
+
+Primary Commercial Toolchain Integration Context:
+  MATLAB / Simulink / Stateflow / Embedded Coder (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada code generation).
+
+Arguments:
+  TARGET_DIR                 Target project directory (default: current directory '.')
+
+Options:
+  -p, --provider PROVIDER    Target issue tracker and CI/CD provider: 'github', 'gitlab', or 'auto' (default: 'auto')
+      --gitlab-url URL       GitLab instance base URL (default: 'https://gitlab.com')
+      --gitlab-group GROUP   GitLab namespace/group path (e.g. 'uas-safety')
+  -h, --help                 Display this help documentation and exit
+
+Examples:
+  ./scripts/install_pipeline.sh /path/to/downstream-project
+  ./scripts/install_pipeline.sh --provider gitlab --gitlab-url https://gitlab.internal.defense.gov /path/to/project
+  ./scripts/install_pipeline.sh --provider github .
+EOF
+}
+
+# Parse CLI options and arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      show_help
+      exit 0
+      ;;
+    -p|--provider)
+      if [[ -z "$2" || "$2" == -* ]]; then
+        echo "Error: --provider requires an argument ('github', 'gitlab', or 'auto')." >&2
+        exit 1
+      fi
+      PROVIDER="$2"
+      shift 2
+      ;;
+    --provider=*)
+      PROVIDER="${1#*=}"
+      shift
+      ;;
+    --gitlab-url)
+      if [[ -z "$2" || "$2" == -* ]]; then
+        echo "Error: --gitlab-url requires a URL argument." >&2
+        exit 1
+      fi
+      GITLAB_URL="$2"
+      shift 2
+      ;;
+    --gitlab-url=*)
+      GITLAB_URL="${1#*=}"
+      shift
+      ;;
+    --gitlab-group)
+      if [[ -z "$2" || "$2" == -* ]]; then
+        echo "Error: --gitlab-group requires a group/namespace argument." >&2
+        exit 1
+      fi
+      GITLAB_GROUP="$2"
+      shift 2
+      ;;
+    --gitlab-group=*)
+      GITLAB_GROUP="${1#*=}"
+      shift
+      ;;
+    -*)
+      echo "Error: Unknown option: $1" >&2
+      show_help >&2
+      exit 1
+      ;;
+    *)
+      if [[ -z "$TARGET_DIR" ]]; then
+        TARGET_DIR="$1"
+      else
+        echo "Error: Unexpected positional argument: $1" >&2
+        show_help >&2
+        exit 1
+      fi
+      shift
+      ;;
+  esac
+done
+
+TARGET_DIR="${TARGET_DIR:-.}"
+
+if [[ "$PROVIDER" != "auto" && "$PROVIDER" != "github" && "$PROVIDER" != "gitlab" ]]; then
+  echo "Error: Invalid provider '$PROVIDER'. Must be one of 'github', 'gitlab', or 'auto'." >&2
+  exit 1
+fi
+
 mkdir -p "$TARGET_DIR"
 TARGET_DIR="$(cd "$TARGET_DIR" 2>/dev/null && pwd || echo "$TARGET_DIR")"
 
@@ -20,6 +117,8 @@ cp -RP "$INSTALLER_ROOT/.agents" "$TARGET_DIR/"
 cp -RP "$INSTALLER_ROOT/scripts" "$TARGET_DIR/"
 cp -RP "$INSTALLER_ROOT/schema" "$TARGET_DIR/"
 cp -P "$INSTALLER_ROOT/requirements.txt" "$TARGET_DIR/" 2>/dev/null || true
+cp -P "$INSTALLER_ROOT/pyproject.toml" "$TARGET_DIR/" 2>/dev/null || true
+cp -P "$INSTALLER_ROOT/.gitlab-ci.yml" "$TARGET_DIR/" 2>/dev/null || true
 if [ -f "$TARGET_DIR/.gitignore" ]; then
   cat "$INSTALLER_ROOT/.gitignore" >> "$TARGET_DIR/.gitignore"
   # Deduplicate lines in .gitignore
@@ -31,9 +130,50 @@ fi
 mkdir -p "$TARGET_DIR/schema"
 mkdir -p "$TARGET_DIR/tests"
 cp -RP "$INSTALLER_ROOT/tests/test_baseline.py" "$TARGET_DIR/tests/" 2>/dev/null || true
+cp -RP "$INSTALLER_ROOT/tests/test_gitlab_provider.py" "$TARGET_DIR/tests/" 2>/dev/null || true
 mkdir -p "$TARGET_DIR/docs/conops" "$TARGET_DIR/docs/safety" "$TARGET_DIR/docs/architecture/blueprints" "$TARGET_DIR/docs/epics" "$TARGET_DIR/docs/features" "$TARGET_DIR/docs/user-stories" "$TARGET_DIR/docs/use-cases"
 mkdir -p "$TARGET_DIR/.pipeline/contracts" "$TARGET_DIR/.pipeline/domain_specs" "$TARGET_DIR/.pipeline/profiles"
 chmod +x "$TARGET_DIR"/scripts/*.sh "$TARGET_DIR"/scripts/*.py 2>/dev/null || true
+
+# Apply provider configurations if specified
+if [ "$PROVIDER" = "gitlab" ] || [ -n "$GITLAB_GROUP" ] || [ "$GITLAB_URL" != "https://gitlab.com" ]; then
+  for rules_file in "$TARGET_DIR/.pipeline/logical-ui/codebase_rules.json" "$TARGET_DIR/codebase_rules.json"; do
+    if [ -f "$rules_file" ]; then
+      python3 -c "
+import json, sys
+path = '$rules_file'
+with open(path, 'r', encoding='utf-8') as f:
+    data = json.load(f)
+if 'tracker_rules' not in data:
+    data['tracker_rules'] = {}
+if '$PROVIDER' != 'auto':
+    data['tracker_rules']['provider'] = '$PROVIDER'
+if '$GITLAB_URL':
+    data['tracker_rules']['server_url'] = '$GITLAB_URL'
+if '$GITLAB_GROUP':
+    data['tracker_rules']['group'] = '$GITLAB_GROUP'
+with open(path, 'w', encoding='utf-8') as f:
+    json.dump(data, f, indent=2)
+" 2>/dev/null || true
+    fi
+  done
+elif [ "$PROVIDER" = "github" ]; then
+  for rules_file in "$TARGET_DIR/.pipeline/logical-ui/codebase_rules.json" "$TARGET_DIR/codebase_rules.json"; do
+    if [ -f "$rules_file" ]; then
+      python3 -c "
+import json, sys
+path = '$rules_file'
+with open(path, 'r', encoding='utf-8') as f:
+    data = json.load(f)
+if 'tracker_rules' not in data:
+    data['tracker_rules'] = {}
+data['tracker_rules']['provider'] = 'github'
+with open(path, 'w', encoding='utf-8') as f:
+    json.dump(data, f, indent=2)
+" 2>/dev/null || true
+    fi
+  done
+fi
 
 # Scaffold downstream root AGENTS.md if missing
 if [ ! -f "$TARGET_DIR/AGENTS.md" ]; then
