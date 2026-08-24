@@ -282,11 +282,12 @@ Primary Commercial Toolchain Integration Context:
 This project explicitly declares MATLAB / Simulink / Stateflow / Embedded Coder as the Primary Tier-1 Commercial Toolchain Integration Context (Model-Based Design, Control Law Synthesis, DO-178C C/SPARK Ada code generation).
 
 Directive:
-Execute front-end CONOPS synthesis for the target UAS flight mission profile by ingesting the input SysML v2 safety model file (`docs/architecture/blueprints/DEAP_MODEL.sysml`). Convert raw stakeholder intent, structural SysML v2 requirements, and airspace constraints into a structured Concept of Operations (`CONOPS.md`).
+Execute front-end CONOPS synthesis for the target UAS flight mission profile by ingesting raw stakeholder intent, operational airspace constraints, and flight mission profile parameters. Convert mission objectives, regulatory constraints, and operational flight envelopes into a structured Concept of Operations (`CONOPS.md`).
 
 1. Inputs & Constraints:
-   - Primary Input SysML v2 Model File: `docs/architecture/blueprints/DEAP_MODEL.sysml` (or custom input `.sysml` file path).
+   - Raw stakeholder intent, mission flight objectives, and operational concept statements.
    - Ingest operational mission envelope (flight altitude boundaries, max ground speed, payload configuration, population density, BVLOS vs VLOS flight operations).
+   - Operational airspace constraints, regulatory classification (e.g., JARUS SORA, FAA Part 107/135, EASA Specific Category), and geographic boundaries.
    - Identify stakeholder role definitions (Remote Pilot in Command, Fleet Operations Manager, Command Center Lead, Air Traffic Management / UTM interface).
    - Define flight operational phases (Pre-Flight Checkout, Launch/Takeoff, En-Route Cruise, Mission Execution, Approach & Landing, Fail-Safe Contingency RTL).
 
