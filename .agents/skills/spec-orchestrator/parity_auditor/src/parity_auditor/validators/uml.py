@@ -28,13 +28,23 @@ from ..core.workspace import WorkspaceRepository
 ALWAYS_INVALID_PLACEHOLDER_PATTERNS = [
     # Real references look like '#43'. Any bracketed token is unresolved.
     (re.compile(r"#\[[^\]]+\]"), "unresolved issue reference token"),
-    (re.compile(r"\[(?:Epic|Feature|User Story|Use Case)\s+Title\]", re.I),
+    (re.compile(r"\[(?:Feat(?:ure)?|Epic|US|UC|User\s*Story|Use\s*Case|Story|Issue)[-_\s]*(?:ID|IssueID)\]", re.I),
+     "unresolved issue reference token"),
+    (re.compile(r"\[(?:Epic|Feature|User\s*Story|Use\s*Case)\s+Title\]", re.I),
      "unpopulated template title"),
+    (re.compile(r"\[Title\]", re.I),
+     "unpopulated template title"),
+    (re.compile(r"\{\{REQUIRED_(?:JUSTIFICATION|SOURCE_REF)\}\}", re.I),
+     "unreplaced template escape token"),
     (re.compile(r"\(\s*semantic linkage justification[^)]*\)", re.I),
      "template text left in place of a written linkage justification"),
     (re.compile(r"\[POPULATE:", re.I),
      "unreplaced [POPULATE:] placeholder token"),
     (re.compile(r"\b(?:epic|feat|us|uc)-XX-name\b", re.I), "placeholder file path"),
+    (re.compile(r"\[(?:Repository\s+Base\s+URL|Branch\s+Name|Spec\s+Reference|SysMLInteractionName|SysMLTestCaseName)\]", re.I),
+     "unpopulated template token"),
+    (re.compile(r"<blob_path>", re.I),
+     "unpopulated template path"),
 ]
 
 # Conditionally valid. "*(None registered)*" is a truthful statement when nothing is
@@ -863,6 +873,7 @@ class UmlValidator(IValidator):
             if doc_type == "Epic" and (
                 re.search(r"\(\s*semantic linkage justification", line_text, re.I)
                 or re.search(r"\[POPULATE:", line_text, re.I)
+                or re.search(r"\{\{REQUIRED_JUSTIFICATION\}\}", line_text, re.I)
             ):
                 errors.append(
                     Finding(
@@ -1381,30 +1392,6 @@ class UmlValidator(IValidator):
         global_classes = kwargs.get("global_classes") or self.build_global_classes(repo, features_dir, epics_dir)
         valid_classifiers = set(valid_parts) | set(global_classes.keys())
 
-        # Collect valid operation and message names
-        valid_operations: Set[str] = set()
-        for op in all_ops:
-            if getattr(op, "name", None):
-                valid_operations.add(op.name)
-        for act in all_actions:
-            if getattr(act, "name", None):
-                valid_operations.add(act.name)
-        for part in all_parts:
-            for op in (getattr(part, "operations", []) or []):
-                if getattr(op, "name", None):
-                    valid_operations.add(op.name)
-            for act in (getattr(part, "actions", []) or []):
-                if getattr(act, "name", None):
-                    valid_operations.add(act.name)
-
-        for inter in all_interactions:
-            for msg in (getattr(inter, "messages", []) or []):
-                if msg:
-                    valid_operations.add(msg)
-            for trg in (getattr(inter, "triggers", []) or []):
-                if trg:
-                    valid_operations.add(trg)
-
         sequence_parser = MermaidSequenceDiagramParser()
         covered_interactions: Set[str] = set()
 
@@ -1452,19 +1439,43 @@ class UmlValidator(IValidator):
                 for msg in parsed_seq.messages:
                     if msg.arrow_type in ("sync", "async") and msg.operation:
                         op_name = msg.operation
-                        if op_name not in valid_operations:
-                            # Check if receiver has this method in global_classes
-                            rx_lf = parsed_seq.lifelines.get(msg.receiver)
-                            rx_cls = rx_lf.classifier_name if rx_lf else None
-                            cls_has_method = False
-                            if rx_cls and rx_cls in global_classes:
+                        rx_lf = parsed_seq.lifelines.get(msg.receiver)
+                        rx_cls = rx_lf.classifier_name if rx_lf else None
+                        rx_role = (rx_lf.role or "").lower() if rx_lf else ""
+
+                        # External actors are exempt from internal interface checking
+                        if rx_role == "actor":
+                            continue
+
+                        # Determine if operation exists on the specific receiver classifier or part
+                        cls_has_method = False
+                        if rx_cls:
+                            if rx_cls in global_classes:
                                 cls_has_method = any(m["name"] == op_name for m in global_classes[rx_cls]["methods"])
                             if not cls_has_method:
-                                errors.append(Finding(
-                                    "user-story-interaction-step-invalid",
-                                    f"User Story '{filename}': Sequence diagram message '{op_name}' is not declared in SysML interaction message flows or part operations.",
-                                    location="user-stories"
-                                ))
+                                for part in all_parts:
+                                    if getattr(part, "name", None) == rx_cls:
+                                        part_ops = [getattr(op, "name", None) for op in (getattr(part, "operations", []) or [])]
+                                        part_acts = [getattr(act, "name", None) for act in (getattr(part, "actions", []) or [])]
+                                        if op_name in part_ops or op_name in part_acts:
+                                            cls_has_method = True
+                                            break
+
+                        # Fallback: check if message is a declared SysML interaction message step
+                        if not cls_has_method:
+                            for inter in all_interactions:
+                                inter_msgs = getattr(inter, "messages", []) or []
+                                inter_trgs = getattr(inter, "triggers", []) or []
+                                if op_name in inter_msgs or op_name in inter_trgs:
+                                    cls_has_method = True
+                                    break
+
+                        if not cls_has_method:
+                            errors.append(Finding(
+                                "user-story-interaction-step-invalid",
+                                f"User Story '{filename}': Sequence diagram message '{op_name}' is not declared on receiver '{rx_cls}' or in SysML interaction message flows.",
+                                location="user-stories"
+                            ))
 
             # 3. Track covered SysML interactions
             for inter in all_interactions:
