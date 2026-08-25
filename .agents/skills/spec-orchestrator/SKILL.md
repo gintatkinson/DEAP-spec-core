@@ -53,6 +53,7 @@ Before beginning orchestration, verify you have:
 2. The path(s) to the associated structural schemas (e.g., `*.sysml`, `*.yang`, `*.yaml`, `*.proto`, `*.arxml`, `*.idl`).
 3. *(Optional)* A project constitution at `.pipeline/constitution.md`. If present, read it and apply platform/domain constraints to all worker dispatches.
 4. The SysML v2 SSOT completeness and bidirectional synchronization rules in `rules/sysml-ssot-completeness.md` and `docs/architecture/blueprints/SYSML_SSOT_BIDIRECTIONAL_SYNCHRONIZATION_ARCHITECTURE.md`.
+5. The Standardized Operator Usage Prompt Catalog in `docs/OPERATOR_PROMPT_CATALOG.md`.
 
 ## Item-Level Subagent Context Isolation
 

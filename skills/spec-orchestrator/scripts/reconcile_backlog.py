@@ -1958,14 +1958,18 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
             prefix = match_tuple[2] if len(match_tuple) > 2 else ''
             dep_num_str = match_tuple[3] if len(match_tuple) > 3 else match_tuple[-1]
 
-        # 1. Skip plain markdown checkboxes that have no issue reference prefix
+        # 1. Skip plain markdown checkboxes that have no issue reference prefix, but flag if unchecked
         if not prefix:
+            if mark == ' ':
+                has_deps = True
+                all_deps_closed = False
             continue
 
         # 2. Skip unresolved template placeholders
         if isinstance(dep_num_str, str) and PLACEHOLDER_PATTERN.match(dep_num_str):
             ref_str = format_issue_reference(dep_num_str, tracker_rules)
             print(f"  [Deferred] Unresolved placeholder {ref_str} in {os.path.basename(filepath)} — skipping")
+            has_deps = True
             all_deps_closed = False
             continue
         has_deps = True
@@ -1991,6 +1995,12 @@ def update_checklist_in_file(filepath, issue_dict, rules=None):
             
         if not is_closed:
             all_deps_closed = False
+
+    # Check for any remaining unchecked checkboxes in updated_content
+    # A specification item cannot be considered completed if any blocker checkbox remains unchecked (- [ ])
+    if re.search(r'-\s*\[\s*\]', updated_content) or re.search(r'-\s*\[ \]', updated_content):
+        has_deps = True
+        all_deps_closed = False
 
     if updated_content != content:
         updated_content = write_markdown_file(filepath, updated_content)
@@ -2223,6 +2233,81 @@ def sanitize_source_references(content, workspace_dir=None, rules=None):
 
     pattern = r'file://(/[^\s\)\>"\']+)'
     return re.sub(pattern, replacer, content)
+
+def expand_relative_links_for_tracker(content, filepath=None, rules=None, workspace_dir=None, branch=None):
+    """Expand relative markdown links to full blob URLs for web issue tracker payloads.
+    
+    Local git files maintain clean, canonical relative links for branch isolation
+    and offline navigation. During tracker dispatch, this transforms relative file links
+    into provider-aware web blob URLs (e.g. GitHub /blob/<branch>/... or GitLab /-/blob/<branch>/...)
+    so links resolve correctly when viewed in issue tracker web interfaces (#45).
+    """
+    if not content:
+        return content
+
+    if workspace_dir is None:
+        if filepath:
+            workspace_dir = find_workspace_dir(filepath)
+        else:
+            workspace_dir = find_workspace_dir(os.getcwd())
+
+    if not branch or branch == "HEAD":
+        branch = get_current_branch(workspace_dir)
+        if not branch or branch == "HEAD":
+            branch = "main"
+
+    blob_base = get_blob_url_base(rules=rules, workspace_dir=workspace_dir, branch=branch)
+    if not blob_base:
+        return content
+
+    abs_workspace = os.path.abspath(workspace_dir).rstrip("/\\") if workspace_dir else ""
+    if filepath:
+        abs_filepath = os.path.abspath(filepath)
+        abs_file_dir = os.path.dirname(abs_filepath)
+        rel_file_dir = os.path.relpath(abs_file_dir, abs_workspace).replace("\\", "/") if abs_workspace else ""
+        if rel_file_dir == ".":
+            rel_file_dir = ""
+    else:
+        abs_file_dir = abs_workspace
+        rel_file_dir = ""
+
+    def replace_link(match):
+        label = match.group(1)
+        target = match.group(2).strip()
+
+        if not target or target.startswith(("http://", "https://", "mailto:", "#", "git@", "ftp://", "tel:")):
+            return match.group(0)
+
+        fragment = ""
+        target_path = target
+        if "#" in target:
+            target_path, fragment = target.split("#", 1)
+            fragment = "#" + fragment
+
+        if not target_path:
+            return match.group(0)
+
+        if target_path.startswith("/"):
+            norm_target = os.path.normpath(target_path.lstrip("/")).replace("\\", "/")
+        else:
+            if abs_workspace and os.path.exists(os.path.join(abs_workspace, target_path)) and not os.path.exists(os.path.join(abs_file_dir, target_path)):
+                norm_target = os.path.normpath(target_path).replace("\\", "/")
+            elif not target_path.startswith("./") and not target_path.startswith("../") and abs_workspace and os.path.exists(os.path.join(abs_workspace, target_path)):
+                norm_target = os.path.normpath(target_path).replace("\\", "/")
+            elif rel_file_dir:
+                norm_target = os.path.normpath(os.path.join(rel_file_dir, target_path)).replace("\\", "/")
+            else:
+                norm_target = os.path.normpath(target_path).replace("\\", "/")
+
+        if norm_target.startswith("../") or norm_target == "..":
+            return match.group(0)
+
+        norm_target = norm_target.lstrip("./").lstrip("/")
+        blob_url = f"{blob_base.rstrip('/')}/{norm_target}{fragment}"
+        return f"[{label}]({blob_url})"
+
+    pattern = r'\[([^\]]+)\]\(([^)]+)\)'
+    return re.sub(pattern, replace_link, content)
 
 def sanitize_mermaid_diagrams(content):
     if not content or "```mermaid" not in content:
@@ -2478,6 +2563,7 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
         
     workspace_dir = find_workspace_dir(filepath)
     content = sanitize_source_references(content, workspace_dir=workspace_dir, rules=rules)
+    content = expand_relative_links_for_tracker(content, filepath=filepath, rules=rules, workspace_dir=workspace_dir)
     content = sanitize_mermaid_diagrams(content)
     content = convert_frontmatter_to_table(content)
     content = deduplicate_markdown_sections(content)
