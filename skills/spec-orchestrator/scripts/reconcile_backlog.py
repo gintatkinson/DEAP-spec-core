@@ -2057,12 +2057,96 @@ def deduplicate_markdown_sections(content):
             output_lines.append(line)
     return "\n".join(output_lines) + "\n"
 
-def rewrite_header_repository_urls(content, active_repo):
+def get_blob_url_base(rules=None, workspace_dir=None, branch=None):
+    if workspace_dir is None:
+        workspace_dir = find_workspace_dir(os.getcwd())
+
+    upstream_repo = get_upstream_repository(rules, workspace_dir) or "gintatkinson/DEAP-spec-core"
+    provider_name = detect_tracker_provider(rules=rules, workspace_dir=workspace_dir)
+
+    if not branch or branch == "HEAD":
+        branch = get_current_branch(workspace_dir) or "main"
+        if branch == "HEAD":
+            branch = "main"
+
+    remote_info = get_git_remote_info(workspace_dir) if workspace_dir else None
+    remote_info = remote_info or {}
+
+    tracker_rules = rules.get("tracker_rules", {}) if rules else {}
+    server_url_override = tracker_rules.get("server_url") or tracker_rules.get("url")
+
+    if provider_name == "gitlab":
+        server_url = (
+            server_url_override
+            or remote_info.get("server_url")
+            or os.environ.get("GITLAB_URL")
+            or os.environ.get("CI_SERVER_URL")
+            or "https://gitlab.com"
+        ).rstrip("/")
+
+        proj_path = (
+            tracker_rules.get("project_id")
+            or remote_info.get("project_path")
+            or os.environ.get("CI_PROJECT_PATH")
+            or upstream_repo
+            or ""
+        ).strip("/")
+
+        if proj_path.startswith("http://") or proj_path.startswith("https://"):
+            parsed_proj = urllib.parse.urlparse(proj_path)
+            server_url = f"{parsed_proj.scheme}://{parsed_proj.netloc}".rstrip("/")
+            proj_path = parsed_proj.path.lstrip("/")
+
+        if proj_path.endswith(".git"):
+            proj_path = proj_path[:-4]
+
+        if proj_path.startswith("github.com/"):
+            proj_path = proj_path[len("github.com/"):]
+
+        return f"{server_url}/{proj_path}/-/blob/{branch}"
+    else:
+        is_gitlab_remote = remote_info.get("is_gitlab", False)
+        server_url = (
+            server_url_override
+            if (server_url_override and not is_gitlab_remote)
+            else (remote_info.get("server_url") if (remote_info.get("server_url") and not is_gitlab_remote) else "https://github.com")
+        ).rstrip("/")
+
+        proj_path = (
+            tracker_rules.get("project_id")
+            or tracker_rules.get("project_key")
+            or remote_info.get("project_path")
+            or upstream_repo
+            or ""
+        ).strip("/")
+
+        if proj_path.startswith("http://") or proj_path.startswith("https://"):
+            parsed_proj = urllib.parse.urlparse(proj_path)
+            server_url = f"{parsed_proj.scheme}://{parsed_proj.netloc}".rstrip("/")
+            proj_path = parsed_proj.path.lstrip("/")
+
+        if proj_path.endswith(".git"):
+            proj_path = proj_path[:-4]
+
+        if proj_path.startswith("github.com/"):
+            proj_path = proj_path[len("github.com/"):]
+        elif proj_path.startswith("gitlab.com/"):
+            proj_path = proj_path[len("gitlab.com/"):]
+
+        if is_gitlab_remote:
+            gitlab_server = (remote_info.get("server_url") or "https://gitlab.com").rstrip("/")
+            return f"{gitlab_server}/{proj_path}/-/blob/{branch}"
+
+        return f"{server_url}/{proj_path}/blob/{branch}"
+
+def rewrite_header_repository_urls(content, active_repo, rules=None, workspace_dir=None):
     if not content or not active_repo:
         return content
     parts = active_repo.split('/')
     active_name = parts[-1].lower()
     active_owner = parts[0].lower() if len(parts) > 1 else ""
+
+    provider_name = detect_tracker_provider(rules=rules, workspace_dir=workspace_dir)
 
     def replacer(match):
         full_url = match.group(0)
@@ -2079,10 +2163,20 @@ def rewrite_header_repository_urls(content, active_repo):
         )
 
         if is_target_repo:
+            if provider_name == "gitlab":
+                remote_info = get_git_remote_info(workspace_dir) if workspace_dir else None
+                server_url = (
+                    (remote_info.get("server_url") if remote_info else None)
+                    or (rules.get("tracker_rules", {}).get("server_url") if rules else None)
+                    or os.environ.get("GITLAB_URL")
+                    or os.environ.get("CI_SERVER_URL")
+                    or "https://gitlab.com"
+                ).rstrip("/")
+                return f"{server_url}/{active_repo}/-/blob/"
             return f"https://github.com/{active_repo}/blob/"
         return full_url
 
-    pattern = r'https://github\.com/([^/]+)/([^/]+)/blob/'
+    pattern = r'https://(?:github\.com|gitlab\.com|[^/\s]+)/([^/]+)/([^/]+)/(?:-\\)?blob/'
     return re.sub(pattern, replacer, content)
 
 def sanitize_source_references(content, workspace_dir=None, rules=None):
@@ -2093,12 +2187,12 @@ def sanitize_source_references(content, workspace_dir=None, rules=None):
         workspace_dir = find_workspace_dir(os.getcwd())
 
     upstream_repo = get_upstream_repository(rules, workspace_dir) or "gintatkinson/DEAP-spec-core"
-    content = rewrite_header_repository_urls(content, upstream_repo)
+    content = rewrite_header_repository_urls(content, upstream_repo, rules=rules, workspace_dir=workspace_dir)
     branch = get_current_branch(workspace_dir)
     if not branch or branch == "HEAD":
         branch = "main"
 
-    github_base = f"https://github.com/{upstream_repo}/blob/{branch}"
+    blob_base = get_blob_url_base(rules=rules, workspace_dir=workspace_dir, branch=branch)
 
     abs_workspace = os.path.abspath(workspace_dir).rstrip("/\\")
     real_workspace = os.path.realpath(workspace_dir).rstrip("/\\")
@@ -2110,20 +2204,20 @@ def sanitize_source_references(content, workspace_dir=None, rules=None):
 
         if abs_workspace != "/" and path_part.startswith(abs_workspace):
             rel = path_part[len(abs_workspace):].lstrip("/")
-            return f"{github_base}/{rel}"
+            return f"{blob_base}/{rel}"
         elif real_workspace != "/" and path_part.startswith(real_workspace):
             rel = path_part[len(real_workspace):].lstrip("/")
-            return f"{github_base}/{rel}"
+            return f"{blob_base}/{rel}"
 
         repo_substr = f"/{repo_name}/"
         if repo_substr in path_part:
             rel = path_part.split(repo_substr, 1)[1]
-            return f"{github_base}/{rel}"
+            return f"{blob_base}/{rel}"
 
         parts = path_part.split("/")
         if len(parts) > 3 and parts[1] in ("Users", "home"):
             rel = "/".join(parts[3:])
-            return f"{github_base}/{rel}"
+            return f"{blob_base}/{rel}"
 
         return full_uri
 
@@ -3028,11 +3122,10 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
             break
 
     workspace_root = find_workspace_dir(filepath)
-    upstream_repo = get_upstream_repository(rules, workspace_root)
-    repo_base = upstream_repo
-    if not repo_base.startswith("http"):
-        repo_base = f"https://github.com/{repo_base}"
     branch_name = get_current_branch(workspace_root)
+    if not branch_name or branch_name == "HEAD":
+        branch_name = "main"
+    blob_base = get_blob_url_base(rules=rules, workspace_dir=workspace_root, branch=branch_name)
     
     def format_item(item_type, filename, title, issue_num):
         tracker_rules = rules.get("tracker_rules", {}) if rules else {}
@@ -3045,7 +3138,7 @@ def reconcile_epic_checklists(filepath, child_features, child_stories, child_use
         else:
             path_part = f"docs/user-stories/{filename}.md"
             
-        return f"{indent}- [ ] {ref_str} - [{title}]({repo_base}/blob/{branch_name}/{path_part}) (semantic linkage justification)"
+        return f"{indent}- [ ] {ref_str} - [{title}]({blob_base}/{path_part}) (semantic linkage justification)"
 
     def get_filename_key(item_str):
         m = re.search(r'(?:docs/)?(features|use-cases|user-stories)/([a-zA-Z0-9_\-]+)\.md', item_str)
