@@ -103,7 +103,7 @@ harness, configuration format, or tool.
 Guard behaviour, both directions:
 
 ```
-$ (in digital-pipeline-repo)
+$ (in DEAP-spec-core)
 REFUSING: this is the pipeline repository, not a downstream project.
 exit=1
 
@@ -144,7 +144,7 @@ The 11 are the documented pre-existing set; no new failure was introduced.
 ## 7. Residual Risk
 
 - **The GitHub template route is not covered.** `gh repo create <name> --template
-  gintatkinson/digital-pipeline-repo` copies the whole tree including
+  gintatkinson/DEAP-implementation-driver` copies the whole tree including
   `.pipeline/upstream/`. The `export-ignore` attribute in `.gitattributes` applies to
   `git archive`, not to template instantiation, and the guard added here protects only
   the Direct Copy block. A downstream project created by template therefore still

@@ -1019,7 +1019,7 @@ def main():
     except Exception:
         import traceback
         traceback.print_exc()
-        upstream_repo = "gintatkinson/digital-pipeline-repo"
+        upstream_repo = "gintatkinson/DEAP-spec-core"
         try:
             script_dir = os.path.dirname(os.path.abspath(__file__))
             workspace_dir = None

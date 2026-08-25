@@ -8,26 +8,26 @@ This document details the changes back-propagated from downstream repositories, 
 
 ### New Files
 
-* **[skills/adversarial-code-auditor/SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/adversarial-code-auditor/SKILL.md)**:
+* **[skills/adversarial-code-auditor/SKILL.md](file:///Users/perkunas/jail/DEAP-spec-core/skills/adversarial-code-auditor/SKILL.md)**:
   - Imported the generic pre-emptive auditing skill. This defines the protocol for subagents to audit codebase files against four correctness risk pillars (Memory Safety, Resource Lifecycle, Concurrency, and Test Integrity) and file identified issues via GitHub CLI.
 
 ### Modified Files
 
-* **[skills/spec-orchestrator/parity_auditor/src/parity_auditor/core/models.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/core/models.py)**:
+* **[skills/spec-orchestrator/parity_auditor/src/parity_auditor/core/models.py](file:///Users/perkunas/jail/DEAP-spec-core/skills/spec-orchestrator/parity_auditor/src/parity_auditor/core/models.py)**:
   - Made the `react` directory and `react_rules` fields optional in the codebase rules models (`TargetDirectories` and `CodebaseRules`).
   - Refactored `load_from_dict` to gracefully handle the absence of `react_rules`.
 
-* **[skills/spec-orchestrator/parity_auditor/src/parity_auditor/cli.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/cli.py)**:
+* **[skills/spec-orchestrator/parity_auditor/src/parity_auditor/cli.py](file:///Users/perkunas/jail/DEAP-spec-core/skills/spec-orchestrator/parity_auditor/src/parity_auditor/cli.py)**:
   - Added a new CLI argument `--allow-missing-specs` to optionally bypass strict validation failures when specification files are missing.
   - Guarded React-specific configuration references to prevent crashes when React target settings or rules are omitted.
 
-* **[skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/codebase.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/codebase.py)**:
+* **[skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/codebase.py](file:///Users/perkunas/jail/DEAP-spec-core/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/codebase.py)**:
   - Guarded React codebase compliance validation so it skips React check steps and does not crash when `react_rules` is omitted.
 
-* **[skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/profile_scoping_validator.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/profile_scoping_validator.py)**:
+* **[skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/profile_scoping_validator.py](file:///Users/perkunas/jail/DEAP-spec-core/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/profile_scoping_validator.py)**:
   - Guarded profile scoping checks to avoid crashing and skip react source files validation when `react_rules` is `None`.
 
-* **[skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/schema_mapping_validator.py](file:///Users/perkunas/jail/digital-pipeline-repo/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/schema_mapping_validator.py)**:
+* **[skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/schema_mapping_validator.py](file:///Users/perkunas/jail/DEAP-spec-core/skills/spec-orchestrator/parity_auditor/src/parity_auditor/validators/schema_mapping_validator.py)**:
   - Guarded schema mapping checks to skip collecting React UI files when `react_rules` is `None`.
 
 ---

@@ -46,7 +46,7 @@ This skill integrates subagent-driven development, TDD execution discipline, two
 
 ### Step 1: Backlog & Dependency Mapping
 1. **Read the project constitution** (`.pipeline/constitution.md`) if it exists. This is the **functional layer** — domain rules, agent behavior, universal quality gates.
-2. **Read the implementation profile** (`.pipeline/profiles/<target-platform>.md`) for the target platform. This provides platform-specific coding standards, testing mandates, build commands, and deployment config. If no profile exists for the target platform, halt and prompt the human to create one using the `project-constitution` skill. Ensure that the downstream workspace has been bootstrapped using the native GitHub template onboarding workflow (`gh repo create <new_app_name> --template gintatkinson/digital-pipeline-repo --public --clone`) or the Direct Copy workflow (Installation Option 2 in the README). This creates/copies a fresh repository locally BEFORE the downstream agent begins work.
+2. **Read the implementation profile** (`.pipeline/profiles/<target-platform>.md`) for the target platform. This provides platform-specific coding standards, testing mandates, build commands, and deployment config. If no profile exists for the target platform, halt and prompt the human to create one using the `project-constitution` skill. Ensure that the downstream workspace has been bootstrapped using the native GitHub template onboarding workflow (`gh repo create <new_app_name> --template gintatkinson/DEAP-implementation-driver --public --clone`) or the Direct Copy workflow (Installation Option 2 in the README). This creates/copies a fresh repository locally BEFORE the downstream agent begins work.
 3. Analyze `docs/epics/` and `docs/features/` to determine feature dependencies.
 4. Map the backlog queue in order of base dependencies first.
 5. Create a local tracking file (e.g., `task.md`) to manage current tasks.
@@ -264,6 +264,6 @@ If a tool command (linter or reconciler) fails during implementation:
 3. **Automated Upstream Reporting**: If the step fails and you suspect it is due to a bug in the pipeline tooling, you MUST automatically file a bug report upstream:
    - Locating the latest diagnostic payload JSON at `.pipeline/diagnostics/repro_payload_[timestamp].json`.
    - Running the command:
-     `gh issue create --repo gintatkinson/digital-pipeline-repo --title "Tooling Bug: [Command] failed" --body-file [payload_path] --label "bug"`
+     `gh issue create --repo gintatkinson/DEAP-spec-core --title "Tooling Bug: [Command] failed" --body-file [payload_path] --label "bug"`
 4. Escalate to the user with the issue URL and error context.
 

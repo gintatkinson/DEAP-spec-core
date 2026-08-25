@@ -8,8 +8,8 @@ This document details the fix applied to the clone commands in the project's REA
 
 | Feature / Area | Source File | Lines Affected | Rationale |
 | :--- | :--- | :--- | :--- |
-| Installation Guide (Stable) | `README.md` | 146 | Replace placeholder `<owner>/<template-repo>` with `gintatkinson/digital-pipeline-repo` |
-| Installation Guide (Refactored) | `README.md` | 158 | Replace placeholder `<owner>/<template-repo>` with `gintatkinson/digital-pipeline-repo` |
+| Installation Guide (Stable) | `README.md` | 146 | Replace placeholder `<owner>/<template-repo>` with `gintatkinson/DEAP-spec-core` |
+| Installation Guide (Refactored) | `README.md` | 158 | Replace placeholder `<owner>/<template-repo>` with `gintatkinson/DEAP-spec-core` |
 
 ---
 
@@ -24,7 +24,7 @@ git clone https://github.com/<owner>/<template-repo>.git ./.tmp-pipeline
 ```
 This was updated to use the actual repository path:
 ```bash
-git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
+git clone https://github.com/gintatkinson/DEAP-spec-core.git ./.tmp-pipeline
 ```
 
 ### 2.2. Refactored Version Installation (`refactor` branch)
@@ -34,7 +34,7 @@ git clone -b refactor https://github.com/<owner>/<template-repo>.git ./.tmp-pipe
 ```
 This was updated to use the actual repository path:
 ```bash
-git clone -b refactor https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
+git clone -b refactor https://github.com/gintatkinson/DEAP-spec-core.git ./.tmp-pipeline
 ```
 
 ---

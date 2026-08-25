@@ -31,7 +31,7 @@
 | `docs/designs/feat-g1-g12-solution-definition.md` | 100 | `- `double computeHeading(VelocityVector rateOfChange)`: Calculates azimuth heading in degrees.` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/uml_frontend_alignment_audit.md` | 99 | `+Real dim_0 [1]` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/uml_frontend_alignment_audit.md` | 100 | `+Real dim_1 [1]` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `docs/use-cases/uc-02-local-firebase-emulator.md` | 39 | `1. [SeedingManager](https://github.com/gintatkinson/digital-pipeline-repo/blob/main/docs/features/fe...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `docs/use-cases/uc-02-local-firebase-emulator.md` | 39 | `1. [SeedingManager](https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/features/fe...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/designs/feat-epic-template-mandate-plan.md` | 12 | `3. Download the official `ietf-geo-location@2022-02-11.yang` schema from the standard YangModels Git...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/designs/feat-epic-template-mandate-plan.md` | 28 | `+ReferenceFrame referenceFrame` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/designs/feat-epic-template-mandate-plan.md` | 33 | `class ReferenceFrame {` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |

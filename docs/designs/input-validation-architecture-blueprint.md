@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **Deterministic Input Validation & Zero-Loss Propagation Architecture** enforces strict engineering discipline, complete line-by-line file ingestion, and zero-loss requirement propagation across the `digital-pipeline-repo` ecosystem.
+The **Deterministic Input Validation & Zero-Loss Propagation Architecture** enforces strict engineering discipline, complete line-by-line file ingestion, and zero-loss requirement propagation across the `DEAP-spec-core` ecosystem.
 
 By requiring pre-computed input digests, direct `view_file` ingestion proofs, automated transcript log validation, and continuous verification gates, this architecture guarantees that specification files, schemas, and requirements are ingested with 100% fidelity without pre-summarization, token truncation, or silent parametric assumptions.
 

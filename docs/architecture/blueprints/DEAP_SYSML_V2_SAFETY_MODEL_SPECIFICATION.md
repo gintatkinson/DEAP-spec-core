@@ -4,7 +4,7 @@
 > **Status:** `APPROVED / PRODUCTION-GRADE`  
 > **Classification:** `SysML v2 Textual Safety Model & MATLAB Export Specification`  
 > **Target Regulatory Frameworks:** `DO-178C (DAL A–E)` | `DO-254 (DAL A–E)` | `ARP4754A/4761` | `JARUS SORA v2.5 (SAIL I–VI)`  
-> **Executable Model Reference:** [`DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml)
+> **Executable Model Reference:** [`DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml`](file:///Users/perkunas/jail/DEAP-spec-core/docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml)
 
 ---
 
@@ -420,6 +420,6 @@ The specification is covered by repository automated test gates:
 
 - **Author:** Digital Engineering Agentic Pipeline (DEAP) Architecture Team
 - **Approved File Paths:**
-  - SysML v2 Source: [`docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml)
-  - Specification Concept Paper: [`docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md)
-  - Master Architecture Registration: [`docs/architecture/core/DEAP_MASTER_ARCHITECTURE.md`](file:///Users/perkunas/jail/digital-pipeline-repo/docs/architecture/core/DEAP_MASTER_ARCHITECTURE.md)
+  - SysML v2 Source: [`docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml`](file:///Users/perkunas/jail/DEAP-spec-core/docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml)
+  - Specification Concept Paper: [`docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md`](file:///Users/perkunas/jail/DEAP-spec-core/docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md)
+  - Master Architecture Registration: [`docs/architecture/core/DEAP_MASTER_ARCHITECTURE.md`](file:///Users/perkunas/jail/DEAP-spec-core/docs/architecture/core/DEAP_MASTER_ARCHITECTURE.md)

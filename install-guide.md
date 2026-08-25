@@ -33,7 +33,7 @@ pip install -r requirements.txt
 Run the turnkey automated installer directly in your project root:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/gintatkinson/digital-pipeline-repo/main/scripts/install_pipeline.sh | bash
+curl -sSL https://raw.githubusercontent.com/gintatkinson/DEAP-spec-core/main/scripts/install_pipeline.sh | bash
 ```
 
 ### Manual / Direct Copy Installation Workflow
@@ -51,7 +51,7 @@ if [ -e ./.pipeline/upstream ]; then
   exit 1
 fi
 
-git clone https://github.com/gintatkinson/digital-pipeline-repo.git ./.tmp-pipeline
+git clone https://github.com/gintatkinson/DEAP-spec-core.git ./.tmp-pipeline
 rm -rf ./skills ./rules ./.pipeline ./.agents ./scripts ./app_flutter ./web_react
 cp -RP ./.tmp-pipeline/skills ./
 cp -RP ./.tmp-pipeline/rules ./

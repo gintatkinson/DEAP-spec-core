@@ -49,10 +49,10 @@ class TestGitLabRemoteParser(unittest.TestCase):
         self.assertEqual(info["server_url"], "https://gitlab.com")
 
     def test_parse_github_url(self):
-        url = "https://github.com/gintatkinson/digital-pipeline-repo.git"
+        url = "https://github.com/gintatkinson/DEAP-spec-core.git"
         info = parse_git_remote_url(url)
         self.assertFalse(info["is_gitlab"])
-        self.assertEqual(info["project_path"], "gintatkinson/digital-pipeline-repo")
+        self.assertEqual(info["project_path"], "gintatkinson/DEAP-spec-core")
         self.assertEqual(info["server_url"], "https://github.com")
 
 

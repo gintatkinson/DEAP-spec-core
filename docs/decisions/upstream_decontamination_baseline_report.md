@@ -1,6 +1,6 @@
 # Upstream Decontamination & Baseline Refactor Report
 
-**Repository**: `gintatkinson/digital-pipeline-repo`  
+**Repository**: `gintatkinson/DEAP-spec-core`  
 **Location**: `docs/decisions/upstream_decontamination_baseline_report.md`  
 **Branch**: `main`  
 **Latest Unpushed Commit**: `b51f797d0022ad6126ca4f9b5b26d22454931206`  

@@ -2,7 +2,7 @@
 
 **Date**: 2026-06-16  
 **Status**: APPROVED / MANDATED  
-**Applicable Workspace**: `digital-pipeline-repo`  
+**Applicable Workspace**: `DEAP-spec-core`  
 **Target Platform Environments**: React Web (Vite) & Flutter Desktop/Web  
 
 ---

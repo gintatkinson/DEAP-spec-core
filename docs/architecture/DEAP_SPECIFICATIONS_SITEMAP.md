@@ -57,13 +57,13 @@
 
 ---
 
-## 4. 🛠️ Master Working Monolith (`digital-pipeline-repo`)
+## 4. 🛠️ Master Working Monolith (`DEAP-spec-core`)
 
-* **Repository Root**: https://github.com/gintatkinson/digital-pipeline-repo
-* **Local Folder**: file:///Users/perkunas/jail/digital-pipeline-repo
+* **Repository Root**: https://github.com/gintatkinson/DEAP-spec-core
+* **Local Folder**: file:///Users/perkunas/jail/DEAP-spec-core
 
 ### Pipeline Engine Files:
-- **Master README**: https://github.com/gintatkinson/digital-pipeline-repo/blob/main/README.md
-- **Tier 1 Safety Constitution**: https://github.com/gintatkinson/digital-pipeline-repo/blob/main/.pipeline/constitution.md
-- **Agentic Governance Rules**: https://github.com/gintatkinson/digital-pipeline-repo/blob/main/.agents/AGENTS.md
-- **SysML Compiler Script**: https://github.com/gintatkinson/digital-pipeline-repo/blob/main/scripts/compile_sysml.py
+- **Master README**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/README.md
+- **Tier 1 Safety Constitution**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/.pipeline/constitution.md
+- **Agentic Governance Rules**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/.agents/AGENTS.md
+- **SysML Compiler Script**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/scripts/compile_sysml.py

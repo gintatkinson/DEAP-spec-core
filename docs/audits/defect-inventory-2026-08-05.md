@@ -1,7 +1,7 @@
 ---
 title: "Defect Inventory — full-tree sweep"
 date: "2026-08-05"
-scope: "digital-pipeline-repo @ 4a4e2b5"
+scope: "DEAP-spec-core @ 4a4e2b5"
 method: "read-only sweep; no fixes applied in this pass"
 ---
 

@@ -11,10 +11,10 @@ Previously, the basemap imagery URLs (OpenStreetMap, ArcGIS, CartoDB) were hardc
 
 | Feature / Attribute | Source File | Class / Component | Method / Function / Member |
 | :--- | :--- | :--- | :--- |
-| Basemap URL Templates JSON config | [persistence-config.json](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/assets/persistence-config.json) | N/A | `basemaps` |
-| Dynamic URL loading and mapping | [tile_fetcher.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/cesium_3d/tile_fetcher.dart) | `TileFetcher` | `_basemapTemplates`, `configure`, `urlFor` |
-| Startup configuration hook | [repository_resolver.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/lib/domain/repository_resolver.dart) | `RepositoryResolver` | `resolve` |
-| Test suite updates | [tile_fetcher_test.dart](file:///Users/perkunas/jail/digital-pipeline-repo/app_flutter/test/cesium_3d/tile_fetcher_test.dart) | `TileFetcher` Tests | `setUp` |
+| Basemap URL Templates JSON config | [persistence-config.json](file:///Users/perkunas/jail/DEAP-spec-core/app_flutter/assets/persistence-config.json) | N/A | `basemaps` |
+| Dynamic URL loading and mapping | [tile_fetcher.dart](file:///Users/perkunas/jail/DEAP-spec-core/app_flutter/lib/domain/cesium_3d/tile_fetcher.dart) | `TileFetcher` | `_basemapTemplates`, `configure`, `urlFor` |
+| Startup configuration hook | [repository_resolver.dart](file:///Users/perkunas/jail/DEAP-spec-core/app_flutter/lib/domain/repository_resolver.dart) | `RepositoryResolver` | `resolve` |
+| Test suite updates | [tile_fetcher_test.dart](file:///Users/perkunas/jail/DEAP-spec-core/app_flutter/test/cesium_3d/tile_fetcher_test.dart) | `TileFetcher` Tests | `setUp` |
 
 ---
 
@@ -25,7 +25,7 @@ The unit tests in `tile_fetcher_test.dart` were updated to load the configuratio
 
 All tests execute successfully:
 ```bash
-00:00 +0: loading /Users/perkunas/jail/digital-pipeline-repo/app_flutter/test/cesium_3d/tile_fetcher_test.dart
+00:00 +0: loading /Users/perkunas/jail/DEAP-spec-core/app_flutter/test/cesium_3d/tile_fetcher_test.dart
 00:00 +0: TileFetcher is enabled by default when MAP_IMAGERY_ENABLED is unset
 00:00 +1: TileFetcher disable() causes fetchTile to return null
 00:00 +2: TileFetcher urlFor produces HTTPS URLs for every provider

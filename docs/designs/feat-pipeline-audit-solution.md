@@ -38,5 +38,5 @@ This walkthrough details the changes made to generalize the digital systems engi
 
 All changes have been successfully committed and pushed to the remote repository on GitHub:
 - **Branch**: `master`
-- **Target Repository**: `gintatkinson/digital-pipeline-repo`
+- **Target Repository**: `gintatkinson/DEAP-spec-core`
 - **Latest Commit**: `2c78d94` ("feat: generalize pipeline validation and templates to support any standard dynamically")

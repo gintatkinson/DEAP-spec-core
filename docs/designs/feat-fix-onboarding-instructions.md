@@ -8,8 +8,8 @@ This document details the update applied to the onboarding instructions in the f
 
 | Feature / Area | Source File | Lines Affected | Rationale |
 | :--- | :--- | :--- | :--- |
-| Workspace Feature Skill | [SKILL.md](file:///Users/perkunas/jail/digital-pipeline-repo/skills/feature-driven-implementation/SKILL.md) | 42 | Replace stale reference to `bootstrap_downstream.py` with native GitHub template instructions |
-| Agent System Skill Copy | [SKILL.md copy](file:///Users/perkunas/jail/digital-pipeline-repo/.agents/skills/feature-driven-implementation/SKILL.md) | 42 | Replaced via shared symlink alignment |
+| Workspace Feature Skill | [SKILL.md](file:///Users/perkunas/jail/DEAP-spec-core/skills/feature-driven-implementation/SKILL.md) | 42 | Replace stale reference to `bootstrap_downstream.py` with native GitHub template instructions |
+| Agent System Skill Copy | [SKILL.md copy](file:///Users/perkunas/jail/DEAP-spec-core/.agents/skills/feature-driven-implementation/SKILL.md) | 42 | Replaced via shared symlink alignment |
 
 ---
 
@@ -24,7 +24,7 @@ Ensure that the downstream workspace has been bootstrapped using the upstream-on
 ```
 This has been updated to align with the native GitHub template onboarding architecture:
 ```markdown
-Ensure that the downstream workspace has been bootstrapped using the native GitHub template onboarding workflow: `gh repo create <new_app_name> --template gintatkinson/digital-pipeline-repo --public --clone`. This creates a fresh repository on GitHub and clones it locally BEFORE the downstream agent begins work.
+Ensure that the downstream workspace has been bootstrapped using the native GitHub template onboarding workflow: `gh repo create <new_app_name> --template gintatkinson/DEAP-implementation-driver --public --clone`. This creates a fresh repository on GitHub and clones it locally BEFORE the downstream agent begins work.
 ```
 
 ### 2.2. Agent System Copy (`.agents/skills/feature-driven-implementation/SKILL.md`)
@@ -38,7 +38,7 @@ Since `.agents/skills` is a tracked symlink pointing directly to `skills`, the u
    The `bootstrap_downstream.py` script was previously removed from the repository. Continuing to reference it in onboarding skills caused confusion and execution errors for agents or developers attempting to follow the onboarding guides.
 
 2. **Native Template Integration**:
-   By switching the instructions to use `gh repo create <new_app_name> --template gintatkinson/digital-pipeline-repo --public --clone`, we leverage GitHub's native template repository capabilities. This offers a robust, officially supported, and platform-standard mechanism to bootstrap new projects from the repository template without maintaining custom scripts.
+   By switching the instructions to use `gh repo create <new_app_name> --template gintatkinson/DEAP-implementation-driver --public --clone`, we leverage GitHub's native template repository capabilities. This offers a robust, officially supported, and platform-standard mechanism to bootstrap new projects from the repository template without maintaining custom scripts.
 
 3. **Prevention of Documentation Drift**:
    Using a symlink for `.agents/skills` ensures that all agent-scoped skills remain perfectly synchronized with the workspace-scoped skills without requiring duplicate manual edits.

@@ -72,7 +72,7 @@ pyang --version
 
 ```bash
 git clone <repository-url>
-cd digital-pipeline-repo
+cd DEAP-spec-core
 ```
 
 ### Test that the compiler is importable
