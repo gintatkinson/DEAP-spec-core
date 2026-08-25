@@ -8,7 +8,7 @@
 ## 1. 🏛️ Upstream Single Source of Truth (`DEAP-spec-core`)
 
 * **Repository Root**: https://github.com/gintatkinson/DEAP-spec-core
-* **Local Folder**: file:///Users/perkunas/jail/DEAP-spec-core
+* **Local Folder**: `DEAP-spec-core`
 
 ### Authoritative Architecture & Blueprint Documents (Full URLs):
 - **Master Specifications Sitemap**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/DEAP_SPECIFICATIONS_SITEMAP.md
@@ -28,7 +28,7 @@
 ## 2. ✈️ Civil Avionic Flight Safety Platform (`DEAP-avionic-flight-safety`)
 
 * **Repository Root**: https://github.com/gintatkinson/DEAP-avionic-flight-safety
-* **Local Folder**: file:///Users/perkunas/jail/DEAP-avionic-flight-safety
+* **Local Folder**: `DEAP-avionic-flight-safety`
 
 ### Domain Files & Governance:
 - **Master README**: https://github.com/gintatkinson/DEAP-avionic-flight-safety/blob/main/README.md
@@ -44,7 +44,7 @@
 ## 3. 🚁 Low-Altitude UAS Infrastructure Safety Platform (`DEAP-uas-infrastructure-safety`)
 
 * **Repository Root**: https://github.com/gintatkinson/DEAP-uas-infrastructure-safety
-* **Local Folder**: file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety
+* **Local Folder**: `DEAP-uas-infrastructure-safety`
 
 ### Domain Files & Governance:
 - **Master README**: https://github.com/gintatkinson/DEAP-uas-infrastructure-safety/blob/main/README.md
@@ -60,7 +60,7 @@
 ## 4. 🛠️ Master Working Monolith (`DEAP-spec-core`)
 
 * **Repository Root**: https://github.com/gintatkinson/DEAP-spec-core
-* **Local Folder**: file:///Users/perkunas/jail/DEAP-spec-core
+* **Local Folder**: `DEAP-spec-core`
 
 ### Pipeline Engine Files:
 - **Master README**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/README.md

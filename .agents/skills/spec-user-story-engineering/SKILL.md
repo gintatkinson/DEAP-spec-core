@@ -16,7 +16,7 @@ metadata:
 
 This skill enables a sub-agent to autonomously derive pure Behavior-Driven Development (BDD) User Stories modeled according to Object-Oriented Analysis and Design (OOA/OOD) principles directly from SysML v2 behavioral elements (`interaction def`, `action def`, `state def`, `port def`, `test case def`) and normative specification documents. 
 
-In accordance with [`rules/sysml-ssot-completeness.md`](file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety/rules/sysml-ssot-completeness.md), SysML v2 is the 100% Single Source of Truth (SSOT) for all computational actions, lifecycle states, interface ports, interaction message flows, and verification test cases. User Stories provide behavioral realization feeding downstream Stateflow statecharts and control law synthesis in the Primary Tier-1 Commercial Toolchain Context (**MATLAB / Simulink / Stateflow / Embedded Coder** for DO-178C C / SPARK Ada generation).
+In accordance with [`rules/sysml-ssot-completeness.md`](rules/sysml-ssot-completeness.md), SysML v2 is the 100% Single Source of Truth (SSOT) for all computational actions, lifecycle states, interface ports, interaction message flows, and verification test cases. User Stories provide behavioral realization feeding downstream Stateflow statecharts and control law synthesis in the Primary Tier-1 Commercial Toolchain Context (**MATLAB / Simulink / Stateflow / Embedded Coder** for DO-178C C / SPARK Ada generation).
 
 ## Execution Trigger
 You should invoke this skill ONLY after the structural Features have been extracted using the `schema-specification-engineering` skill.

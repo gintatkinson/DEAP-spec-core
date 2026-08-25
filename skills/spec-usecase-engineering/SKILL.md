@@ -14,7 +14,7 @@ metadata:
 
 # Specification Use Case Engineering (System Interaction)
 
-This skill enables a sub-agent to autonomously derive formal, UML OOA/OOD compliant System Use Cases (e.g., Alistair Cockburn style) directly from canonical SysML v2 `use case def` AST nodes and normative specification documents. In accordance with [`rules/sysml-ssot-completeness.md`](file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety/rules/sysml-ssot-completeness.md), SysML v2 is the 100% Single Source of Truth (SSOT). Heuristic prose interpretation without formal AST backing is strictly forbidden.
+This skill enables a sub-agent to autonomously derive formal, UML OOA/OOD compliant System Use Cases (e.g., Alistair Cockburn style) directly from canonical SysML v2 `use case def` AST nodes and normative specification documents. In accordance with [`rules/sysml-ssot-completeness.md`](rules/sysml-ssot-completeness.md), SysML v2 is the 100% Single Source of Truth (SSOT). Heuristic prose interpretation without formal AST backing is strictly forbidden.
 
 These Use Cases represent overarching system behavior, operational objectives, and state transitions, and they map down to granular User Stories and Features while feeding downstream Model-Based Design (MBD) and verification in the Primary Tier-1 Commercial Toolchain Context (MATLAB / Simulink / Stateflow / Embedded Coder).
 

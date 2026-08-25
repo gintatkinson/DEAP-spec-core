@@ -8,8 +8,8 @@ This document details the update applied to the onboarding instructions in the f
 
 | Feature / Area | Source File | Lines Affected | Rationale |
 | :--- | :--- | :--- | :--- |
-| Workspace Feature Skill | [SKILL.md](file:///Users/perkunas/jail/DEAP-spec-core/skills/feature-driven-implementation/SKILL.md) | 42 | Replace stale reference to `bootstrap_downstream.py` with native GitHub template instructions |
-| Agent System Skill Copy | [SKILL.md copy](file:///Users/perkunas/jail/DEAP-spec-core/.agents/skills/feature-driven-implementation/SKILL.md) | 42 | Replaced via shared symlink alignment |
+| Workspace Feature Skill | [SKILL.md](skills/feature-driven-implementation/SKILL.md) | 42 | Replace stale reference to `bootstrap_downstream.py` with native GitHub template instructions |
+| Agent System Skill Copy | [SKILL.md copy](.agents/skills/feature-driven-implementation/SKILL.md) | 42 | Replaced via shared symlink alignment |
 
 ---
 

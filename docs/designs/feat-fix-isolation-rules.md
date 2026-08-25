@@ -8,7 +8,7 @@ This document details the additions made to the project-scoped rules in order to
 
 | Feature / Area | Source File | Lines Affected | Rationale |
 | :--- | :--- | :--- | :--- |
-| Project-Scoped Rules | [.agents/AGENTS.md](file:///Users/perkunas/jail/DEAP-spec-core/.agents/AGENTS.md) | 61-64 | Appended strict context isolation and skill fidelity guidelines to prevent cross-talk and summarization drift. |
+| Project-Scoped Rules | [.agents/AGENTS.md](.agents/AGENTS.md) | 61-64 | Appended strict context isolation and skill fidelity guidelines to prevent cross-talk and summarization drift. |
 
 ---
 
@@ -38,5 +38,5 @@ The following section was appended to the end of the file:
 
 ## 4. Verification
 
-1. Verified that the modifications were appended correctly to [.agents/AGENTS.md](file:///Users/perkunas/jail/DEAP-spec-core/.agents/AGENTS.md).
+1. Verified that the modifications were appended correctly to [.agents/AGENTS.md](.agents/AGENTS.md).
 2. Verified that the walkthrough file `docs/designs/feat-fix-isolation-rules.md` conforms to repository documentation conventions.

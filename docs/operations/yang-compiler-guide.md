@@ -285,7 +285,7 @@ top-level sections: `meta`, `theme`, `navigation`, `layout`, and `attributes`.
 "meta": {
   "version": "1.0.0",
   "schema_name": "openconfig-interfaces",
-  "yang_source": "/home/ci/yang-models/openconfig-interfaces.yang"
+  "yang_source": "yang-models/openconfig-interfaces.yang"
 }
 ```
 

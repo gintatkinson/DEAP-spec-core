@@ -25,11 +25,11 @@ This document summarizes the changes, components implemented, and verification d
 
 | UML Element | Realization Tag | File Path | Properties & Realized Behavior |
 | :--- | :--- | :--- | :--- |
-| `ThemeService` | `@realizes UML::ThemeService` | [theme_service.dart](file:///Users/perkunas/jail/DEAP-spec-core/app_flutter/lib/core/theme/theme_service.dart) | Added `loadLayoutSplitAxis` and `saveLayoutSplitAxis` to contract and `SharedPreferences` implementation. |
-| `ThemeController` | `@realizes UML::ThemeController` | [theme_controller.dart](file:///Users/perkunas/jail/DEAP-spec-core/app_flutter/lib/core/theme/theme_controller.dart) | Added `layoutSplitAxis` field, getter, async loading in `loadSettings()`, and `updateLayoutSplitAxis` modifier. |
-| `ComponentFactory` | `@realizes UML::ComponentFactory` | [component_factory.dart](file:///Users/perkunas/jail/DEAP-spec-core/app_flutter/lib/features/layout/component_factory.dart) | Accepts optional `preferredSplitAxis` to override split direction for `SplitWorkspace` and `TopographicalView`. |
-| `Layout` | `@realizes UML::Layout` | [layout.dart](file:///Users/perkunas/jail/DEAP-spec-core/app_flutter/lib/features/layout/layout.dart) | Watches `ThemeController` to reactively rebuild layout and pass the preferred split axis to the factory. |
-| `SettingsPanel` | `@realizes UML::SettingsPanel` | [settings_panel.dart](file:///Users/perkunas/jail/DEAP-spec-core/app_flutter/lib/core/theme/widgets/settings_panel.dart) | Renders a SegmentedButton section to switch workspace split layout axis. |
+| `ThemeService` | `@realizes UML::ThemeService` | [theme_service.dart](app_flutter/lib/core/theme/theme_service.dart) | Added `loadLayoutSplitAxis` and `saveLayoutSplitAxis` to contract and `SharedPreferences` implementation. |
+| `ThemeController` | `@realizes UML::ThemeController` | [theme_controller.dart](app_flutter/lib/core/theme/theme_controller.dart) | Added `layoutSplitAxis` field, getter, async loading in `loadSettings()`, and `updateLayoutSplitAxis` modifier. |
+| `ComponentFactory` | `@realizes UML::ComponentFactory` | [component_factory.dart](app_flutter/lib/features/layout/component_factory.dart) | Accepts optional `preferredSplitAxis` to override split direction for `SplitWorkspace` and `TopographicalView`. |
+| `Layout` | `@realizes UML::Layout` | [layout.dart](app_flutter/lib/features/layout/layout.dart) | Watches `ThemeController` to reactively rebuild layout and pass the preferred split axis to the factory. |
+| `SettingsPanel` | `@realizes UML::SettingsPanel` | [settings_panel.dart](app_flutter/lib/core/theme/widgets/settings_panel.dart) | Renders a SegmentedButton section to switch workspace split layout axis. |
 
 ---
 

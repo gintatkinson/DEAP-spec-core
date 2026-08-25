@@ -44,7 +44,7 @@ The root workspace contamination occurred due to three main process and engineer
    - Without direct folder-scoping limits, agents could read and write arbitrary files anywhere in the repository.
 
 2. **Direct Root-Level Command Execution**:
-   - When bootstrapping the Flutter baseline project, the executing agent ran setup commands (such as `flutter create .`) directly within the workspace root `/Users/perkunas/jail/DEAP-spec-core` rather than navigating to the designated subdirectory `/Users/perkunas/jail/DEAP-spec-core/app_flutter`.
+   - When bootstrapping the Flutter baseline project, the executing agent ran setup commands (such as `flutter create .`) directly within the workspace root `<workspace_root>` rather than navigating to the designated subdirectory `<workspace_root>/app_flutter`.
    - The agent failed to verify the current working directory (`Cwd`) before executing command-line generators.
 
 3. **Lack of Automated Verification and Check Gates**:
@@ -123,7 +123,7 @@ To prevent future root-level contamination, append the following rules to the pr
 
 ```markdown
 ## Strict Root-Level File Locks & Directory Scoping
-- **Root Directory Lock**: Agents are strictly forbidden from creating, modifying, or deleting any files or directories at the repository root level (`/Users/perkunas/jail/DEAP-spec-core/`) directly, except for the following pre-approved global files:
+- **Root Directory Lock**: Agents are strictly forbidden from creating, modifying, or deleting any files or directories at the repository root level (`<workspace_root>/`) directly, except for the following pre-approved global files:
   - `.agents/AGENTS.md`
   - `.gitignore`
   - `LICENSE`

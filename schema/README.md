@@ -36,7 +36,7 @@ This project explicitly declares **MATLAB / Simulink / Stateflow / Embedded Code
 
 ## SysML v2 Complete Package Definition Mandate
 
-In accordance with [`rules/sysml-ssot-completeness.md`](file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety/rules/sysml-ssot-completeness.md), SysML v2 models must not be partial structural skeletons. Schema models MUST define complete, self-contained packages containing:
+In accordance with [`rules/sysml-ssot-completeness.md`](rules/sysml-ssot-completeness.md), SysML v2 models must not be partial structural skeletons. Schema models MUST define complete, self-contained packages containing:
 
 1. **Structural Blocks (`part def`, `item def`)**: Subsystems, physical/logical components, telemetry items, data definitions, and composite hierarchies.
 2. **Requirement Definitions (`requirement def`)**: Functional requirements and safety invariants derived from STPA (Unsafe Control Actions, Loss Scenarios) and FMECA, with explicit `assume`/`require` expressions and `satisfy`/`verify` relationships.
@@ -68,7 +68,7 @@ python3 skills/spec-orchestrator/scripts/sysmlv2_ingest.py \
 
 ## Bidirectional Elaboration Loop & Zero Model Drift
 
-To prevent model drift between textual specifications and architectural models, DEAP enforces a strict **bidirectional elaboration loop** governed by [`docs/architecture/blueprints/SYSML_SSOT_BIDIRECTIONAL_SYNCHRONIZATION_ARCHITECTURE.md`](file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety/docs/architecture/blueprints/SYSML_SSOT_BIDIRECTIONAL_SYNCHRONIZATION_ARCHITECTURE.md):
+To prevent model drift between textual specifications and architectural models, DEAP enforces a strict **bidirectional elaboration loop** governed by [`docs/architecture/blueprints/SYSML_SSOT_BIDIRECTIONAL_SYNCHRONIZATION_ARCHITECTURE.md`](docs/architecture/blueprints/SYSML_SSOT_BIDIRECTIONAL_SYNCHRONIZATION_ARCHITECTURE.md):
 
 ```
  [Heterogeneous Schemas] (schema/)
@@ -110,6 +110,6 @@ python3 scripts/compile_sysml.py --reverse-sync
 - In upstream distribution templates (`DEAP-*`), `schema/` remains a clean landing zone containing only `.gitkeep` awaiting user-provided schemas.
 - In downstream workspaces (installed via `scripts/install_pipeline.sh`), place all project schema specifications into `schema/` (or structured subdirectories within `schema/`).
 - Commit schemas alongside downstream pipeline configuration to preserve end-to-end traceability and model parity.
-- Adhere strictly to [`rules/sysml-ssot-completeness.md`](file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety/rules/sysml-ssot-completeness.md) across all modeling and specification tasks.
+- Adhere strictly to [`rules/sysml-ssot-completeness.md`](rules/sysml-ssot-completeness.md) across all modeling and specification tasks.
 
 

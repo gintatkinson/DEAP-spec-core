@@ -184,7 +184,7 @@ Phases NOT marked `[P]` are strictly sequential — the validation gate of phase
    ```bash
    python3 scripts/compile_sysml.py --reverse-sync
    ```
-   This step parses all markdown specifications (`docs/epics`, `docs/features`, `docs/user-stories`, `docs/use-cases`), performs semantic AST delta-merging into `.pipeline/schema.sysml`, and recomputes the SHA-256 integrity hash in `.pipeline/schema-digest.json` per [`rules/sysml-ssot-completeness.md`](file:///Users/perkunas/jail/DEAP-uas-infrastructure-safety/rules/sysml-ssot-completeness.md).
+   This step parses all markdown specifications (`docs/epics`, `docs/features`, `docs/user-stories`, `docs/use-cases`), performs semantic AST delta-merging into `.pipeline/schema.sysml`, and recomputes the SHA-256 integrity hash in `.pipeline/schema-digest.json` per [`rules/sysml-ssot-completeness.md`](rules/sysml-ssot-completeness.md).
 2. **Trigger Backlog Reconciliation**: Run the automated backlog reconciliation script:
    ```bash
    ./scripts/reconcile_backlog.py

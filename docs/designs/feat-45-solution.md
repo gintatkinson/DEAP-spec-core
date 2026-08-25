@@ -28,9 +28,9 @@ The following table maps the logical UML model elements of the decompiler to the
 
 | UML Element | Realization Tag | File Path | Properties & Realized Behavior |
 | :--- | :--- | :--- | :--- |
-| `YangDecompiler` | `@realizes UML::YangDecompiler` | [SKILL.md](file:///Users/perkunas/jail/DEAP-spec-core/skills/schema-specification-engineering/SKILL.md) | Standard parser logic adopted by the LLM subagent to ingest and categorize YANG schemas. |
-| `DecompositionEngine` | `@realizes UML::DecompositionEngine` | [SKILL.md](file:///Users/perkunas/jail/DEAP-spec-core/skills/schema-specification-engineering/SKILL.md) | Core heuristic engine evaluating Bounded Contexts, Structural Weight calculations, and Epic-to-Feature boundaries. |
-| `SharedTypeRegistry` | `@realizes UML::SharedTypeRegistry` | [SKILL.md](file:///Users/perkunas/jail/DEAP-spec-core/skills/schema-specification-engineering/SKILL.md) | Cataloging protocol for helper/utility data types, ensuring metadata reuse without backlog inflation. |
+| `YangDecompiler` | `@realizes UML::YangDecompiler` | [SKILL.md](skills/schema-specification-engineering/SKILL.md) | Standard parser logic adopted by the LLM subagent to ingest and categorize YANG schemas. |
+| `DecompositionEngine` | `@realizes UML::DecompositionEngine` | [SKILL.md](skills/schema-specification-engineering/SKILL.md) | Core heuristic engine evaluating Bounded Contexts, Structural Weight calculations, and Epic-to-Feature boundaries. |
+| `SharedTypeRegistry` | `@realizes UML::SharedTypeRegistry` | [SKILL.md](skills/schema-specification-engineering/SKILL.md) | Cataloging protocol for helper/utility data types, ensuring metadata reuse without backlog inflation. |
 
 ---
 

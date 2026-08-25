@@ -28,11 +28,11 @@ This document summarizes the changes, verification proof, and Code Realization T
 
 | Component/Feature | Source File | Class / Function / Section | Description |
 | :--- | :--- | :--- | :--- |
-| `--no-domain` Flag | [scripts/bootstrap_downstream.py](file:///Users/perkunas/DEAP-spec-core/scripts/bootstrap_downstream.py) | `main` | Added `--no-domain` argument and directory/file skip logic. |
-| Dynamic Verification | [scripts/verify_downstream_baseline.py](file:///Users/perkunas/DEAP-spec-core/scripts/verify_downstream_baseline.py) | `load_mandated_classes`, `main` | Added configuration lookup logic and replaced hardcoded class loop. |
-| User Instructions | [README.md](file:///Users/perkunas/DEAP-spec-core/README.md) | Downstream Baseline Seeding and Compliance | Documented the `--no-domain` option and dynamic validation rules. |
-| Constitution Rules | [.pipeline/constitution.md](file:///Users/perkunas/DEAP-spec-core/.pipeline/constitution.md) | Section 4.5 Downstream Conformance Gates | Noted that domain validation is dynamically parameterized. |
-| Agent Workflows | [.agents/skills/feature-driven-implementation/SKILL.md](file:///Users/perkunas/DEAP-spec-core/.agents/skills/feature-driven-implementation/SKILL.md) | Step 1: Backlog & Dependency Mapping | Instructed agents to use `--no-domain` for different project domains. |
+| `--no-domain` Flag | [scripts/bootstrap_downstream.py](scripts/bootstrap_downstream.py) | `main` | Added `--no-domain` argument and directory/file skip logic. |
+| Dynamic Verification | [scripts/verify_downstream_baseline.py](scripts/verify_downstream_baseline.py) | `load_mandated_classes`, `main` | Added configuration lookup logic and replaced hardcoded class loop. |
+| User Instructions | [README.md](README.md) | Downstream Baseline Seeding and Compliance | Documented the `--no-domain` option and dynamic validation rules. |
+| Constitution Rules | [.pipeline/constitution.md](.pipeline/constitution.md) | Section 4.5 Downstream Conformance Gates | Noted that domain validation is dynamically parameterized. |
+| Agent Workflows | [.agents/skills/feature-driven-implementation/SKILL.md](.agents/skills/feature-driven-implementation/SKILL.md) | Step 1: Backlog & Dependency Mapping | Instructed agents to use `--no-domain` for different project domains. |
 
 ## Verification and Execution Proof
 

@@ -17,7 +17,7 @@ Issue #44 introduces the **Downstream Baseline Seeding and Compliance Framework*
 
 Two key utility scripts were added to realize Feature 44:
 
-### 2.1. [bootstrap_downstream.py](file:///Users/perkunas/DEAP-spec-core/scripts/bootstrap_downstream.py)
+### 2.1. [bootstrap_downstream.py](scripts/bootstrap_downstream.py)
 This script initializes or updates a downstream application (either `react` or `flutter`) by copying baseline template files from the repository's root template folders (`web_react` or `app_flutter`) to a specified destination directory.
 - **Preservation Logic**: It surgically avoids overwriting critical working state files and folders at the destination, including `.git`, `node_modules`, `.dart_tool`, `package-lock.json`, `pubspec.lock`, and other package-manager lockfiles.
 - **Usage**:
@@ -25,7 +25,7 @@ This script initializes or updates a downstream application (either `react` or `
   python3 scripts/bootstrap_downstream.py <platform> <destination_path>
   ```
 
-### 2.2. [verify_downstream_baseline.py](file:///Users/perkunas/DEAP-spec-core/scripts/verify_downstream_baseline.py)
+### 2.2. [verify_downstream_baseline.py](scripts/verify_downstream_baseline.py)
 This compliance validator asserts that a downstream project matches all baseline and structural requirements:
 - **Baseline Check**: Asserts that all essential files exist (e.g., `package.json`, `tsconfig.json`, `vite.config.ts`, `src/types.ts` for React; `pubspec.yaml`, `analysis_options.yaml`, `lib/domain/types.dart`, `lib/domain/validation.dart` for Flutter).
 - **Type Compatibility**: Programmatically parses the types file (`types.ts` or `types.dart`) to ensure the presence of all 9 mandated domain classes/interfaces.
@@ -39,13 +39,13 @@ This compliance validator asserts that a downstream project matches all baseline
 
 ## 3. Amendments to the Project Constitution
 
-To make baseline verification a mandatory quality gate for downstream applications, the [Project Constitution](file:///Users/perkunas/DEAP-spec-core/.pipeline/constitution.md) was amended.
+To make baseline verification a mandatory quality gate for downstream applications, the [Project Constitution](.pipeline/constitution.md) was amended.
 
 ### Section 4.5: Downstream Conformance Gates
 The following rules were formally integrated under Section 4:
 - Prior to integrating any downstream application implementation, the project **MUST** be bootstrapped and verified.
-- The downstream project must be initialized using the [bootstrap_downstream.py](file:///Users/perkunas/DEAP-spec-core/scripts/bootstrap_downstream.py) script.
-- The baseline conformance must be verified using the [verify_downstream_baseline.py](file:///Users/perkunas/DEAP-spec-core/scripts/verify_downstream_baseline.py) script, which asserts that all baseline files are present, validates type compatibility with the mandated domain classes, and compiles/tests the project with a clean exit code.
+- The downstream project must be initialized using the [bootstrap_downstream.py](scripts/bootstrap_downstream.py) script.
+- The baseline conformance must be verified using the [verify_downstream_baseline.py](scripts/verify_downstream_baseline.py) script, which asserts that all baseline files are present, validates type compatibility with the mandated domain classes, and compiles/tests the project with a clean exit code.
 
 Additionally, **Section 5 (Forbidden Practices)** was updated to forbid deleting, disabling, or modifying baseline files, layout splitters, playback timelines, or focus-loss validation forms in downstream projects, as they form the core compliance and verification framework.
 
@@ -82,7 +82,7 @@ The following table maps the feature components to their corresponding files, cl
 
 ## 5. Verification Results
 
-Both downstream platforms were verified successfully using the [verify_downstream_baseline.py](file:///Users/perkunas/DEAP-spec-core/scripts/verify_downstream_baseline.py) gate.
+Both downstream platforms were verified successfully using the [verify_downstream_baseline.py](scripts/verify_downstream_baseline.py) gate.
 
 ### 5.1. React Baseline Verification
 ```bash
@@ -90,7 +90,7 @@ python3 scripts/verify_downstream_baseline.py react web_react
 ```
 **Output Trace:**
 ```text
-Verifying conformance for platform 'react' at '/Users/perkunas/DEAP-spec-core/web_react'...
+Verifying conformance for platform 'react' at 'web_react'...
 Success: All baseline files exist.
 Success: Type compatibility validation passed (all mandated domain classes exist).
 Running 'npm run build'...
@@ -116,7 +116,7 @@ python3 scripts/verify_downstream_baseline.py flutter app_flutter
 ```
 **Output Trace:**
 ```text
-Verifying conformance for platform 'flutter' at '/Users/perkunas/DEAP-spec-core/app_flutter'...
+Verifying conformance for platform 'flutter' at 'app_flutter'...
 Success: All baseline files exist.
 Success: Type compatibility validation passed (all mandated domain classes exist).
 Running 'flutter pub get' to resolve dependencies...
@@ -125,16 +125,16 @@ Running 'flutter analyze'...
 Analyzing app_flutter...
 No issues found! (ran in 2.1s)
 Running 'flutter test'...
-00:00 +0: loading /Users/perkunas/DEAP-spec-core/app_flutter/test/property_grid_test.dart
-00:00 +1: /Users/perkunas/DEAP-spec-core/app_flutter/test/breadcrumbs_test.dart: Renders all items when total count <= maxItems
-00:01 +4: /Users/perkunas/DEAP-spec-core/app_flutter/test/widget_test.dart: Dashboard console boots and renders main widgets successfully
-00:01 +7: /Users/perkunas/DEAP-spec-core/app_flutter/test/layout_test.dart: Layout switches tabs in TabbedContainer
-00:02 +10: /Users/perkunas/DEAP-spec-core/app_flutter/test/topology_map_test.dart: TopologyMap widget renders viewport, grid, and scrubber
-00:02 +13: /Users/perkunas/DEAP-spec-core/app_flutter/test/property_grid_test.dart: Validates locationType immediately upon selection change and on blur
-00:02 +15: /Users/perkunas/DEAP-spec-core/app_flutter/test/layout_test.dart: Layout keyboard navigation and node selection
-00:02 +16: /Users/perkunas/DEAP-spec-core/app_flutter/test/topology_map_test.dart: Timeline scrubber adjusts playhead time
-00:02 +17: /Users/perkunas/DEAP-spec-core/app_flutter/test/topology_map_test.dart: Play/Pause button starts/stops ticking
-00:02 +18: /Users/perkunas/DEAP-spec-core/app_flutter/test/topology_map_test.dart: RateOfChange dropdown selection updates multiplier
+00:00 +0: loading app_flutter/test/property_grid_test.dart
+00:00 +1: app_flutter/test/breadcrumbs_test.dart: Renders all items when total count <= maxItems
+00:01 +4: app_flutter/test/widget_test.dart: Dashboard console boots and renders main widgets successfully
+00:01 +7: app_flutter/test/layout_test.dart: Layout switches tabs in TabbedContainer
+00:02 +10: app_flutter/test/topology_map_test.dart: TopologyMap widget renders viewport, grid, and scrubber
+00:02 +13: app_flutter/test/property_grid_test.dart: Validates locationType immediately upon selection change and on blur
+00:02 +15: app_flutter/test/layout_test.dart: Layout keyboard navigation and node selection
+00:02 +16: app_flutter/test/topology_map_test.dart: Timeline scrubber adjusts playhead time
+00:02 +17: app_flutter/test/topology_map_test.dart: Play/Pause button starts/stops ticking
+00:02 +18: app_flutter/test/topology_map_test.dart: RateOfChange dropdown selection updates multiplier
 00:02 +19: All tests passed!
 Success: Build and test suite execution passed. Conformance gate verified.
 ```

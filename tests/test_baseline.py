@@ -227,4 +227,34 @@ def test_upstream_template_clean_landing_zones():
         f"Upstream distribution template landing zones contain concrete specification files: {violations}"
     )
 
+def test_zero_machine_paths_in_repository():
+    """Verify that no tracked repository files contain hardcoded developer workstation or machine paths."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isdir(repo_root):
+        repo_root = os.getcwd()
+
+    res = subprocess.run(["git", "ls-files"], cwd=repo_root, capture_output=True, text=True)
+    assert res.returncode == 0, f"git ls-files failed: {res.stderr}"
+    tracked_files = [f for f in res.stdout.strip().split("\n") if f]
+
+    # Pattern constructed without self-matching string
+    user_prefix = "/" + "Users/"
+    jail_prefix = "/" + "jail/"
+    pattern = re.compile(rf"({user_prefix}[a-zA-Z0-9_-]+|{jail_prefix}[a-zA-Z0-9_-]+|file:///{user_prefix})")
+
+    violations = []
+    for rel_path in tracked_files:
+        if rel_path == "tests/test_baseline.py":
+            continue
+        file_path = os.path.join(repo_root, rel_path)
+        try:
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as file_obj:
+                for line_idx, line in enumerate(file_obj, start=1):
+                    match = pattern.search(line)
+                    if match:
+                        violations.append(f"{rel_path}:{line_idx}: {line.strip()}")
+        except Exception as e:
+            violations.append(f"Failed to read {rel_path}: {e}")
+
+    assert not violations, f"Found hardcoded machine paths in repository:\n" + "\n".join(violations[:20])
 
