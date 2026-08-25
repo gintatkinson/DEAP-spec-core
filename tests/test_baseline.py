@@ -258,3 +258,35 @@ def test_zero_machine_paths_in_repository():
 
     assert not violations, f"Found hardcoded machine paths in repository:\n" + "\n".join(violations[:20])
 
+def test_installer_excludes_pipeline_diagnostics():
+    """Verify that scripts/install_pipeline.sh explicitly excludes/removes .pipeline/diagnostics."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isdir(repo_root):
+        repo_root = os.getcwd()
+
+    installer_path = os.path.join(repo_root, "scripts", "install_pipeline.sh")
+    assert os.path.isfile(installer_path), f"scripts/install_pipeline.sh missing at {repo_root}"
+
+    with open(installer_path, "r", encoding="utf-8") as f:
+        installer_content = f.read()
+
+    assert 'rm -rf "$TARGET_DIR/.pipeline/diagnostics"' in installer_content or 'rm -rf "${TARGET_DIR}/.pipeline/diagnostics"' in installer_content, (
+        "scripts/install_pipeline.sh does not exclude/remove .pipeline/diagnostics during downstream distribution"
+    )
+
+
+def test_gitignore_excludes_pipeline_diagnostics():
+    """Verify that .gitignore excludes .pipeline/diagnostics/."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isdir(repo_root):
+        repo_root = os.getcwd()
+
+    gitignore_path = os.path.join(repo_root, ".gitignore")
+    assert os.path.isfile(gitignore_path), f".gitignore missing at {repo_root}"
+
+    with open(gitignore_path, "r", encoding="utf-8") as f:
+        lines = [line.strip() for line in f]
+
+    assert ".pipeline/diagnostics/" in lines or ".pipeline/diagnostics" in lines, (
+        ".gitignore does not contain .pipeline/diagnostics/"
+    )
