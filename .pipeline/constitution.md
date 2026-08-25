@@ -190,15 +190,16 @@ The pipeline mechanically enforces 16 active quality gates that halt execution o
 
 ### Phase 0 Safety Engineering Airworthiness Gate
 - **8-Pillar Safety Specification Schema**: All downstream safety engineering deliverables (`docs/safety/STPA_MATRIX.md`) MUST conform to the 8-pillar STPA, FMECA, and SORA schema:
-  1. System Losses ($L-1..N$)
-  2. System Hazards ($H-1..N$)
+  1. System Losses (**L-1..N**)
+  2. System Hazards (**H-1..N**)
   3. Hierarchical Control Structure Topology
-  4. Unsafe Control Actions ($UCA-1..N$) covering all 4 failure modes (Not providing, Providing, Too early/too late/out of order, Stopped too soon/applied too long)
-  5. Loss Scenarios ($LS-1..N$) & Causal Factors
-  6. Formal Safety Constraints ($SC-1..N$)
-  7. FMECA Criticality Matrix with at least 15 component failure mode rows ($15+$ rows) and RPN calculations
+  4. Unsafe Control Actions (**UCA-1..N**) covering all 4 failure modes (Not providing, Providing, Too early/too late/out of order, Stopped too soon/applied too long)
+  5. Loss Scenarios (**LS-1..N**) & Causal Factors
+  6. Formal Safety Constraints (**SC-1..N**)
+  7. FMECA Criticality Matrix with at least 15 component failure mode rows (15+ rows) and RPN calculations
   8. SORA SAIL Risk Mitigations & OSO Traceability Table determining Final GRC, ARC, SAIL classification, and complete coverage of all 24 Operational Safety Objectives (OSO-01 through OSO-24).
 - **ASTM F3269-17 RTA & Model-Based Design Hook Mandate**: Formal safety constraints and Run-Time Assurance (RTA) Safety Net monitors MUST specify direct integration hooks for MATLAB / Simulink / Stateflow / Embedded Coder control law synthesis and Simulink Design Verifier (SLDV) invariant proving.
+- **Forbidden Math Delimiters on Alphanumeric IDs**: Traceability keys and non-mathematical identifiers (such as requirement IDs `SC-XX`, hazard tags `H-X`, SORA codes `OSO-XX`, loss tags `L-X`, and UCA codes `UCA-X`) MUST NOT be wrapped in LaTeX math delimiters `$...$`. Bold formatting (`**SC-01**`, `**H-1**`) MUST be used instead.
 
 ### Specification Validation Gates
 - Post schema extraction: Every schema node maps to at least one Feature. Coverage = 100%.

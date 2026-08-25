@@ -2374,6 +2374,22 @@ def sanitize_mermaid_diagrams(content):
 
     return "\n".join(sanitized_lines) + ("\n" if content.endswith("\n") else "")
 
+def sanitize_latex_delimiters_for_tracker(content: str) -> str:
+    """Sanitize non-mathematical alphanumeric identifiers wrapped in $...$ to bold text.
+    
+    Transforms tokens like $SC-01$, $H-1$, $OSO-11$, $L-1$, $UCA-1$, $REQ-SYS-001$ into
+    **SC-01**, **H-1**, etc., prior to tracker API upload, preventing KaTeX math rendering
+    corruption (such as triple-text duplication) in tracker web UIs while preserving
+    genuine mathematical formulas intact.
+    """
+    if not content:
+        return content
+    # First handle cases already enclosed in bold like **$SC-01$**
+    content = re.sub(r"\*\*+\$([A-Za-z][A-Za-z0-9]*-[0-9A-Za-z_.-]+)\$\*\*+", r"**\1**", content)
+    # Then handle standard inline $SC-01$
+    content = re.sub(r"\$([A-Za-z][A-Za-z0-9]*-[0-9A-Za-z_.-]+)\$", r"**\1**", content)
+    return content
+
 def write_markdown_file(filepath, content, workspace_dir=None, rules=None):
     if workspace_dir is None:
         workspace_dir = find_workspace_dir(filepath)
@@ -2577,6 +2593,7 @@ def sync_issue_body_to_tracker(issue_num, filepath, issue_type="Feature", rules=
     workspace_dir = find_workspace_dir(filepath)
     content = sanitize_source_references(content, workspace_dir=workspace_dir, rules=rules)
     content = expand_relative_links_for_tracker(content, filepath=filepath, rules=rules, workspace_dir=workspace_dir)
+    content = sanitize_latex_delimiters_for_tracker(content)
     content = sanitize_mermaid_diagrams(content)
     content = convert_frontmatter_to_table(content)
     content = deduplicate_markdown_sections(content)

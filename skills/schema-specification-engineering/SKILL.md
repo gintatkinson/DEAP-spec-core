@@ -109,7 +109,8 @@ For each Bounded Context, partition its subtree into cohesive functional feature
        - `4. Logical Exception States & Validation Failures`: Expected logical error states, exception/failure flows, and timeouts.
    - **Acceptance Criteria Translation:** Transform these programmatic constraints and interface requirements into exhaustive Given-When-Then Logical Acceptance Criteria. Criteria MUST be platform-independent.
    - **Specification Context Injection (Verbatim):** Embed the exact paragraphs and sections from the canonical normative text explaining the behavioral logic of this specific structural container under a `## Specification Context (Verbatim)` section.
-   - **Draft the Feature Spec File:** Write the Feature as a local markdown file (e.g., `docs/features/feat-01-name.md`).
+   - **Formatting of Alphanumeric Identifiers & Math Expressions**: Ensure all requirement references, hazard tags, and SORA SAIL codes use standard bold text (`**SC-01**`, `**H-1**`, `**OSO-11**`) rather than inline LaTeX math mode (`$SC-01$`). Non-mathematical alphanumeric tokens must NEVER be wrapped in `$...$` math delimiters per `rules/latex-katex-integrity.md`.
+    - **Draft the Feature Spec File:** Write the Feature as a local markdown file (e.g., `docs/features/feat-01-name.md`).
 3. **Return Control:** The subagent completes the task and returns control to the worker agent.
 
 ## Step 3: Specification Context Injection (Verbatim)

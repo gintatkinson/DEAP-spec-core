@@ -17,8 +17,8 @@ from reconcile_backlog import (
     resolve_issue_on_tracker,
     is_already_resolved,
     get_resolved_label,
+    sanitize_latex_delimiters_for_tracker,
 )
-
 
 class TestExpandRelativeLinksForTracker(unittest.TestCase):
     def setUp(self):
@@ -384,6 +384,107 @@ class TestReconcileBacklogDependencyGating(unittest.TestCase):
         # resolve_issue_on_tracker must not have been invoked
         mock_adapter.add_label.assert_not_called()
         mock_adapter.comment_issue.assert_not_called()
+
+class TestSanitizeLatexDelimitersForTracker(unittest.TestCase):
+    """
+    Unit tests ensuring sanitize_latex_delimiters_for_tracker converts non-mathematical
+    alphanumeric identifiers enclosed in LaTeX math delimiters ($...$) to bold text (**...**)
+    before tracker API upload, while preserving genuine mathematical formulas intact.
+    (Fixes Issue #46)
+    """
+
+    def test_sanitize_latex_delimiters_for_tracker(self):
+        # 1. Non-mathematical alphanumeric identifiers converted to bold text
+        self.assertEqual(sanitize_latex_delimiters_for_tracker("$SC-01$"), "**SC-01**")
+        self.assertEqual(sanitize_latex_delimiters_for_tracker("$H-1$"), "**H-1**")
+        self.assertEqual(sanitize_latex_delimiters_for_tracker("$OSO-11$"), "**OSO-11**")
+        self.assertEqual(sanitize_latex_delimiters_for_tracker("$L-1$"), "**L-1**")
+        self.assertEqual(sanitize_latex_delimiters_for_tracker("$UCA-1$"), "**UCA-1**")
+        self.assertEqual(sanitize_latex_delimiters_for_tracker("$REQ-SYS-001$"), "**REQ-SYS-001**")
+        self.assertEqual(sanitize_latex_delimiters_for_tracker("$LS-1$"), "**LS-1**")
+        self.assertEqual(sanitize_latex_delimiters_for_tracker("**$SC-01$**"), "**SC-01**")
+
+        # Range identifiers
+        self.assertEqual(sanitize_latex_delimiters_for_tracker("$SC-1..N$"), "**SC-1..N**")
+        self.assertEqual(sanitize_latex_delimiters_for_tracker("$L-1..N$"), "**L-1..N**")
+        self.assertEqual(sanitize_latex_delimiters_for_tracker("$H-1..N$"), "**H-1..N**")
+        self.assertEqual(sanitize_latex_delimiters_for_tracker("$UCA-1..N$"), "**UCA-1..N**")
+
+        # Prose context with mixed tokens
+        prose_input = (
+            "Geofence boundary breach ($H-1$, $L-1$). "
+            r"Enforces pitch limits between $-15^\circ$ and $+25^\circ$. "
+            "Safety constraints ($SC-1..N$) mitigate Unsafe Control Actions ($UCA-1..N$)."
+        )
+        expected_prose = (
+            "Geofence boundary breach (**H-1**, **L-1**). "
+            r"Enforces pitch limits between $-15^\circ$ and $+25^\circ$. "
+            "Safety constraints (**SC-1..N**) mitigate Unsafe Control Actions (**UCA-1..N**)."
+        )
+        self.assertEqual(sanitize_latex_delimiters_for_tracker(prose_input), expected_prose)
+
+        # 2. Genuine mathematical formulas preserved intact
+        self.assertEqual(
+            sanitize_latex_delimiters_for_tracker(r"$\sum_{i=1}^n x_i$"),
+            r"$\sum_{i=1}^n x_i$"
+        )
+        self.assertEqual(
+            sanitize_latex_delimiters_for_tracker(r"$E = mc^2$"),
+            r"$E = mc^2$"
+        )
+        self.assertEqual(
+            sanitize_latex_delimiters_for_tracker(r"$\text{RPN} = S \times O \times D$"),
+            r"$\text{RPN} = S \times O \times D$"
+        )
+        self.assertEqual(
+            sanitize_latex_delimiters_for_tracker(r"$$SW(N) = L_{immediate}(N) + \sum_{C \in Containers(N)} L(C)$$"),
+            r"$$SW(N) = L_{immediate}(N) + \sum_{C \in Containers(N)} L(C)$$"
+        )
+
+    def test_sync_issue_body_to_tracker_sanitizes_latex_delimiters(self):
+        spec_content = (
+            "---\ntitle: Test Safety Spec\ntype: feature\n---\n\n"
+            "# Feature: Test Safety Spec\n\n"
+            "- **$SC-01$**: Flight controller limit.\n"
+            "- Heading error $H-1$ leading to $L-1$.\n"
+            r"- Equation: $\text{RPN} = S \times O \times D$." "\n"
+        )
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".md", delete=False) as tf:
+            tf.write(spec_content)
+            temp_path = tf.name
+
+        try:
+            mock_provider = MagicMock()
+            mock_provider.edit_issue.return_value = True
+            mock_provider.edit_issue_title.return_value = True
+            mock_provider.add_label.return_value = True
+
+            rules = {
+                "tracker_rules": {"provider": "github"},
+                "meta": {"upstream_repository": "gintatkinson/DEAP-spec-core"}
+            }
+
+            with patch("reconcile_backlog.get_current_branch", return_value="main"):
+                sync_issue_body_to_tracker(
+                    issue_num=102,
+                    filepath=temp_path,
+                    issue_type="Feature",
+                    rules=rules,
+                    provider_adapter=mock_provider
+                )
+
+            mock_provider.edit_issue.assert_called_once()
+            called_content = mock_provider.edit_issue.call_args[0][1]
+            self.assertIn("**SC-01**", called_content)
+            self.assertIn("**H-1**", called_content)
+            self.assertIn("**L-1**", called_content)
+            self.assertNotIn("$SC-01$", called_content)
+            self.assertNotIn("$H-1$", called_content)
+            self.assertNotIn("$L-1$", called_content)
+            self.assertIn(r"$\text{RPN} = S \times O \times D$", called_content)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
 
 if __name__ == "__main__":

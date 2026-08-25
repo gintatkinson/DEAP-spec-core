@@ -62,7 +62,8 @@ You should invoke this skill ONLY after the behavioral User Stories have been ex
         4. *Prohibited Defaulting*: Using a single generic ID (e.g. `#0`, `#44`, `#N/A`, `#[StoryID]`) across multiple Realization Matrix entries is strictly prohibited. Each entry MUST reference its actual resolved Issue ID.
       - Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage.
    - **Tandem Elaboration & Zero Model Drift:** If during elaboration of alternate/exception flows or realization matrices, new interaction paths or structural dependencies are discovered, they MUST be reflected back into the SysML v2 model (`.pipeline/schema.sysml`) to preserve 100% bidirectional parity per `rules/sysml-ssot-completeness.md`.
-   - **Markdown Generation:** Write the Use Case as a local markdown file (e.g., `docs/use-cases/uc-01-register-core-entity.md`).
+   - **Formatting of Alphanumeric Identifiers & Math Expressions**: Ensure all requirement references, hazard tags, and SORA SAIL codes use standard bold text (`**SC-01**`, `**H-1**`, `**OSO-11**`) rather than inline LaTeX math mode (`$SC-01$`). Non-mathematical alphanumeric tokens must NEVER be wrapped in `$...$` math delimiters per `rules/latex-katex-integrity.md`.
+    - **Markdown Generation:** Write the Use Case as a local markdown file (e.g., `docs/use-cases/uc-01-register-core-entity.md`).
 4. **Return Control:** The subagent completes the task and returns control to the worker agent.
 
 ## Step 4: Markdown Generation

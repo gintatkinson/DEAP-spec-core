@@ -43,19 +43,19 @@ def generate_valid_stpa_matrix_content(fmeca_row_count=16, include_all_osos=True
 
 ---
 
-## 1. System Losses ($L-1..N$)
+## 1. System Losses (**L-1..N**)
 
-- **$L-1$**: Loss of human life or severe ground fatal injury.
-- **$L-2$**: Mid-air collision with crewed aircraft.
-- **$L-3$**: Total loss of UAS airframe and critical infrastructure payload.
+- **L-1**: Loss of human life or severe ground fatal injury.
+- **L-2**: Mid-air collision with crewed aircraft.
+- **L-3**: Total loss of UAS airframe and critical infrastructure payload.
 
 ---
 
-## 2. System Hazards ($H-1..N$)
+## 2. System Hazards (**H-1..N**)
 
-- **$H-1$**: Aircraft breaches 3D operational containment geofence boundary.
-- **$H-2$**: Aircraft violates RTCA DO-365B DAA well-clear safety separation.
-- **$H-3$**: Uncontrolled flight termination due to propulsion/actuator loss.
+- **H-1**: Aircraft breaches 3D operational containment geofence boundary.
+- **H-2**: Aircraft violates RTCA DO-365B DAA well-clear safety separation.
+- **H-3**: Uncontrolled flight termination due to propulsion/actuator loss.
 
 ---
 
@@ -74,7 +74,7 @@ flowchart TD
 
 ---
 
-## 4. Unsafe Control Actions ($UCA-1..N$)
+## 4. Unsafe Control Actions (**UCA-1..N**)
 
 Systematic identification across 4 STPA guide words / failure mode categories:
 
@@ -89,17 +89,17 @@ Systematic identification across 4 STPA guide words / failure mode categories:
 
 ---
 
-## 5. Loss Scenarios ($LS-1..N$) & Causal Factors
+## 5. Loss Scenarios (**LS-1..N**) & Causal Factors
 
-- **$LS-1$**: Primary GNSS spoofing causes false position estimation, leading to geofence boundary breach ($H-1$, $L-1$).
-- **$LS-2$**: Actuator telemetry packet loss stalls flight control surface transition.
+- **LS-1**: Primary GNSS spoofing causes false position estimation, leading to geofence boundary breach (**H-1**, **L-1**).
+- **LS-2**: Actuator telemetry packet loss stalls flight control surface transition.
 
 ---
 
-## 6. Formal Safety Constraints ($SC-1..N$)
+## 6. Formal Safety Constraints (**SC-1..N**)
 
-- **$SC-1$**: The flight control system shall enforce pitch limits between $-15^\circ$ and $+25^\circ$ under all operating conditions.
-- **$SC-2$**: The ASTM F3269-17 RTA Safety Net shall switch to certified safe-state recovery within 50ms of barrier violation.
+- **SC-1**: The flight control system shall enforce pitch limits between $-15^\circ$ and $+25^\circ$ under all operating conditions.
+- **SC-2**: The ASTM F3269-17 RTA Safety Net shall switch to certified safe-state recovery within 50ms of barrier violation.
 
 ---
 
