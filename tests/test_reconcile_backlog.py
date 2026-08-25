@@ -41,7 +41,15 @@ class TestExpandRelativeLinksForTracker(unittest.TestCase):
             "Anchor: [Section](../features/feat-02.md#acceptance-criteria)\n"
         )
         spec_path = os.path.join(self.workspace_dir, "docs", "features", "feat-01.md")
-        with patch("reconcile_backlog.get_current_branch", return_value="main"):
+        mock_remote_info = {
+            "raw": "https://github.com/gintatkinson/DEAP-spec-core.git",
+            "is_gitlab": False,
+            "project_path": "gintatkinson/DEAP-spec-core",
+            "server_url": "https://github.com",
+            "host": "github.com"
+        }
+        with patch("reconcile_backlog.get_current_branch", return_value="main"), \
+             patch("reconcile_backlog.get_git_remote_info", return_value=mock_remote_info):
             expanded = expand_relative_links_for_tracker(
                 content,
                 filepath=spec_path,
@@ -72,7 +80,15 @@ class TestExpandRelativeLinksForTracker(unittest.TestCase):
             "[Parent Epic](../epics/epic-01.md)."
         )
         spec_path = os.path.join(self.workspace_dir, "docs", "features", "feat-01.md")
-        with patch("reconcile_backlog.get_current_branch", return_value="main"):
+        mock_remote_info = {
+            "raw": "https://gitlab.com/gintatkinson/DEAP-spec-core.git",
+            "is_gitlab": True,
+            "project_path": "gintatkinson/DEAP-spec-core",
+            "server_url": "https://gitlab.com",
+            "host": "gitlab.com"
+        }
+        with patch("reconcile_backlog.get_current_branch", return_value="main"), \
+             patch("reconcile_backlog.get_git_remote_info", return_value=mock_remote_info):
             expanded = expand_relative_links_for_tracker(
                 content,
                 filepath=spec_path,
