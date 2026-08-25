@@ -81,8 +81,15 @@ For every BDD scenario and acceptance criteria set, you MUST generate and link t
      - Inspect the provided structural features to determine exactly which of those `#IssueID`s are prerequisites for the current User Story.
      - Construct the `## Required Features` matrix containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute URL of the feature document.
      - Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage.
-   - **Tandem Elaboration & Zero Model Drift:** Any newly derived operations, algorithmic methods, state transitions, port interactions, or verification test cases identified during User Story modeling MUST be reflected back into the SysML v2 model (`.pipeline/schema.sysml`) as `interaction def`, `action def`, `state def`, `port def`, or `test case def` elements per `rules/sysml-ssot-completeness.md`.
-   - **Markdown Generation:** Write the User Story as a local markdown file (e.g., `docs/user-stories/us-01-register-entity.md`).
+    - **Formatting of Alphanumeric Identifiers & Math Expressions**: Ensure all requirement references, hazard tags, and SORA SAIL codes use standard bold text (`**SC-01**`, `**H-1**`, `**OSO-11**`) rather than inline LaTeX math mode (`$SC-01$`). Non-mathematical alphanumeric tokens must NEVER be wrapped in `$...$` math delimiters per `rules/latex-katex-integrity.md`.
+    - **Pure Symbolic Mathematical Separation Rule**: When specifying mathematical derivations, calculations, kinematic equations, or control laws:
+      - Display math blocks (`$$ \begin{aligned} ... \end{aligned} $$`) MUST express **pure symbolic equations only**.
+      - Strictly prohibit embedding physical unit macros (`\text{ ms}`, `\text{ kg}`, `\text{ m/s}`, etc.) inside display math equations.
+      - Mandate that all physical values, numerical limits, constants, calibration thresholds, and engineering units are defined in the accompanying "Where and Operational Parameters:" text section immediately following the equation.
+      - Strictly prohibit dangling operators (such as `/` with no denominator) and unescaped underscores inside `\text{}` (mandating `\text{yaw-disturbance}` or structured subscripts like `\Delta v_{\text{yaw,dist}}`).
+      - Multi-line aligned equations MUST use `\begin{aligned} ... \end{aligned}` inside `$$` delimiters on dedicated lines.
+    - **Tandem Elaboration & Zero Model Drift:** Any newly derived operations, algorithmic methods, state transitions, port interactions, or verification test cases identified during User Story modeling MUST be reflected back into the SysML v2 model (`.pipeline/schema.sysml`) as `interaction def`, `action def`, `state def`, `port def`, or `test case def` elements per `rules/sysml-ssot-completeness.md`.
+    - **Markdown Generation:** Write the User Story as a local markdown file (e.g., `docs/user-stories/us-01-register-entity.md`).
 4. **Return Control:** The subagent completes the task and returns control to the worker agent.
 
 ## Step 4: Markdown Generation
@@ -92,14 +99,16 @@ Create a new file in `docs/user-stories/us-[XX]-[name].md` (zero-padded, dash-se
 Format strictly:
 
 ````markdown
----
-title: "[User Story Title]"
-type: "user-story"
-generation_mode: "subagent"
-spec_source: "[Spec Reference]"
-interaction: "[SysMLInteractionName]"
-test_case: "[SysMLTestCaseName]"
----
+| Attribute | Specification Detail |
+| :--- | :--- |
+| **Issue ID** | #[IssueID] |
+| **Title** | [User Story Title] |
+| **Type** | user-story |
+| **Parent Epic** | #[EpicIssueID] - [Epic Title](../epics/epic-XX-name.md) |
+| **SysML Interaction** | `[SysMLInteractionName]` |
+| **SysML Test Case** | `[SysMLTestCaseName]` |
+| **Generation Mode** | subagent |
+| **Specification Source** | [schema/...](../../schema/...) |
 
 # User Story: [Title]
 
@@ -175,6 +184,21 @@ test case def TC_[StoryName]_[ID] {
 ## Operational Context
 [Verbatim operational constraints or deployment scenarios quoted from the specification]
 
+### Mathematical Formulations & Derivations (When Applicable)
+$$
+\begin{aligned}
+E_{total} &= E_{kinetic} + E_{potential} \\
+P_{mech} &= \tau \cdot \omega
+\end{aligned}
+$$
+
+Where and Operational Parameters:
+- $E_{total}$: Total mechanical energy of the airframe.
+- $E_{kinetic}$: Kinetic energy ($\frac{1}{2} m v^2$).
+- $E_{potential}$: Potential energy ($m g h$).
+- $\tau$: Motor shaft torque.
+- $\omega$: Angular velocity.
+
 ## Required Features Matrix
 - [ ] #[IssueID] - [Feature Title](../features/feat-XX-name.md) (semantic linkage justification)
 - [ ] #[IssueID] - [Feature Title](../features/feat-XX-name.md) (semantic linkage justification)
@@ -228,7 +252,7 @@ Normative Specification: [Normative Specification](link-to-specification)
    - **Crucial Verification & Body Synchronization:**
      1. Backlog issues MUST be registered using the deterministic title extraction step:
         ```bash
-        TITLE=$(awk -F': ' '/^title:/ {print $2}' <local-md-file> | tr -d '"' | tr -d "'")
+        TITLE=$(awk -F'|' '/**Title**/ {print $3}' <local-md-file> | xargs)
         gh issue create --title "$TITLE" --body-file <local-md-file>
         ```
         (to ensure they start with the full markdown content, including diagrams and references).
@@ -237,4 +261,3 @@ Normative Specification: [Normative Specification](link-to-specification)
         `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; assert 'Source References' in b or 'References' in b, 'Body is a stub'"`
         and retry/halt if this verification fails.
 5. Verify the creation and return the generated issue URLs/IDs to the Orchestrator or User.
-

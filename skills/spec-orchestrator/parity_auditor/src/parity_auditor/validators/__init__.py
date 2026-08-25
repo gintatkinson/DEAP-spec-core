@@ -6,6 +6,7 @@ from .docs import DocsValidator
 from .dependency_validator import DependencyValidator
 from .spec_validator import SpecValidator
 from .mermaid_syntax_validator import MermaidSyntaxValidator, check_mermaid_text
+from .katex_validator import KatexValidator, check_katex_text
 from .spec_filename_validator import SpecFilenameValidator
 from .spec_title_uniqueness_validator import SpecTitleUniquenessValidator
 from .source_reference_validator import SourceReferenceValidator

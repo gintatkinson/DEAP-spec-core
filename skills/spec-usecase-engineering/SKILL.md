@@ -56,13 +56,19 @@ You should invoke this skill ONLY after the behavioral User Stories have been ex
       - Determine which User Stories and Features are required to fulfill this specific System Use Case.
       - Construct a `## Realization Matrix` containing a markdown tasklist of these intersecting links referencing BOTH the Issue ID and the absolute URL. **CRITICAL: You MUST resolve the unique, specific Issue ID for EACH individual User Story and Feature. Do NOT use a single generic ID for all entries.**
       - **Issue ID Resolution Procedure:**
-        1. *Feature Issue IDs*: Inspect the YAML frontmatter `issue_id:` field in the target `docs/features/feat-XX-name.md` file.
-        2. *User Story Issue IDs*: Inspect the YAML frontmatter `issue_id:` field in `docs/user-stories/us-XX-name.md` or query `gh issue list`.
-        3. *Epic Issue IDs*: Inspect the YAML frontmatter `issue_id:` field in `docs/epics/epic-XX-name.md` or query `gh issue list`.
+        1. *Feature Issue IDs*: Inspect the `Issue ID` row in the metadata table in the target `docs/features/feat-XX-name.md` file or query `gh issue list`.
+        2. *User Story Issue IDs*: Inspect the `Issue ID` row in the metadata table in `docs/user-stories/us-XX-name.md` or query `gh issue list`.
+        3. *Epic Issue IDs*: Inspect the `Issue ID` row in the metadata table in `docs/epics/epic-XX-name.md` or query `gh issue list`.
         4. *Prohibited Defaulting*: Using a single generic ID (e.g. `#0`, `#44`, `#N/A`, `#[StoryID]`) across multiple Realization Matrix entries is strictly prohibited. Each entry MUST reference its actual resolved Issue ID.
       - Every checklist item in the matrix MUST include a concise parenthetical justification explaining the semantic linkage.
    - **Tandem Elaboration & Zero Model Drift:** If during elaboration of alternate/exception flows or realization matrices, new interaction paths or structural dependencies are discovered, they MUST be reflected back into the SysML v2 model (`.pipeline/schema.sysml`) to preserve 100% bidirectional parity per `rules/sysml-ssot-completeness.md`.
-   - **Formatting of Alphanumeric Identifiers & Math Expressions**: Ensure all requirement references, hazard tags, and SORA SAIL codes use standard bold text (`**SC-01**`, `**H-1**`, `**OSO-11**`) rather than inline LaTeX math mode (`$SC-01$`). Non-mathematical alphanumeric tokens must NEVER be wrapped in `$...$` math delimiters per `rules/latex-katex-integrity.md`.
+    - **Formatting of Alphanumeric Identifiers & Math Expressions**: Ensure all requirement references, hazard tags, and SORA SAIL codes use standard bold text (`**SC-01**`, `**H-1**`, `**OSO-11**`) rather than inline LaTeX math mode (`$SC-01$`). Non-mathematical alphanumeric tokens must NEVER be wrapped in `$...$` math delimiters per `rules/latex-katex-integrity.md`.
+    - **Pure Symbolic Mathematical Separation Rule**: When operational scenarios, safety boundaries, performance requirements, or system invariants involve mathematical equations:
+      - Display math blocks (`$$ \begin{aligned} ... \end{aligned} $$`) MUST express **pure symbolic equations only**.
+      - Strictly prohibit embedding physical unit macros (`\text{ ms}`, `\text{ kg}`, `\text{ m/s}`, etc.) inside display math equations.
+      - Mandate that all physical values, numerical limits, operational constants, and engineering units are defined in the accompanying "Where and Operational Parameters:" text section immediately following the equation block.
+      - Strictly prohibit dangling operators (such as `/` with no denominator) and unescaped underscores inside `\text{}` (mandating `\text{yaw-disturbance}` or structured subscripts like `\Delta v_{\text{yaw,dist}}`).
+      - Multi-line aligned equations MUST use `\begin{aligned} ... \end{aligned}` inside `$$` delimiters on dedicated lines.
     - **Markdown Generation:** Write the Use Case as a local markdown file (e.g., `docs/use-cases/uc-01-register-core-entity.md`).
 4. **Return Control:** The subagent completes the task and returns control to the worker agent.
 
@@ -73,15 +79,15 @@ Create a new file in `docs/use-cases/uc-[XX]-[name].md` (zero-padded, dash-separ
 Format strictly:
 
 ````markdown
----
-title: "[Use Case Title]"
-type: "use-case"
-generation_mode: "subagent"
-spec_source: "[Spec Reference]"
-schema_containers:
-  - path: "module/container-name"
-    node_type: container
----
+| Attribute | Specification Detail |
+| :--- | :--- |
+| **Issue ID** | #[IssueID] |
+| **Title** | [Use Case Title] |
+| **Type** | use-case |
+| **Parent Epic** | #[EpicIssueID] - [Epic Title](../epics/epic-XX-name.md) |
+| **Schema Containers** | `[SchemaContainerPath]` |
+| **Generation Mode** | subagent |
+| **Specification Source** | [schema/...](../../schema/...) |
 
 # Use Case: [Title]
 
@@ -140,6 +146,20 @@ stateDiagram-v2
 ## 7. Operational Context
 [Verbatim deployment scenarios quoted from the specification]
 
+### Mathematical Formulations & Safety Invariants (When Applicable)
+$$
+\begin{aligned}
+T_{reaction} &\le T_{max,allowed} \\
+D_{separation} &\ge D_{min,safe}
+\end{aligned}
+$$
+
+Where and Operational Parameters:
+- $T_{reaction}$: System reaction and failover response time.
+- $T_{max,allowed}$: Maximum allowable latency limit (e.g. 50 ms).
+- $D_{separation}$: Separation distance between vehicles.
+- $D_{min,safe}$: Minimum required safety perimeter distance (e.g. 500 m).
+
 ## 8. Realization Matrix
 ### Required User Stories
 - [ ] #[SpecificStoryIssueID] - [User Story Title](../user-stories/us-XX-name.md) (semantic linkage justification)
@@ -161,7 +181,7 @@ Normative Specification: [Normative Specification](link-to-specification)
 > - **Subgraph Title Quoting**: Mandate double quotes around subgraph titles with spaces or hyphens (e.g. `subgraph "System Boundary"`).
 
 
-> **Container Traceability:** Every Use Case MUST declare its schema container in `schema_containers` with exactly one entry containing the container path and `node_type` (e.g. `- path: "module/ellipsoid", node_type: container`). Multi-container Use Cases are forbidden — the linter gate will reject files with `len(schema_containers) != 1`.
+> **Container Traceability:** Every Use Case MUST declare its schema container in the `Schema Containers` metadata attribute (e.g., `Avenger5Definitions::AssembleAndVerifyAirframe`). Multi-container Use Cases are forbidden.
 
 
 ## Step 5: Zero-Fault Backlog Synchronization
@@ -184,7 +204,7 @@ Normative Specification: [Normative Specification](link-to-specification)
    - **Crucial Verification & Body Synchronization:**
      1. Backlog issues MUST be registered using the deterministic title extraction step:
         ```bash
-        TITLE=$(awk -F': ' '/^title:/ {print $2}' <local-md-file> | tr -d '"' | tr -d "'")
+        TITLE=$(awk -F'|' '/**Title**/ {print $3}' <local-md-file> | xargs)
         gh issue create --title "$TITLE" --body-file <local-md-file>
         ```
         (to ensure they start with the full markdown content, including diagrams and references).

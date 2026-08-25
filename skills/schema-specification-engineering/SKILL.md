@@ -75,7 +75,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      - *Complex container*: Split the container by its immediate child containers.
    - **Operational Statements**: Group RPCs, actions, and notifications directly into the Feature containing the target entity they operate on. For top-level `rpc` and `notification` statements without a target entity, extract them into API/M2M Feature files mapped to the module's System Component.
    - **Schema Import Prerequisite Links**: When a schema module `import`s another module that is itself specified in this workspace, the importing Epic MUST carry a `Parent Epic` markdown link to the Epic that specifies the imported module, and every imported module MUST have at least one Epic or Feature specifying it. An import is a hard prerequisite — the importing specification cannot be implemented before the imported one exists — and an unlinked import leaves that ordering constraint recorded nowhere. Enforced by `dependency_validator`.
-   - **Container Traceability**: Every Feature MUST declare exactly one schema container in its YAML frontmatter `schema_containers` field using the fully-qualified schema container path format: `<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>` (e.g., `ietf-geo-location:geo-location/reference-frame/geodetic-system` or `ietf-geo-location:geo-location/location/ellipsoid`). All intermediate parent containers and choice/case wrapper nodes MUST be preserved in the path. Multi-container Features are forbidden — subagents must split consolidated containers into separate Feature files before the linter gate.
+   - **Container Traceability**: Every Feature MUST declare exactly one schema container in its metadata table `Schema Containers` attribute using the fully-qualified schema container path format: `<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>` (e.g., `ietf-geo-location:geo-location/reference-frame/geodetic-system` or `ietf-geo-location:geo-location/location/ellipsoid`). All intermediate parent containers and choice/case wrapper nodes MUST be preserved in the path. Multi-container Features are forbidden — subagents must split consolidated containers into separate Feature files before the linter gate.
 2. **Dispatch Feature Subagent:** For each identified feature group, invoke a **new, fresh subagent with an isolated context** to draft the feature specification. Pass the schema nodes, the SysML AST `part def`/`action def` elements, and properties for this specific feature group, AND the Bounded Context's Epic identity (local file prefix and/or pre-assigned tracker Issue ID if available). The subagent must have no visibility into other features.
 3. **Execution within Subagent Context:**
    - **Compliance Table Mandate:** Before writing the file, you MUST output a structured compliance table checking for standard UML primitives, return multiplicities, no curly braces in Mermaid, and no isolated classes.
@@ -96,13 +96,13 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      - *UML Constraints*: Schema-level constraints must map to standard text notes or separate tables. Curly braces '{}' inside class member lines are strictly prohibited due to Mermaid parse conflicts (they crash GitHub and Mermaid CLI renderers). Use parentheses '(default: earth)' or simple brackets '[default: earth]' if constraints must be inline.
      - *Multiplicity Bracket Rendering*: Note that unquoted brackets `[0..1]` inside Mermaid class bodies may cause rendering failures in some engines (GitHub, Mermaid CLI). Represent multiplicity on relationship lines instead.
      - *Double-Declaration Redundancy*: Do NOT list object-typed attributes inside the class body if they are already represented as named relationship lines.
-   - **Interface Requirements:** Every feature spec MUST explicitly include a `## Interface Requirements` section divided into dynamic structured sub-sections based on the `interface_type` (defined in frontmatter as `ui`, `api`, or `m2m`):
-     - *For UI Interfaces (`interface_type: ui`)*:
+   - **Interface Requirements:** Every feature spec MUST explicitly include a `## Interface Requirements` section divided into dynamic structured sub-sections based on the `Interface Type` (defined in the metadata table as `ui`, `api`, `m2m`, or interface classification):
+     - *For UI Interfaces (`Interface Type: ui` or GUI classification)*:
        - `1. Test Data Shape (JSON Payload Example)`: A concrete, copy-pasteable JSON payload schema example block.
        - `2. Validation & Constraints`: Exhaustive list of ranges, regex patterns, mandatory fields, and conditions.
        - `3. Visual Layout & Arrangement`: Detailed, platform-independent description of the visual layout and hierarchy. Mandate CSS resets (box-sizing), scoped naming (CSS Modules/BEM) to avoid specificity conflicts, layout containment parameters (restricting containment to outer layout splitters and forbidding it on scrollable child panels), and valid DOM nesting for tree structures (recursive lists nested inside parent list-items).
        - `4. Interactive Flow & States`: System states (read-only, edit, empty, loading, error highlighting). Mandate computed-style assertions (such as verifying scroll dimensions or highlight colors) in the test guidelines for components with visual, selection, or highlight states.
-     - *For API or M2M Interfaces (`interface_type: api` or `m2m`)*:
+     - *For API or M2M Interfaces (`Interface Type: api` or `m2m` or hardware classification)*:
        - `1. Payload Schema (JSON Schema/Protobuf)`: Target request/response payload definition.
        - `2. Validation & Constraints`: Schema field constraints, type validations, and logical conditions.
        - `3. Logical Operations & Interface Messages`: Abstract definitions of logical endpoints, methods (GET/POST/Publish/Subscribe or read/write operations), logical paths, or routing channels.
@@ -110,6 +110,12 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    - **Acceptance Criteria Translation:** Transform these programmatic constraints and interface requirements into exhaustive Given-When-Then Logical Acceptance Criteria. Criteria MUST be platform-independent.
    - **Specification Context Injection (Verbatim):** Embed the exact paragraphs and sections from the canonical normative text explaining the behavioral logic of this specific structural container under a `## Specification Context (Verbatim)` section.
    - **Formatting of Alphanumeric Identifiers & Math Expressions**: Ensure all requirement references, hazard tags, and SORA SAIL codes use standard bold text (`**SC-01**`, `**H-1**`, `**OSO-11**`) rather than inline LaTeX math mode (`$SC-01$`). Non-mathematical alphanumeric tokens must NEVER be wrapped in `$...$` math delimiters per `rules/latex-katex-integrity.md`.
+   - **Pure Symbolic Mathematical Separation Rule**: When extracting or specifying mathematical equations, physical dynamics, kinematics, or control laws:
+      - Display math blocks (`$$ \begin{aligned} ... \end{aligned} $$`) MUST express **pure symbolic equations only**.
+      - Strictly prohibit embedding physical unit macros (`\text{ ms}`, `\text{ kg}`, `\text{ m/s}`, `\text{ bar}`, `\text{ V}`, etc.) inside display math equations.
+      - Mandate that all physical values, numerical limits, constants, calibration thresholds, and engineering units are defined in the accompanying "Where and Operational Parameters:" text section immediately following the equation block.
+      - Strictly prohibit dangling operators (such as `/` with no denominator) and unescaped underscores inside `\text{}` (mandating `\text{yaw-disturbance}` or structured subscripts like `\Delta v_{\text{yaw,dist}}`).
+      - Multi-line aligned equations MUST use `\begin{aligned} ... \end{aligned}` inside `$$` delimiters on dedicated lines.
     - **Draft the Feature Spec File:** Write the Feature as a local markdown file (e.g., `docs/features/feat-01-name.md`).
 3. **Return Control:** The subagent completes the task and returns control to the worker agent.
 
@@ -126,31 +132,33 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 > **Unified Slugification Mandate:** When generating filenames from titles (e.g., `feat-01-fiber-cable-and-strand-inventory.md`), you MUST preserve all stop-words (like 'and', 'the', 'of', etc.) consistently. Do NOT strip stop-words when converting titles to lowercase hyphen-separated slugs.
 
 
-1. **YAML Frontmatter:** Prepend strict YAML metadata to every `.md` file:
-   ```yaml
-   ---
-   title: "[Title]"
-   epic: "[Parent Epic]"
-   type: "feature"
-   interface_type: "ui" # Options: ui, api, m2m
-   generation_mode: "subagent"
-   labels: ["feature", "<domain-name>"]
-   schema_containers:
-     - path: "<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>"
-       node_type: container
-   ---
+1. **Markdown Metadata Table:** Prepend a native CommonMark two-column metadata table to every `.md` file per `rules/specification-metadata-integrity.md`:
+   ```markdown
+   | Attribute | Specification Detail |
+   | :--- | :--- |
+   | **Issue ID** | #[IssueID] |
+   | **Title** | [Feature Title] |
+   | **Type** | feature |
+   | **Parent Epic** | #[EpicIssueID] - [Epic Title](../epics/epic-XX-name.md) |
+   | **Interface Type** | [Interface Type] |
+   | **Schema Containers** | `[SchemaContainerPath]` |
+   | **Generation Mode** | subagent |
+   | **Specification Source** | [schema/...](../../schema/...) |
    ```
    > **Note:** No `platform` field. Features are functional specs. Platform targeting occurs at implementation time via `feature-driven-implementation` and the project's implementation profiles.
-    > **Container Traceability:** Every Feature MUST declare its schema container in `schema_containers` with exactly one entry containing the fully-qualified container path in the format `<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>` (e.g., `- path: "ietf-geo-location:geo-location/reference-frame/geodetic-system", node_type: container`) and `node_type`. All intermediate parent containers and choice/case wrapper nodes MUST be preserved. Multi-container Features are forbidden — the linter gate will reject files with `len(schema_containers) != 1`.
+   > **Container Traceability:** Every Feature MUST declare its schema container in `Schema Containers` with the fully-qualified container path in the format `<module-prefix>:<root-container>/[parent-containers]/[choice/case-wrappers]/<target-node>` (e.g., `ietf-geo-location:geo-location/reference-frame/geodetic-system`). All intermediate parent containers and choice/case wrapper nodes MUST be preserved. Multi-container Features are forbidden — the linter gate will reject files without a valid container.
 
 2. **Epic File Structure / Template:** Every Epic specification markdown file MUST follow this exact section structure and ordering:
     ````markdown
-    ---
-    title: "[Epic Title]"
-    type: "epic"
-    generation_mode: "subagent"
-    spec_source: "Project Constitution"
-    ---
+    | Attribute | Specification Detail |
+    | :--- | :--- |
+    | **Issue ID** | #[IssueID] |
+    | **Title** | [Epic Title] |
+    | **Type** | epic |
+    | **Package** | [PackageName] |
+    | **Subsystem** | [SubsystemName] |
+    | **Generation Mode** | subagent |
+    | **Specification Source** | [schema/...](../../schema/...) |
 
     # Epic: [Epic Title]
 
@@ -234,13 +242,16 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 
 3. **Feature File Structure / Template:** Every feature specification markdown file MUST follow this exact section structure and ordering:
    ````markdown
-   ---
-   title: "[Feature Title]"
-   type: "feature"
-   interface_type: "ui" # Options: ui, api, m2m
-   generation_mode: "subagent"
-   spec_source: "Project Constitution"
-   ---
+   | Attribute | Specification Detail |
+   | :--- | :--- |
+   | **Issue ID** | #[IssueID] |
+   | **Title** | [Feature Title] |
+   | **Type** | feature |
+   | **Parent Epic** | #[EpicIssueID] - [Epic Title](../epics/epic-XX-name.md) |
+   | **Interface Type** | [Interface Type] |
+   | **Schema Containers** | `[SchemaContainerPath]` |
+   | **Generation Mode** | subagent |
+   | **Specification Source** | [schema/...](../../schema/...) |
 
    # Feature: [Feature Title]
 
@@ -250,7 +261,21 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    ## Description
    [Functional description of the feature]
 
-     ## UML Class Diagram
+   ### Mathematical Formulations of [Domain Dynamics / Control Laws] (When Applicable)
+   $$
+   \begin{aligned}
+   \dot{x} &= f(x, u, t) \\
+   y &= g(x, u, t)
+   \end{aligned}
+   $$
+
+   Where and Operational Parameters:
+   - $x$: State vector representing system state variables.
+   - $u$: Control input vector.
+   - $t$: Time variable ($t \ge 0.0\text{ s}$).
+   - $y$: System output measurement.
+
+   ## UML Class Diagram
      ```mermaid
      classDiagram
          class ParentContainer {
@@ -356,10 +381,10 @@ For each Bounded Context, partition its subtree into cohesive functional feature
      by `parity_auditor/validators/logical_ui_validator.py`.
      - **Interface Bindings Section Required**: every Feature MUST carry the
        `## Logical UI & Interface Bindings` section. A Feature is exempt only if its
-       frontmatter declares non-UI interface types (`config`, `persistence`, `gate`, `cli`, `backend`).
-     - **Feature Frontmatter Must Parse**: the YAML frontmatter MUST be well formed. It
-       carries `interface_type` (scalar or array e.g. `["gui", "mcp"]`) or `interface_types`.
-     - **Interface Channel Row Required**: every channel listed in the frontmatter array MUST have a corresponding row in the Multi-Interface Binding Table.
+       metadata table declares non-UI interface types (`config`, `persistence`, `gate`, `cli`, `backend`).
+     - **Feature Metadata Table Must Parse**: the metadata table MUST be well formed. It
+       carries `Interface Type` (e.g. `Physical / Structural / Umbilical`, `gui`, `mcp`, `m2m`, `api`).
+     - **Interface Channel Row Required**: every channel listed in the Interface Type MUST have a corresponding row in the Multi-Interface Binding Table.
      - **Raw N/A Fallback Strings Strictly Prohibited**: raw `N/A` fallback strings and literal placeholder strings (`#X`, `Task Y`) are strictly prohibited across all single-channel lists and multi-channel binding tables. Explicit binding or setting to `Unbound (Deferred to Implementation Profile)` MUST be used instead.
      - **Target Component Must Exist In The Layout or State Unbound**: raw `N/A` strings and literal placeholder strings (`#X`, `Task Y`) are strictly prohibited. The `Target LUI Component` MUST name a canonical component type actually instantiated in `logical-layout.json` or canonical LUMI dictionary (e.g. `StringInputField`, `TableView`, `MCPToolHandler`, `RegisterBuffer`), or set to `Unbound (Deferred to Implementation Profile)`.
      - **Target Container Must Exist In The Layout or State Unbound**: raw `N/A` strings and literal placeholder strings (`#X`, `Task Y`) are strictly prohibited. The `Target Layout Container ID` MUST name a container `id` present in `logical-layout.json` or target endpoint, or set to `Unbound (Deferred to Implementation Profile)`.
@@ -405,7 +430,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 4. **Feature Backlog Creation FIRST:**
    - Register each Feature specification with the active tracker provider, capturing the returned Issue ID/URL from the tracker.
    - **Crucial Verification & Body Synchronization:**
-     1. Backlog issues MUST be registered using `gh issue create --title "<Extract_Title_From_YAML_Metadata>" --body-file <local-md-file>` (to ensure they start with the full markdown content, including diagrams and references).
+     1. Backlog issues MUST be registered using `TITLE=$(awk -F'|' '/**Title**/ {print $3}' <local-md-file> | xargs); gh issue create --title "$TITLE" --body-file <local-md-file>` (to ensure they start with the full markdown content, including diagrams and references).
      2. Immediately after placeholder resolution (when the live issue ID is injected back into the file), the subagent MUST execute `gh issue edit <ID> --body-file <local-md-file>` to sync the resolved ID body.
      3. The subagent MUST run a post-creation verification check:
          `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; markers=['Source References','UML Class Diagram','Acceptance Criteria']; missing=[m for m in markers if m not in b]; assert not missing, f'Body incomplete: missing {missing}'"`
@@ -425,7 +450,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 6. **Epic Backlog Creation LAST:**
    - Register the Epic specification containing the fully resolved tasklist with the active tracker provider.
    - **Crucial Verification & Body Synchronization:**
-     1. Register the Epic issue using `gh issue create --title "<Extract_Title_From_YAML_Metadata>" --body-file <local-md-file>`.
+     1. Register the Epic issue using `TITLE=$(awk -F'|' '/**Title**/ {print $3}' <local-md-file> | xargs); gh issue create --title "$TITLE" --body-file <local-md-file>`.
      2. Immediately after placeholder resolution, the subagent MUST execute `gh issue edit <ID> --body-file <local-md-file>` to sync the resolved ID body.
      3. The subagent MUST run a post-creation verification check:
          `gh issue view <ID> --json body | python3 -c "import sys,json; b=json.load(sys.stdin)['body']; markers=['Source References','System-Level UML Class Diagram','Context']; missing=[m for m in markers if m not in b]; assert not missing, f'Body incomplete: missing {missing}'"`
