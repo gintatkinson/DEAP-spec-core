@@ -85,7 +85,7 @@ schema_containers:
 # Use Case: [Title]
 
 ## Parent Epic
-- [ ] #[EpicIssueID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) (semantic linkage justification)
+- [ ] #[EpicIssueID] - [Epic Title](../epics/epic-XX-name.md) (semantic linkage justification)
 
 ## 1. Actors
 - **Primary Actor:** [Actor Name]
@@ -141,9 +141,9 @@ stateDiagram-v2
 
 ## 8. Realization Matrix
 ### Required User Stories
-- [ ] #[SpecificStoryIssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) (semantic linkage justification)
+- [ ] #[SpecificStoryIssueID] - [User Story Title](../user-stories/us-XX-name.md) (semantic linkage justification)
 ### Required Features
-- [ ] #[SpecificFeatureIssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
+- [ ] #[SpecificFeatureIssueID] - [Feature Title](../features/feat-XX-name.md) (semantic linkage justification)
 
 ## Source References
 Structural Schema: [Target Schema File](link-to-schema)

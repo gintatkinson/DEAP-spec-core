@@ -104,7 +104,7 @@ test_case: "[SysMLTestCaseName]"
 # User Story: [Title]
 
 ## Parent Epic
-- [ ] #[EpicIssueID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) (semantic linkage justification)
+- [ ] #[EpicIssueID] - [Epic Title](../epics/epic-XX-name.md) (semantic linkage justification)
 
 ## Domain Object Mapping
 - **Primary Domain Objects:** [List affected structural schema entities / SysML parts]
@@ -176,8 +176,8 @@ test case def TC_[StoryName]_[ID] {
 [Verbatim operational constraints or deployment scenarios quoted from the specification]
 
 ## Required Features Matrix
-- [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
-- [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) (semantic linkage justification)
+- [ ] #[IssueID] - [Feature Title](../features/feat-XX-name.md) (semantic linkage justification)
+- [ ] #[IssueID] - [Feature Title](../features/feat-XX-name.md) (semantic linkage justification)
 
 ## Logical UI & Interface Bindings
 *(Required for UI/LUMI features. Raw 'N/A' fallback strings and literal placeholder strings ('#X', 'Task Y') are strictly prohibited.)*

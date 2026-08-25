@@ -2086,9 +2086,10 @@ def get_blob_url_base(rules=None, workspace_dir=None, branch=None):
     server_url_override = tracker_rules.get("server_url") or tracker_rules.get("url")
 
     if provider_name == "gitlab":
+        is_gitlab_remote = remote_info.get("is_gitlab", False)
         server_url = (
             server_url_override
-            or remote_info.get("server_url")
+            or (remote_info.get("server_url") if is_gitlab_remote else None)
             or os.environ.get("GITLAB_URL")
             or os.environ.get("CI_SERVER_URL")
             or "https://gitlab.com"
@@ -2248,7 +2249,7 @@ def expand_relative_links_for_tracker(content, filepath=None, rules=None, worksp
     if workspace_dir is None:
         if filepath:
             workspace_dir = find_workspace_dir(filepath)
-        else:
+        if not workspace_dir:
             workspace_dir = find_workspace_dir(os.getcwd())
 
     if not branch or branch == "HEAD":
@@ -2260,16 +2261,18 @@ def expand_relative_links_for_tracker(content, filepath=None, rules=None, worksp
     if not blob_base:
         return content
 
-    abs_workspace = os.path.abspath(workspace_dir).rstrip("/\\") if workspace_dir else ""
-    if filepath:
+    slash_chars = "/" + chr(92)
+    abs_workspace = os.path.abspath(workspace_dir).rstrip(slash_chars) if workspace_dir else ""
+    rel_file_dir = ""
+    if filepath and abs_workspace:
         abs_filepath = os.path.abspath(filepath)
         abs_file_dir = os.path.dirname(abs_filepath)
-        rel_file_dir = os.path.relpath(abs_file_dir, abs_workspace).replace("\\", "/") if abs_workspace else ""
-        if rel_file_dir == ".":
+        try:
+            r = os.path.relpath(abs_file_dir, abs_workspace).replace(chr(92), "/")
+            if not r.startswith("..") and r != ".":
+                rel_file_dir = r
+        except ValueError:
             rel_file_dir = ""
-    else:
-        abs_file_dir = abs_workspace
-        rel_file_dir = ""
 
     def replace_link(match):
         label = match.group(1)
@@ -2288,16 +2291,25 @@ def expand_relative_links_for_tracker(content, filepath=None, rules=None, worksp
             return match.group(0)
 
         if target_path.startswith("/"):
-            norm_target = os.path.normpath(target_path.lstrip("/")).replace("\\", "/")
-        else:
-            if abs_workspace and os.path.exists(os.path.join(abs_workspace, target_path)) and not os.path.exists(os.path.join(abs_file_dir, target_path)):
-                norm_target = os.path.normpath(target_path).replace("\\", "/")
-            elif not target_path.startswith("./") and not target_path.startswith("../") and abs_workspace and os.path.exists(os.path.join(abs_workspace, target_path)):
-                norm_target = os.path.normpath(target_path).replace("\\", "/")
-            elif rel_file_dir:
-                norm_target = os.path.normpath(os.path.join(rel_file_dir, target_path)).replace("\\", "/")
+            norm_target = os.path.normpath(target_path.lstrip("/")).replace(chr(92), "/")
+        elif target_path.startswith(("../", "./")):
+            if rel_file_dir:
+                norm_target = os.path.normpath(os.path.join(rel_file_dir, target_path)).replace(chr(92), "/")
             else:
-                norm_target = os.path.normpath(target_path).replace("\\", "/")
+                cleaned = target_path.lstrip("./").lstrip("../")
+                if cleaned.startswith(("epics/", "features/", "use-cases/", "user-stories/")):
+                    norm_target = f"docs/{cleaned}"
+                else:
+                    norm_target = cleaned
+        else:
+            if target_path.startswith(("docs/", "rules/", "skills/", "schema/", ".pipeline/", "scripts/", "tests/", "assets/", "lib/", "bin/")):
+                norm_target = os.path.normpath(target_path).replace(chr(92), "/")
+            elif abs_workspace and os.path.exists(os.path.join(abs_workspace, target_path)):
+                norm_target = os.path.normpath(target_path).replace(chr(92), "/")
+            elif rel_file_dir:
+                norm_target = os.path.normpath(os.path.join(rel_file_dir, target_path)).replace(chr(92), "/")
+            else:
+                norm_target = os.path.normpath(target_path).replace(chr(92), "/")
 
         if norm_target.startswith("../") or norm_target == "..":
             return match.group(0)
@@ -2307,7 +2319,8 @@ def expand_relative_links_for_tracker(content, filepath=None, rules=None, worksp
         return f"[{label}]({blob_url})"
 
     pattern = r'\[([^\]]+)\]\(([^)]+)\)'
-    return re.sub(pattern, replace_link, content)
+    return re.sub(r'\[([^\]]+)\]\(([^)]+)\)', replace_link, content)
+
 
 def sanitize_mermaid_diagrams(content):
     if not content or "```mermaid" not in content:

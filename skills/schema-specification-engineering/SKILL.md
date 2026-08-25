@@ -157,15 +157,15 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     [High-level functional description and specification-engineering context of the schema module]
 
     ## 2. Requirements & Checklist
-    - [ ] #[IssueID] - [Feature Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-XX-name.md) {{REQUIRED_JUSTIFICATION}}
+    - [ ] #[IssueID] - [Feature Title](../features/feat-XX-name.md) {{REQUIRED_JUSTIFICATION}}
 
     ### Associated Use Cases & User Stories
 
     #### Associated Use Cases
-    - [ ] #[IssueID] - [Use Case Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/use-cases/uc-XX-name.md) {{REQUIRED_JUSTIFICATION}}
+    - [ ] #[IssueID] - [Use Case Title](../use-cases/uc-XX-name.md) {{REQUIRED_JUSTIFICATION}}
 
     #### Associated User Stories
-    - [ ] #[IssueID] - [User Story Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/user-stories/us-XX-name.md) {{REQUIRED_JUSTIFICATION}}
+    - [ ] #[IssueID] - [User Story Title](../user-stories/us-XX-name.md) {{REQUIRED_JUSTIFICATION}}
 
     > [!IMPORTANT]
     > **EXPLICIT LINKAGE JUSTIFICATION TOKEN RULE**
@@ -244,7 +244,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    # Feature: [Feature Title]
 
    ## Parent Epic
-   - [ ] #[EpicIssueID] - [Epic Title]([Repository Base URL]/<blob_path>/[Branch Name]/docs/epics/epic-XX-name.md) {{REQUIRED_JUSTIFICATION}}
+   - [ ] #[EpicIssueID] - [Epic Title](../epics/epic-XX-name.md) {{REQUIRED_JUSTIFICATION}}
 
    ## Description
    [Functional description of the feature]
@@ -419,7 +419,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 
 5. **Epic Backlog Assembly:**
    - Now that you possess the actual live Issue IDs for all extracted features, inject them into the Epic's checklist.
-   - Ensure the body of the Epic lists its child features as a tasklist referencing the Issue ID and the absolute repository URL of the feature document (relative links resolve incorrectly on tracker UI platforms). You MUST dynamically determine the repository base URL from the runtime configuration (`meta.upstream_repository` in `codebase_rules.json`) and construct the absolute link pointing to the file on the current branch using the configured URL template (e.g., `[Repository Base URL]/<blob_path>/[Branch Name]/docs/features/feat-01.md` where `<blob_path>` is resolved from configuration).
+   - Ensure the body of the Epic lists its child features as a tasklist referencing the Issue ID and canonical relative markdown links to the feature document (e.g., `../features/feat-01.md`). Link expansion to web blob URLs for tracker UI navigation is handled automatically by the backlog reconciler during tracker payload synchronization.
 
 6. **Epic Backlog Creation LAST:**
    - Register the Epic specification containing the fully resolved tasklist with the active tracker provider.
