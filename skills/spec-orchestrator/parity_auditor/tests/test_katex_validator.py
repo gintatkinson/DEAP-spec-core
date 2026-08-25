@@ -165,8 +165,47 @@ Here is an unclosed inline math $x = y without closing dollar.
     assert any(f.rule_id == "katex-mismatched-delimiters" for f in findings)
 
 
+def test_detects_forbidden_math_in_tables():
+    """Verify detection of forbidden $ ... $ LaTeX math delimiters inside markdown table headers and cells."""
+    bad_table_md = r"""
+# Table With Math
+
+| Parameter ($S$) | Specification Value | Description |
+| :--- | :--- | :--- |
+| **Nominal Speed ($V_{cruise}$)** | $31.0\text{ m/s}$ | Cruise speed |
+| **Stall Speed** | $V_s \le 24.0\text{ m/s}$ | Minimum speed |
+| Normal Row | Clean Value | Plain text |
+"""
+    findings = check_katex_text(bad_table_md, source="bad_table.md")
+    table_math_findings = [f for f in findings if f.rule_id == "katex-forbidden-math-in-table"]
+    assert len(table_math_findings) == 3
+    assert any("Parameter ($S$)" in str(f) for f in table_math_findings)
+    assert any("V_{cruise}" in str(f) for f in table_math_findings)
+    assert any("V_s" in str(f) for f in table_math_findings)
+
+
+def test_detects_table_column_count_mismatch():
+    """Verify detection of column count mismatch between table header and delimiter line."""
+    mismatched_table_md = r"""
+# Mismatched Table
+
+| Col 1 | Col 2 | Col 3 |
+| :--- | :--- |
+| Val 1 | Val 2 | Val 3 |
+
+| A | B |
+| :--- | :--- | :--- | :--- |
+| 1 | 2 |
+"""
+    findings = check_katex_text(mismatched_table_md, source="mismatched_table.md")
+    mismatch_findings = [f for f in findings if f.rule_id == "table-column-count-mismatch"]
+    assert len(mismatch_findings) == 2
+    assert any("3 columns but delimiter row has 2" in str(f) for f in mismatch_findings)
+    assert any("2 columns but delimiter row has 4" in str(f) for f in mismatch_findings)
+
+
 def test_passes_clean_valid_symbolic_math_blocks():
-    """Verify that clean, valid symbolic mathematical formulations pass with zero findings."""
+    """Verify that clean, valid symbolic mathematical formulations and clean tables pass with zero findings."""
     clean_md = r"""
 # Clean Mathematical Formulations
 
@@ -197,6 +236,14 @@ $$
 $$
 
 Inline equations: $D_M^2 \le 9.0$, $\gamma_{gate} \le 3.0\sigma$, $\text{yaw\_disturbance}$, and $\$100.00$ currency.
+
+| Parameter | Specification Value | Description |
+| :--- | :--- | :--- |
+| **Initial S** | 5 | Severity rating |
+| **Delta V (ΔV)** | 0.25 V | Voltage threshold |
+| **Wavelength (λ)** | 10⁻⁶ m | Infrared wavelength |
+| **Temperature** | -20°C to +50°C | Operational temperature |
+| **Limits** | ≥ 26 m/s, ≤ 42 m/s | Safe bounds (→ nominal) |
 
 ```python
 # Code blocks containing $$ or $ should be ignored
@@ -235,14 +282,20 @@ x &= 2.5^\circ/ \\
 y &= \text{bad_var}
 \end{aligned}
 $$
+
+| Header A | Header B |
+| :--- |
+| $val$ | val |
 """)
 
         repo = WorkspaceRepository(tmpdir)
         validator = KatexValidator()
         findings = validator.validate(repo, search_dirs=[docs_dir])
 
-        assert len(findings) >= 2
+        assert len(findings) >= 4
         rule_ids = {f.rule_id for f in findings}
         assert "katex-dangling-binary-operator" in rule_ids
         assert "katex-unescaped-underscore-in-text" in rule_ids
+        assert "table-column-count-mismatch" in rule_ids
+        assert "katex-forbidden-math-in-table" in rule_ids
         assert all(isinstance(f, Finding) for f in findings)

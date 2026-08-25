@@ -8,6 +8,8 @@ across markdown specifications in the docs/ directory:
 3. Embedded physical unit macros inside display math equations ($$ ... $$)
    (e.g. \\text{ ms}, \\text{ kg}, \\text{ m}, \\text{ bar}).
 4. Mismatched delimiters or unclosed \\begin{aligned} and alignment environments.
+5. Markdown table math prohibition: strictly ban $ ... $ delimiters in table cells/headers.
+6. Markdown table column count consistency: 1:1 match between header and delimiter rows.
 """
 
 import os
@@ -210,8 +212,51 @@ def _validate_inline_math_line(
             ))
 
 
+def _split_table_cells(line: str) -> List[str]:
+    """Split a markdown table row into trimmed cell contents, respecting backtick code spans."""
+    stripped = line.strip()
+    if stripped.startswith("|"):
+        stripped = stripped[1:]
+    if stripped.endswith("|") and not stripped.endswith(r"\|"):
+        stripped = stripped[:-1]
+
+    # Mask code spans so pipes inside backticks do not split columns
+    masked = re.sub(r"`[^`]*`", lambda m: "X" * len(m.group(0)), stripped)
+
+    split_indices = [-1]
+    for m in re.finditer(r"(?<!\\)\|", masked):
+        split_indices.append(m.start())
+    split_indices.append(len(stripped))
+
+    cells = []
+    for i in range(len(split_indices) - 1):
+        start = split_indices[i] + 1
+        end = split_indices[i + 1]
+        cells.append(stripped[start:end].strip())
+    return cells
+
+
+def _is_delimiter_row(line: str) -> bool:
+    """Return True if the line matches a markdown table delimiter row (e.g. | :--- | ---: |)."""
+    stripped = line.strip()
+    if not stripped or "|" not in stripped:
+        return False
+    cells = _split_table_cells(stripped)
+    if not cells:
+        return False
+    delimiter_cell_re = re.compile(r"^:?-+:?$")
+    return all(delimiter_cell_re.match(cell) is not None for cell in cells)
+
+
+def _has_unescaped_dollar(line: str) -> bool:
+    """Return True if line contains an unescaped dollar sign outside inline code spans."""
+    clean_line = re.sub(r"`[^`]*`", "", line)
+    escaped_line = re.sub(r"\\\$", "  ", clean_line)
+    return "$" in escaped_line
+
+
 def check_katex_text(text: str, source: str = "<input>") -> List[Finding]:
-    """Scan markdown text for LaTeX / KaTeX mathematical formatting violations."""
+    """Scan markdown text for LaTeX / KaTeX mathematical formatting violations and table integrity."""
     errors: List[Finding] = []
     lines = text.splitlines()
     in_code_fence = False
@@ -219,6 +264,8 @@ def check_katex_text(text: str, source: str = "<input>") -> List[Finding]:
     in_display_math = False
     display_start_lineno = 0
     display_lines: List[Tuple[int, str]] = []
+    in_table = False
+    delim_linenos: Set[int] = set()
 
     for idx, line in enumerate(lines):
         lineno = idx + 1
@@ -232,13 +279,14 @@ def check_katex_text(text: str, source: str = "<input>") -> List[Finding]:
                 fence_marker = marker
             elif marker == fence_marker:
                 in_code_fence = False
+            in_table = False
             continue
 
         if in_code_fence:
             continue
 
         # Display math $$ handling
-        if "$$" in line:
+        if not in_table and "$$" in line:
             parts = line.split("$$")
             if len(parts) >= 3 and not in_display_math:
                 # Single-line display math block: $$ content $$
@@ -263,7 +311,56 @@ def check_katex_text(text: str, source: str = "<input>") -> List[Finding]:
             display_lines.append((lineno, line))
             continue
 
-        # Inline math checks for non-display math lines
+        # Markdown Table handling
+        if idx in delim_linenos:
+            # Current line is the delimiter line of a table
+            if _has_unescaped_dollar(line):
+                errors.append(Finding(
+                    "katex-forbidden-math-in-table",
+                    f"{source}:{lineno}: forbidden LaTeX math delimiter '$' inside table delimiter row: '{stripped}'. "
+                    f"Markdown tables must use plain text and Unicode symbols instead.",
+                    location=f"{source}:{lineno}"
+                ))
+            continue
+
+        # Check if current line starts a table (header followed by delimiter row)
+        if stripped and "|" in stripped and idx + 1 < len(lines) and _is_delimiter_row(lines[idx + 1]):
+            in_table = True
+            delim_linenos.add(idx + 1)
+            header_cells = _split_table_cells(line)
+            delim_cells = _split_table_cells(lines[idx + 1])
+
+            if len(header_cells) != len(delim_cells):
+                errors.append(Finding(
+                    "table-column-count-mismatch",
+                    f"{source}:{lineno + 1}: table column count mismatch: header has {len(header_cells)} columns "
+                    f"but delimiter row has {len(delim_cells)} columns. Header and delimiter column counts must match 1:1.",
+                    location=f"{source}:{lineno + 1}"
+                ))
+
+            if _has_unescaped_dollar(line):
+                errors.append(Finding(
+                    "katex-forbidden-math-in-table",
+                    f"{source}:{lineno}: forbidden LaTeX math delimiter '$' inside table header: '{stripped}'. "
+                    f"Markdown tables must use plain text and Unicode symbols instead.",
+                    location=f"{source}:{lineno}"
+                ))
+            continue
+
+        if in_table:
+            if not stripped or "|" not in stripped:
+                in_table = False
+            else:
+                if _has_unescaped_dollar(line):
+                    errors.append(Finding(
+                        "katex-forbidden-math-in-table",
+                        f"{source}:{lineno}: forbidden LaTeX math delimiter '$' inside table row: '{stripped}'. "
+                        f"Markdown tables must use plain text and Unicode symbols instead.",
+                        location=f"{source}:{lineno}"
+                    ))
+                continue
+
+        # Inline math checks for non-display, non-table math lines
         _validate_inline_math_line(line, lineno, source, errors)
 
     if in_display_math:
