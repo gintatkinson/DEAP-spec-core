@@ -15,24 +15,24 @@ Safety-critical aerospace systems governed by RTCA DO-178C / EUROCAE ED-12C and 
 ```mermaid
 flowchart TD
     subgraph SSOT["SysML v2 Architectural & Behavioral SSOT"]
-        SYSML["SysML v2 AST Model (.pipeline/schema.sysml)"]
+        SYSML["SysML v2 AST Model: .pipeline/schema.sysml"]
         SPECS["Backlog Specs (Epics, Features, BDD User Stories)"]
     end
 
     subgraph TrackA["Track A: Native MATLAB / Simulink Synthesis (Commercial Toolchain)"]
-        M_BUILD["Programmatic Builders (models/scripts/build_*.m)"]
-        M_PARAM["Parameter Dictionaries (models/matlab/*_params.m)"]
+        M_BUILD["Programmatic Builders: models/scripts/build_*.m"]
+        M_PARAM["Parameter Dictionaries: models/matlab/*_params.m"]
         SLDD["Simulink Data Dictionaries (.sldd)"]
         SLX["Simulink / Stateflow Models (.slx)"]
-        CODER["Embedded Coder (DO-178C C / SPARK Ada Synthesis)"]
+        CODER["Embedded Coder: DO-178C C / SPARK Ada Synthesis"]
         SLDV["Simulink Design Verifier / Polyspace"]
     end
 
     subgraph TrackB["Track B: Headless CI Digital Twin Engine (License-Free)"]
-        PY_DOMAIN["Domain Models & State Enums (models/python/*_domain.py)"]
-        PY_ENGINE["Discrete Simulation Engines (models/python/*_engine.py)"]
-        PY_TEST["Automated CI Test Runners (tests/test_*_simulation.py)"]
-        CI_REPORT["Formal Results Reports (docs/reports/simulink_results/*.md)"]
+        PY_DOMAIN["Domain Models & State Enums: models/python/*_domain.py"]
+        PY_ENGINE["Discrete Simulation Engines: models/python/*_engine.py"]
+        PY_TEST["Automated CI Test Runners: tests/test_*_simulation.py"]
+        CI_REPORT["Formal Results Reports: docs/reports/simulink_results/*.md"]
     end
 
     SYSML --> M_BUILD

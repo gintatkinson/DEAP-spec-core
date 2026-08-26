@@ -18,10 +18,10 @@ All downstream engineering artifacts—including Agile Epics, Features, BDD User
 ```mermaid
 flowchart TD
     subgraph Ingestion["1. Schema Ingestion & AST Canonicalization"]
-        HET_SCHEMA["Heterogeneous Schemas (schema/)\n[SysML v2, OpenAPI, ARXML, IDL, Proto]"]
-        INGEST_ENG["SysML v2 Ingestion Engine\n(sysmlv2_ingest.py)"]
-        SYSML_AST["Canonical SysML v2 AST Model\n(.pipeline/schema.sysml)"]
-        DIGEST["Cryptographic Digest & Symbol Tables\n(.pipeline/schema-digest.json)"]
+        HET_SCHEMA["Heterogeneous Schemas: schema/\nSysML v2, OpenAPI, ARXML, IDL, Proto"]
+        INGEST_ENG["SysML v2 Ingestion Engine: sysmlv2_ingest.py"]
+        SYSML_AST["Canonical SysML v2 AST Model: .pipeline/schema.sysml"]
+        DIGEST["Cryptographic Digest & Symbol Tables: .pipeline/schema-digest.json"]
     end
 
     subgraph Downstream["2. Forward Specification Projection"]
@@ -33,13 +33,13 @@ flowchart TD
     end
 
     subgraph ReverseSync["3. Closed-Loop Reverse Synchronization"]
-        REVERSE_ENG["Automated Reverse Sync Engine\n(compile_sysml.py --reverse-sync)"]
+        REVERSE_ENG["Automated Reverse Sync Engine: compile_sysml.py --reverse-sync"]
         DELTA_MERGE["Non-Destructive Semantic AST Delta Merge"]
     end
 
     subgraph DualTrack["4. High-Integrity Synthesis & Dual-Track Verification"]
-        TRACK_A["Track A: Native MATLAB/Simulink/Stateflow Synthesis\n(DO-178C / DO-331 Embedded Coder & SLDV)"]
-        TRACK_B["Track B: Headless CI Digital Twin Engine\n(License-Free 250 Hz Continuous Regression)"]
+        TRACK_A["Track A: Native MATLAB/Simulink/Stateflow Synthesis\nDO-178C / DO-331 Embedded Coder & SLDV"]
+        TRACK_B["Track B: Headless CI Digital Twin Engine\nLicense-Free 250 Hz Continuous Regression"]
     end
 
     HET_SCHEMA --> INGEST_ENG
@@ -160,7 +160,7 @@ To bridge rigorous DO-178C / DO-331 Model-Based Design with modern high-velocity
 ```mermaid
 flowchart TD
     subgraph SSOT["SysML v2 Authoritative Architecture & Behavior"]
-        AST["SysML v2 AST Model (.pipeline/schema.sysml)"]
+        AST["SysML v2 AST Model: .pipeline/schema.sysml"]
         FSM_SPEC["State Transition Tables & Guard Predicates"]
         DYN_SPEC["6-DOF Kinematic Equations & Transfer Curves"]
     end
@@ -170,7 +170,7 @@ flowchart TD
         PARAMS_M["Parameter Script: models/matlab/*_params.m"]
         SLDD_DATA["Data Dictionary: models/matlab/*.sldd"]
         SLX_MODEL["Simulink / Stateflow Model (.slx)"]
-        EMBEDDED_CODER["Embedded Coder (DO-178C C / SPARK Ada Synthesis)"]
+        EMBEDDED_CODER["Embedded Coder: DO-178C C / SPARK Ada Synthesis"]
         SLDV_COV["Simulink Test / SLDV / Polyspace Analysis"]
     end
 
