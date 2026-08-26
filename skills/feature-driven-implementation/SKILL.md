@@ -46,10 +46,16 @@ This skill integrates subagent-driven development, TDD execution discipline, two
 
 ### Step 1: Backlog & Dependency Mapping
 1. **Read the project constitution** (`.pipeline/constitution.md`) if it exists. This is the **functional layer** — domain rules, agent behavior, universal quality gates.
-2. **Read the implementation profile** (`.pipeline/profiles/<target-platform>.md`) for the target platform. This provides platform-specific coding standards, testing mandates, build commands, and deployment config. If no profile exists for the target platform, halt and prompt the human to create one using the `project-constitution` skill. Ensure that the downstream workspace has been bootstrapped using the native GitHub template onboarding workflow (`gh repo create <new_app_name> --template gintatkinson/DEAP-implementation-driver --public --clone`) or the Direct Copy workflow (Installation Option 2 in the README). This creates/copies a fresh repository locally BEFORE the downstream agent begins work.
+2. **Read the implementation profile** (`.pipeline/profiles/<target-platform>.md`) for the target platform. This provides platform-specific coding standards, testing mandates, build commands, and deployment config. If no profile exists for the target platform, halt and prompt the human to create one using the `project-constitution` skill. Ensure that the downstream workspace has been bootstrapped using the configured onboarding workflow or the Direct Copy workflow (Installation Option 2 in the README). This creates/copies a fresh repository locally BEFORE the downstream agent begins work.
 3. Analyze `docs/epics/` and `docs/features/` to determine feature dependencies.
 4. Map the backlog queue in order of base dependencies first.
 5. Create a local tracking file (e.g., `task.md`) to manage current tasks.
+6. **Dual-Track MBD Definition of Done (DoD) Scoping**:
+   For any feature involving control laws, flight guidance, physical estimation, or safety statecharts, verify and enforce the Dual-Track MBD deliverables governed by `rules/dual-track-mbd-verification.md` and `docs/architecture/blueprints/SYSML_SSOT_BIDIRECTIONAL_SYNCHRONIZATION_ARCHITECTURE.md`:
+   - **Track A (Native MATLAB / Simulink Synthesis)**: Programmatic model construction script (`models/scripts/build_<feature_slug>_model.m`), physical parameter dictionary (`models/matlab/<feature_slug>_params.m`), and Simulink Data Dictionary (`models/matlab/<feature_slug>_data.sldd`) configured for deterministic discrete solvers (`FixedStepDiscrete`) and Embedded Coder DO-178C C / SPARK Ada code synthesis.
+   - **Track B (Headless CI Digital Twin Engine)**: Standalone, license-free discrete-time execution engine (`models/python/<feature_slug>_domain.py` and `models/python/<feature_slug>_engine.py`) executing at the exact same discrete loop rate ($dt$, e.g. 250 Hz / 0.004 s) with identical transition guards, polynomial transfer curves, and 6-DOF vehicle kinematics.
+   - **Zero License Blocker Invariant**: 100% automated CI regression test harness (`tests/test_<feature_slug>_simulation.py`) executing offline without requiring MathWorks licenses.
+   - **Mathematical & Discrete Equivalence Mandate**: Numerical tolerance verification ($\le 10^{-6}$) and formal simulation results report (`docs/reports/simulink_results/<FEATURE-ID>_simulation_results.md`).
 
 ### Step 1.5: Tech Stack Research (Optional)
 
@@ -264,6 +270,6 @@ If a tool command (linter or reconciler) fails during implementation:
 3. **Automated Upstream Reporting**: If the step fails and you suspect it is due to a bug in the pipeline tooling, you MUST automatically file a bug report upstream:
    - Locating the latest diagnostic payload JSON at `.pipeline/diagnostics/repro_payload_[timestamp].json`.
    - Running the command:
-     `gh issue create --repo gintatkinson/DEAP-spec-core --title "Tooling Bug: [Command] failed" --body-file [payload_path] --label "bug"`
+     `gh issue create --title "Tooling Bug: [Command] failed" --body-file [payload_path] --label "bug"`
 4. Escalate to the user with the issue URL and error context.
 
