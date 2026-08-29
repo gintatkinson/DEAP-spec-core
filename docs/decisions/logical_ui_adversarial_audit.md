@@ -54,7 +54,7 @@ To prevent main-thread UI starvation under a combinatorial explosion of events, 
 * Events are flushed to the UI in batches at throttled intervals (e.g., every 100ms–200ms). Multiple state changes for the same node within a window are merged, emitting only the final state to eliminate redundant render cycles.
 
 ### 3.3. Zero-Copy GPGPU Processing (WebGPU / Impeller Shaders)
-For scale-out layouts ($10,000+$ nodes):
+For scale-out layouts (10,000+ nodes):
 * **Compute Shaders**: Graph layout physics (force-directed calculations) are executed in parallel on the GPU using WGSL (WebGPU) or SPIR-V/Metal (Impeller) compute shaders, running $O(N^2)$ calculations in $<1\text{ms}$.
 * **VRAM Storage Buffers**: Telemetry values are uploaded directly to VRAM storage buffers. The compute shader evaluates alarm thresholds locally in VRAM, directly updating node color values. The data never travels back to the CPU, eliminating CPU-to-GPU data transmission latency.
 

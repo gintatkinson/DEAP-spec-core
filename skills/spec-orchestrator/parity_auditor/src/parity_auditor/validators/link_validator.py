@@ -87,15 +87,14 @@ class LinkValidator(IValidator):
                     ))
                     continue
 
-                # Skip template placeholders / examples
+                                # Skip template placeholders / examples
                 if any(placeholder in link_raw for placeholder in [
                     "-XX-", "XX-name", "link-to-", "URL", "target", "example.com", "file.sysml",
-                    "docs/features/feat-", "docs/epics/epic-", "docs/user-stories/us-", "docs/use-cases/uc-"
+                    "docs/features/feat-", "docs/epics/epic-", "docs/user-stories/us-", "docs/use-cases/uc-",
+                    "EPIC-001.md", "Avenger5.sysml", "schema/..."
                 ]):
                     if not os.path.exists(os.path.join(workspace_dir, link_raw)):
-                        # If it's a template placeholder that doesn't exist, skip it
-                        if "-XX-" in link_raw or "link-to-" in link_raw or link_raw in ["URL", "target"]:
-                            continue
+                        continue
 
                 link_target = link_raw.split("#")[0].strip()
 

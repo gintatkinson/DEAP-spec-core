@@ -69,7 +69,7 @@ To prevent platform divergence and ensure that the shared LUI specs are correctl
 
 ## 4. Real-Time Event Storm & GPGPU UI Architecture
 
-When scale-out systems reach $10,000+$ managed elements, a combinatorial explosion of real-time alarms and telemetry updates can easily cause UI thread starvation (freezing the screen and introducing significant Input Delay). To prevent this, we enforce a strict off-thread and GPU-accelerated pipeline.
+When scale-out systems reach 10,000+ managed elements, a combinatorial explosion of real-time alarms and telemetry updates can easily cause UI thread starvation (freezing the screen and introducing significant Input Delay). To prevent this, we enforce a strict off-thread and GPU-accelerated pipeline.
 
 ```mermaid
 flowchart TD

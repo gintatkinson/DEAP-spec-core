@@ -73,7 +73,7 @@ Component-level failure mode analysis detailing:
 ## KaTeX / LaTeX Mathematical Formatting Mandate
 
 All markdown documents in this directory MUST strictly conform to KaTeX / LaTeX mathematical rendering requirements:
-- Multi-line aligned equations MUST be enclosed in `\begin{aligned} ... \end{aligned}` within `$$` delimiters on dedicated lines.
+- Multi-line aligned equations MUST be enclosed in `\begin{aligned} ... \end{aligned}` within double-dollar delimiters on dedicated lines.
 - Bare alignment tabs `&` outside an alignment environment (`aligned`, `matrix`, `cases`) and `\begin{align*}` environments are strictly forbidden.
 - Inline math expressions MUST be enclosed in single `$ ... $` delimiters.
 - Non-mathematical alphanumeric identifiers (e.g. `**SC-01**`, `**H-1**`, `**OSO-11**`, `**L-1**`, `**UCA-1**`) MUST NOT be enclosed in `$...$` delimiters and MUST use bold text or code spans instead.

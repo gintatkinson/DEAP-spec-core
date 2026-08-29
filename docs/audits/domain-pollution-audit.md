@@ -24,7 +24,7 @@
 | `docs/designs/feat-g1-g12-solution-definition.md` | 55 | `- Child `ReferenceFrame` (defining the local spatial anchor).` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/designs/feat-g1-g12-solution-definition.md` | 56 | `- Child `EllipsoidCoordinates` mapped to Japan geometry coordinates.` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/designs/feat-g1-g12-solution-definition.md` | 57 | `3.  **Landing Stations (`cable_landing_0` to `cable_landing_X`)**:` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `docs/designs/feat-g1-g12-solution-definition.md` | 65 | ``CoreExchange` $\rightarrow$ `SlotContainerEntity` (with slotContainer dimensions) $\rightarrow$ `SlotContainerPlacement` (slot...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `docs/designs/feat-g1-g12-solution-definition.md` | 65 | ``CoreExchange` \rightarrow `SlotContainerEntity` (with slotContainer dimensions) \rightarrow `SlotContainerPlacement` (slot...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/designs/feat-g1-g12-solution-definition.md` | 79 | `- **Feature #4**: Geometry Coordinates (fetching dim_0, dim_1, dim_2 coordinates)` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/designs/feat-g1-g12-solution-definition.md` | 98 | `- `Position computeCurrentPosition(EllipsoidCoordinates coords, VelocityVector rateOfChange, DateTime ti...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/designs/feat-g1-g12-solution-definition.md` | 99 | `- `double computeSpeed(VelocityVector rateOfChange)`: Calculates rateOfChange magnitude in m/s.` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
@@ -49,9 +49,9 @@
 | `web_react/src/types.ts` | 145 | `slotContainer: ContainedSlotContainer[];` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/upstream_decontamination_baseline_report.md` | 147 | `-            "dim_0", "dim_1", "trajectory", "orbit",` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/upstream_decontamination_baseline_report.md` | 167 | `-                            forbidden_nodes = {"cartesian", "geometry", "location-choice"}` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `docs/decisions/audits/astrodynamics_geodesy_critique.md` | 75 | `Bilinear interpolation is only $\mathcal{C}^0$ continuous. At grid boundaries, the first derivative ...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `docs/decisions/audits/astrodynamics_geodesy_critique.md` | 106 | `The geoid undulation formula $h_{geometric} = H_{MSL} + N$ is applied blindly.` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `docs/decisions/audits/astrodynamics_geodesy_critique.md` | 111 | `* GPS / GNSS receivers on aircraft or spacecraft report geometric dim_2 ($h$) directly.` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `docs/decisions/audits/astrodynamics_geodesy_critique.md` | 75 | `Bilinear interpolation is only \mathcal{C}^0 continuous. At grid boundaries, the first derivative ...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `docs/decisions/audits/astrodynamics_geodesy_critique.md` | 106 | `The geoid undulation formula h_{geometric} = H_{MSL} + N is applied blindly.` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `docs/decisions/audits/astrodynamics_geodesy_critique.md` | 111 | `* GPS / GNSS receivers on aircraft or spacecraft report geometric dim_2 (h) directly.` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/designs/persistence-architecture-blueprint.md` | 100 | `* **Action:** Delete the remaining hardcoded Dart/TS dummy classes (e.g., `RateOfChange`, `PhysicalAddre...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/adversarial_audit_synthesis.md` | 18 | `\| 🟡 **Major**    \| [UML-SEM-01]  \| UML Semantics \| `ReferenceFrame` composition (`*--`) destroys...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/adversarial_audit_synthesis.md` | 20 | `\| 🟡 **Major**    \| [UML-GEO-02]  \| Geometry Model \| `coordAccuracy` and `dim_2Accuracy` static ...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
@@ -69,9 +69,9 @@
 | `docs/decisions/audits/communications_rf_laser_critique.md` | 9 | `## 1. Ray-Sphere & Ray-Geometry Intersection Math` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/audits/communications_rf_laser_critique.md` | 14 | `While this is computationally simple, it is highly inaccurate for geometric bodies like Earth (WGS...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/audits/communications_rf_laser_critique.md` | 21 | `### 1.2. Exact Ray-Geometry Intersection Formulation` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `docs/decisions/audits/communications_rf_laser_critique.md` | 22 | `For any planet or moon modeled as a triaxial or biaxial geometry centered at $\mathbf{c}_k$ with se...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `docs/decisions/audits/communications_rf_laser_critique.md` | 22 | `For any planet or moon modeled as a triaxial or biaxial geometry centered at \mathbf{c}_k with se...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/audits/communications_rf_laser_critique.md` | 31 | `Substituting the ray into the geometry equation yields:` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `docs/decisions/audits/communications_rf_laser_critique.md` | 44 | `Because $A > 0$, $t_1 \le t_2$. The line segment $[0, 1]$ intersects the geometry if and only if:` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `docs/decisions/audits/communications_rf_laser_critique.md` | 44 | `Because A > 0, t_1 \le t_2. The line segment [0, 1] intersects the geometry if and only if:` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/audits/communications_rf_laser_critique.md` | 179 | `### 6.2. GPU (WGSL) Ray-Geometry Occlusion Code` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/audits/communications_rf_laser_critique.md` | 180 | `Integrate this exact, branch-optimized ray-geometry occlusion algorithm into the compute shader:` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/audits/communications_rf_laser_critique.md` | 183 | `struct Geometry {` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
@@ -1620,11 +1620,11 @@
 | `app_flutter/integration_test/globe_camera_drag_test.dart` | 108 | `final double newLongitude = controller.current.dim_1;` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/integration_test/globe_camera_drag_test.dart` | 111 | `expect(newLongitude, greaterThan(initialLongitude),` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/integration_test/globe_camera_drag_test.dart` | 112 | `reason: 'Dim_1 should increase after leftward drag. '` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `app_flutter/integration_test/globe_camera_drag_test.dart` | 113 | `'Initial: $initialLongitude, New: $newLongitude');` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `app_flutter/integration_test/globe_camera_drag_test.dart` | 113 | `'Initial: initialLongitude, New: newLongitude');` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/consolidated_decision_making_report.md` | 16 | `3. **Exact Geometric Occlusion & Physical Jamming Models**: Upgrade line-of-sight checks from ray-...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/consolidated_decision_making_report.md` | 157 | `### 4.1 Exact Ray-Geometry Line-of-Sight (LOS) Occlusion` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/consolidated_decision_making_report.md` | 158 | `Instead of checking spherical approximations (which introduce up to 21 km of geometry error at the p...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `docs/decisions/consolidated_decision_making_report.md` | 161 | `An geometry is defined by $\frac{x^2}{a^2} + \frac{y^2}{b^2} + \frac{z^2}{c^2} = 1$. Let $\mathbf{M...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `docs/decisions/consolidated_decision_making_report.md` | 161 | `An geometry is defined by \frac{x^2}{a^2} + \frac{y^2}{b^2} + \frac{z^2}{c^2} = 1. Let \mathbf{M...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/decisions/consolidated_decision_making_report.md` | 301 | `* **Math Proofs**: Verify that the ray-geometry quadratic formula in WebGPU produces collision coor...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/feat-firestore-persistence-adapter-design.md` | 60 | `"referenceFrame": {` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `docs/feat-firestore-persistence-adapter-design.md` | 68 | `"dim_0": 35.6762,` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
@@ -1791,7 +1791,7 @@
 | `app_flutter/lib/features/topology/topographical_view.dart` | 145 | `dim_1 = 140.1063;` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/lib/features/topology/topographical_view.dart` | 148 | `dim_0 = dim_0.clamp(-90.0, 90.0);` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/lib/features/topology/topographical_view.dart` | 149 | `dim_1 = dim_1.clamp(-180.0, 180.0);` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `app_flutter/lib/features/topology/topographical_view.dart` | 151 | `print("TopographicalView: final camera lat=$dim_0, lng=$dim_1");` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `app_flutter/lib/features/topology/topographical_view.dart` | 151 | `print("TopographicalView: final camera lat=dim_0, lng=dim_1");` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/lib/features/topology/topographical_view.dart` | 153 | `dim_0: dim_0,` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/lib/features/topology/topographical_view.dart` | 154 | `dim_1: dim_1,` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `skills/spec-orchestrator/parity_auditor/tests/test_spec_validator_issue237.py` | 109 | `"  - path: \"ietf-geo-location/reference-frame\"\n"` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
@@ -1803,9 +1803,9 @@
 | `app_flutter/lib/features/topology/scene_3d_viewport.dart` | 415 | `final double R = Geometry.wgs84EquatorialRadius;` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/lib/features/topology/scene_3d_viewport.dart` | 568 | `cam = VirtualCamera.raw(dim_0: -tilt * 180 / math.pi, dim_1: -rotationAngle * 180 / math.pi, ...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/lib/features/topology/scene_3d_viewport.dart` | 579 | `heightMeters: heightMeters - Geometry.wgs84EquatorialRadius,` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `app_flutter/lib/features/topology/scene_3d_viewport.dart` | 632 | `Text('Dim_0: ${cam.dim_0.toStringAsFixed(6)}', style: const TextStyle(color: Color(0xFFE0E0E0)...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `app_flutter/lib/features/topology/scene_3d_viewport.dart` | 633 | `Text('Dim_1: ${cam.dim_1.toStringAsFixed(6)}', style: const TextStyle(color: Color(0xFFE0E0E...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `app_flutter/lib/features/topology/scene_3d_viewport.dart` | 634 | `Text('Dim_2: ${(cam.dim_2 - Geometry.wgs84EquatorialRadius).toStringAsFixed(2)} meters', styl...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `app_flutter/lib/features/topology/scene_3d_viewport.dart` | 632 | `Text('Dim_0: {cam.dim_0.toStringAsFixed(6)}', style: const TextStyle(color: Color(0xFFE0E0E0)...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `app_flutter/lib/features/topology/scene_3d_viewport.dart` | 633 | `Text('Dim_1: {cam.dim_1.toStringAsFixed(6)}', style: const TextStyle(color: Color(0xFFE0E0E...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `app_flutter/lib/features/topology/scene_3d_viewport.dart` | 634 | `Text('Dim_2: {(cam.dim_2 - Geometry.wgs84EquatorialRadius).toStringAsFixed(2)} meters', styl...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/lib/features/topology/scene_3d_viewport.dart` | 842 | `double dim_0,` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/lib/features/topology/scene_3d_viewport.dart` | 843 | `double dim_1, {` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/lib/features/topology/scene_3d_viewport.dart` | 851 | `final camera = rawCamera.dim_2 < Geometry.wgs84EquatorialRadius` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
@@ -1862,7 +1862,7 @@
 | `app_flutter/lib/features/map_viewport/cesium_3d/virtual_camera.dart` | 133 | `return (dim_0 - other.dim_0).abs() <= epsilonCoordinate &&` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/lib/features/map_viewport/cesium_3d/virtual_camera.dart` | 134 | `(dim_1 - other.dim_1).abs() <= epsilonCoordinate &&` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/lib/features/map_viewport/cesium_3d/virtual_camera.dart` | 142 | `int get hashCode => Object.hash(dim_0, dim_1, dim_2, heading, pitch, roll);` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `app_flutter/lib/features/map_viewport/cesium_3d/virtual_camera.dart` | 146 | `return 'VirtualCamera(dim_0: $dim_0, dim_1: $dim_1, dim_2: $dim_2, heading: $hea...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `app_flutter/lib/features/map_viewport/cesium_3d/virtual_camera.dart` | 146 | `return 'VirtualCamera(dim_0: dim_0, dim_1: dim_1, dim_2: dim_2, heading: hea...` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `skills/spec-orchestrator/parity_auditor/tests/test_cli.py` | 161 | `class ReferenceFrame {` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `skills/spec-orchestrator/parity_auditor/tests/test_cli.py` | 164 | `note for ReferenceFrame "alternateSystem guarded by <<feature_guard>> alternate-systems"` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `skills/spec-orchestrator/parity_auditor/tests/test_cli.py` | 167 | `assert "ReferenceFrame" in parsed.classes` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
@@ -2174,9 +2174,9 @@
 | `app_flutter/test/topology/camera_reset_reproduction_test.dart` | 544 | `expect(controller.current.dim_1, closeTo(140.0, 1.0),` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/test/topology/camera_reset_reproduction_test.dart` | 545 | `reason: 'Camera should be on the flight path near 140.0 dim_1');` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/test/topology/camera_reset_reproduction_test.dart` | 550 | `expect(controller.current.dim_0, isNot(closeTo(50.0, 0.1)),` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `app_flutter/test/topology/camera_reset_reproduction_test.dart` | 551 | `reason: 'Camera should NOT jump to B dim_0 at frame $i');` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `app_flutter/test/topology/camera_reset_reproduction_test.dart` | 551 | `reason: 'Camera should NOT jump to B dim_0 at frame i');` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/test/topology/camera_reset_reproduction_test.dart` | 552 | `expect(controller.current.dim_1, isNot(closeTo(-75.0, 0.1)),` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
-| `app_flutter/test/topology/camera_reset_reproduction_test.dart` | 553 | `reason: 'Camera should NOT jump to B dim_1 at frame $i');` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
+| `app_flutter/test/topology/camera_reset_reproduction_test.dart` | 553 | `reason: 'Camera should NOT jump to B dim_1 at frame i');` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/test/topology/camera_reset_reproduction_test.dart` | 607 | `expect(controller.current.dim_0, -75.0);` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/test/topology/camera_reset_reproduction_test.dart` | 608 | `expect(controller.current.dim_1, 50.0);` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |
 | `app_flutter/test/cesium_3d/adversarial_fuzzer_test.dart` | 63 | `dim_0: 0.0,` | Rename to domain-agnostic terms (e.g. x/y/z or physical dimensions) |

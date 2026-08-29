@@ -29,7 +29,7 @@ The pipeline maps schema attributes to UML primitive types (`String`, `Integer`,
 | UML Primitive | Target TypeScript (React) | Target Dart (Flutter) | Architectural Risks & Gaps |
 | :--- | :--- | :--- | :--- |
 | **`String`** | `string` (primitive) | `String` (class) | **Case Sensitivity & Wrapper Bypass:** JS/TS has both `string` (primitive) and `String` (object wrapper). Using the uppercase `String` in TS bypasses primitive type checks and introduces memory-overhead objects. |
-| **`Integer`** | `number` (float64) | `int` (varies by target) | **Precision Collapse on JS Web:** In TS, `number` is an IEEE 754 float64; large integers (above $2^{53} - 1$) lose precision. In Dart, `int` is a 64-bit integer on desktop/mobile VMs, but compiles to a 64-bit float (`double`) on Flutter Web, causing a silent behavioral divergence. |
+| **`Integer`** | `number` (float64) | `int` (varies by target) | **Precision Collapse on JS Web:** In TS, `number` is an IEEE 754 float64; large integers (above 2^{53} - 1) lose precision. In Dart, `int` is a 64-bit integer on desktop/mobile VMs, but compiles to a 64-bit float (`double`) on Flutter Web, causing a silent behavioral divergence. |
 | **`Real`** | `number` (float64) | `double` (float64) | **Loss of Type Identity in TS:** Both `Integer` and `Real` map to `number` in TS, erasing the semantic boundary between integers and floating-point values at compile-time. |
 | **`Boolean`** | `boolean` (primitive) | `bool` (primitive) | **Case and Wrapper Mismatches:** TS requires lowercase `boolean` (avoiding the `Boolean` wrapper object). Dart requires lowercase `bool` (uppercase `Boolean` does not exist). |
 

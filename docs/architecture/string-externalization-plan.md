@@ -16,17 +16,17 @@ All hardcoded display strings found across `lib/` (excluding imports, doc commen
 
 | File:line | String value | Category | Target |
 |-----------|-------------|----------|--------|
-| `lib/features/tree/sidebar_tree.dart:119` | `'Worker: ${workerResult ?? "Idle"}'` | UI label | `strings.json` |
-| `lib/features/topology/topographical_view.dart:59` | `'Active View: $currentView'` | UI label | `strings.json` |
+| `lib/features/tree/sidebar_tree.dart:119` | `'Worker: {workerResult ?? "Idle"}'` | UI label | `strings.json` |
+| `lib/features/topology/topographical_view.dart:59` | `'Active View: currentView'` | UI label | `strings.json` |
 | `lib/features/properties/property_grid.dart:596` | `'Committed Data (verified on blur)'` | UI label | `strings.json` |
 | `lib/features/properties/property_grid.dart:239` | `'Other'` | UI label (fallback section) | `strings.json` |
 | `lib/features/properties/property_grid.dart:361` | `'Active Reference'` | UI label (badge) | `strings.json` |
-| `lib/features/properties/property_grid.dart:150` | `'${field.label} is required'` | UI label (validation) | `strings.json` (template) |
+| `lib/features/properties/property_grid.dart:150` | `'{field.label} is required'` | UI label (validation) | `strings.json` (template) |
 | `lib/features/properties/property_grid.dart:156` | `'Must be a valid double'` | UI label (validation) | `strings.json` |
 | `lib/features/properties/property_grid.dart:162` | `'Must be a valid integer'` | UI label (validation) | `strings.json` |
 | `lib/features/properties/property_grid.dart:172` | `'Invalid format'` | UI label (validation) | `strings.json` |
-| `lib/features/properties/property_grid.dart:178` | `'Value cannot be less than ${field.minValue}'` | UI label (validation) | `strings.json` (template) |
-| `lib/features/properties/property_grid.dart:181` | `'Value cannot be greater than ${field.maxValue}'` | UI label (validation) | `strings.json` (template) |
+| `lib/features/properties/property_grid.dart:178` | `'Value cannot be less than {field.minValue}'` | UI label (validation) | `strings.json` (template) |
+| `lib/features/properties/property_grid.dart:181` | `'Value cannot be greater than {field.maxValue}'` | UI label (validation) | `strings.json` (template) |
 | `lib/features/properties/property_grid.dart:200` | `'Invalid value'` | UI label (validation) | `strings.json` |
 
 ### Section titles (12 occurrences)
@@ -63,7 +63,7 @@ Note: `logical-layout.json` already references these via `"token:layout.labels.e
 
 | File:line | String value | Category | Target |
 |-----------|-------------|----------|--------|
-| `lib/app/app.dart:68` | `'Error loading layout configuration: ${snapshot.error}'` | Error | `strings.json` |
+| `lib/app/app.dart:68` | `'Error loading layout configuration: {snapshot.error}'` | Error | `strings.json` |
 | `lib/features/tables/view_models/tables_view_model.dart:97` | `'Failed to load table data'` | Error | `strings.json` |
 | `lib/features/tables/view_models/tables_view_model.dart:135` | `'Failed to load table data'` | Error | `strings.json` |
 

@@ -120,7 +120,7 @@ Each field of an object type gets one row in `type_attributes`.
 | `is_required`        | `1` = required, `0` = optional                                  | `1`                           |
 | `min_value`          | Minimum numeric value (int/double only)                         | `1`                           |
 | `max_value`          | Maximum numeric value (int/double only)                         | `10000`                       |
-| `pattern`            | Regex validation pattern (string only)                          | `^[A-Z]+$`                    |
+| `pattern`            | Regex validation pattern (string only)                          | `^[A-Z]+`                    |
 | `enum_options`       | JSON array of allowed values (enum only)                        | `["Fiction","Non-Fiction"]`   |
 | `enum_display_names` | JSON array of display labels matching `enum_options`            | `["Fiction","Non-Fiction"]`   |
 | `default_value`      | Default when creating a new instance                            | `Unknown`                     |

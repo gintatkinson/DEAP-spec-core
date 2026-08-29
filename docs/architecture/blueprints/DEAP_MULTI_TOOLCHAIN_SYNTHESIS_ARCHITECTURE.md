@@ -29,16 +29,16 @@ flowchart TD
     end
 
     subgraph DEAP_Solution ["DEAP Abstract MBSE Compiler & Synthesis Orchestrator"]
-        SysML_SSOT["Canonical SysML v2 AST SSOT (.pipeline/schema.sysml)"]
+        SysML_SSOT["Canonical SysML v2 AST SSOT (".pipeline/schema.sysml")"]
         Synthesizer["Universal Multi-Backend AST Synthesis Compiler"]
         Parity_Lock["22-Gate Parity Lock & Mechanical Verification Suite"]
     end
 
     subgraph Synthesized_Ecosystem ["Target Synthesis Tiers (Unified, Zero-Drift, Fully Traceable)"]
-        Tier1["Tier 1: Certified MBD (SCADE KCG / Simulink Embedded Coder)"]
-        Tier2["Tier 2: Formal Contract & Prover (SPARK Ada / Ferrocene Rust / nuXmv)"]
-        Tier3["Tier 3: Open Standards & Multi-Physics (OpenModelica FMI / OSATE AADL)"]
-        Tier4["Tier 4: Target RTOS Frameworks (Zephyr / RTEMS / QNX / VxWorks / PX4 / cFS)"]
+        Tier1["Tier 1: Certified MBD ("SCADE KCG / Simulink Embedded Coder")"]
+        Tier2["Tier 2: Formal Contract & Prover ("SPARK Ada / Ferrocene Rust / nuXmv")"]
+        Tier3["Tier 3: Open Standards & Multi-Physics ("OpenModelica FMI / OSATE AADL")"]
+        Tier4["Tier 4: Target RTOS Frameworks ("Zephyr / RTEMS / QNX / VxWorks / PX4 / cFS")"]
     end
 
     Problem_Silos -.->|"Eliminated by"| DEAP_Solution
@@ -59,13 +59,12 @@ flowchart TD
 
 The **Digital Engineering Agentic Pipeline (DEAP)** resolves this fragmentation by establishing an architectural paradigm: **DEAP is an Abstract MBSE Synthesis Compiler and Multi-Target Verification Orchestrator**.
 
-Rather than binding systems engineering workflows to any single commercial modeling tool, language, or target operating system, DEAP treats the **OMG SysML v2 Abstract Syntax Tree (AST)** (defined in `.pipeline/schema.sysml`) as the **Universal Front-End Intermediate Representation (IR)**. 
+Rather than binding systems engineering workflows to any single commercial modeling tool, language, or target operating system, DEAP treats the **OMG SysML v2 Abstract Syntax Tree (AST)** (defined in `".pipeline/schema.sysml"`) as the **Universal Front-End Intermediate Representation (IR)**. 
 
 ```mermaid
 flowchart LR
     subgraph Frontend_IR ["Universal Front-End IR"]
-        AST_IR["OMG SysML v2 AST Metamodel
-(Packages, Parts, Items, Actions, States, Ports, Constraints, Tests)"]
+        AST_IR["OMG SysML v2 AST Metamodel (Packages, Parts, Items, Actions, States, Ports, Constraints, Tests)"]
     end
 
     subgraph DEAP_Compiler ["DEAP Synthesis Compiler Engine"]
@@ -117,19 +116,19 @@ The DEAP multi-toolchain synthesis ecosystem categorizes target engineering tool
 ```mermaid
 flowchart TD
     subgraph SSOT ["Universal Source of Truth"]
-        SysML["SysML v2 AST SSOT (.pipeline/schema.sysml)"]
-        Digest["Cryptographic Parity Digest (.pipeline/schema-digest.json)"]
+        SysML["SysML v2 AST SSOT (".pipeline/schema.sysml")"]
+        Digest["Cryptographic Parity Digest (".pipeline/schema-digest.json")"]
     end
 
     subgraph Tier1 ["Tier 1: Certified Model-Based Design (MBD) & Code Generation"]
-        T1_SCADE["ANSYS SCADE Suite (KCG Qualifiable Code Generator / SCADE Display ARINC 661)"]
+        T1_SCADE["ANSYS SCADE Suite ("KCG Qualifiable Code Generator / SCADE Display ARINC 661")"]
         T1_MATLAB["MathWorks MATLAB / Simulink / Stateflow / Embedded Coder / SLDV"]
     end
 
     subgraph Tier2 ["Tier 2: Formal Contract & Prover Ecosystems"]
         T2_SPARK["AdaCore SPARK Ada 2014 / GNAT Pro (AoRTE Prover Engine)"]
-        T2_RUST["High-Assurance Rust (Ferrocene ISO 26262 ASIL D / Kani Verifier)"]
-        T2_CHECKERS["Model Checkers & SMT Solvers (nuXmv / UPPAAL / CBMC / Z3 / CVC5)"]
+        T2_RUST["High-Assurance Rust ("Ferrocene ISO 26262 ASIL D / Kani Verifier")"]
+        T2_CHECKERS["Model Checkers & SMT Solvers ("nuXmv / UPPAAL / CBMC / Z3 / CVC5")"]
     end
 
     subgraph Tier3 ["Tier 3: Open Standards, Multi-Physics & Architectural Co-Simulation"]
@@ -138,13 +137,13 @@ flowchart TD
     end
 
     subgraph Tier4 ["Tier 4: Target Real-Time Execution Frameworks & RTOS Platforms"]
-        T4_ZEPHYR["Zephyr RTOS (MPU Partitioning / Devicetree)"]
+        T4_ZEPHYR["Zephyr RTOS ("MPU Partitioning / Devicetree")"]
         T4_RTEMS["RTEMS (Space-Qualified Deterministic SMP POSIX)"]
-        T4_QNX["QNX Neutrino (ASIL D / Class C Microkernel)"]
+        T4_QNX["QNX Neutrino ("ASIL D / Class C Microkernel")"]
         T4_VXWORKS["Wind River VxWorks 653 (ARINC 653 Multi-Core DAL A)"]
-        T4_ROS2["ROS 2 Real-Time (DDS Middleware / Micro-ROS)"]
-        T4_PX4["PX4 Autopilot (uORB Pub-Sub / Flight Modes)"]
-        T4_CFS["NASA Core Flight System cFS (OSAL / Software Bus)"]
+        T4_ROS2["ROS 2 Real-Time (DDS Middleware and Micro-ROS)"]
+        T4_PX4["PX4 Autopilot ("uORB Pub-Sub / Flight Modes")"]
+        T4_CFS["NASA Core Flight System cFS ("OSAL / Software Bus")"]
     end
 
     SysML --> Tier1
@@ -176,7 +175,7 @@ flowchart LR
     subgraph SysML_Frontend ["SysML v2 AST Input"]
         SysML_Parts["part def & item def"]
         SysML_States["state def & action def"]
-        SysML_Ports["port def (in / out)"]
+        SysML_Ports["port def ("in / out")"]
         SysML_Constraints["assert constraint & req def"]
     end
 
@@ -338,7 +337,7 @@ Tier 2 provides mathematically provable assurance through deductive formal contr
 flowchart TD
     subgraph SysML_Formal_Front ["Formal SysML v2 Invariants"]
         Contracts["Preconditions, Postconditions, Frame Conditions"]
-        Temporal_Reqs["Temporal Logic Constraints (LTL / CTL)"]
+        Temporal_Reqs["Temporal Logic Constraints ("LTL / CTL")"]
         FSM_Models["Finite & Timed Automata Models"]
     end
 
@@ -357,7 +356,7 @@ flowchart TD
         end
 
         subgraph Model_Checkers ["Symbolic Model Checkers"]
-            nuXmv["nuXmv (BDD / SAT / SMT LTL Model Checking)"]
+            nuXmv["nuXmv ("BDD / SAT / SMT LTL Model Checking")"]
             UPPAAL["UPPAAL (Timed Automata Real-Time Schedulability)"]
             CBMC["CBMC (Bounded Model Checking for C Code)"]
         end
@@ -597,20 +596,13 @@ flowchart TD
     end
 
     subgraph Tier4_Targets ["Tier 4 Target Execution Platforms"]
-        T4_Zephyr["Zephyr RTOS
-(MPU Partitioning / Kconfig)"]
-        T4_RTEMS["RTEMS Space RTOS
-(Deterministic SMP POSIX)"]
-        T4_QNX["QNX Neutrino
-(Microkernel ASIL D IPC)"]
-        T4_VxWorks["VxWorks 653
-(ARINC 653 Multi-Core)"]
-        T4_ROS2["ROS 2 Real-Time
-(DDS Middleware / Micro-ROS)"]
-        T4_PX4["PX4 Autopilot
-(uORB Publish-Subscribe)"]
-        T4_cFS["NASA Core Flight System
-(OSAL / Software Bus)"]
+        T4_Zephyr["Zephyr RTOS (MPU Partitioning and Kconfig)"]
+        T4_RTEMS["RTEMS Space RTOS (Deterministic SMP POSIX)"]
+        T4_QNX["QNX Neutrino (Microkernel ASIL D IPC)"]
+        T4_VxWorks["VxWorks 653 (ARINC 653 Multi-Core)"]
+        T4_ROS2["ROS 2 Real-Time (DDS Middleware and Micro-ROS)"]
+        T4_PX4["PX4 Autopilot (uORB Publish-Subscribe)"]
+        T4_cFS["NASA Core Flight System (OSAL and Software Bus)"]
     end
 
     Tasks --> T4_Zephyr
@@ -727,7 +719,7 @@ flowchart LR
 
 | Industrial Domain | System Safety Standard | Software Development Standard | Tool Qualification Standard | Tool Classification Framework | Highest Safety Level |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Civil & Military Aviation** | SAE ARP4754A / ED-79A | RTCA DO-178C / EUROCAE ED-12C | **RTCA DO-330 / ED-215** | Tool Qualification Levels: **TQL-1** to **TQL-5** | **DAL A** ($10^{-9}/\text{fh}$) |
+| **Civil & Military Aviation** | SAE ARP4754A / ED-79A | RTCA DO-178C / EUROCAE ED-12C | **RTCA DO-330 / ED-215** | Tool Qualification Levels: **TQL-1** to **TQL-5** | **DAL A** (10^{-9}/\text{fh}) |
 | **Model-Based Development** | DO-178C / ARP4754A | **RTCA DO-331 / ED-218** | RTCA DO-330 | Tool Qualification Levels: **TQL-1** to **TQL-5** | **DAL A** |
 | **Formal Methods** | DO-178C / ARP4754A | **RTCA DO-333 / ED-216** | RTCA DO-330 | Tool Qualification Levels: **TQL-1** to **TQL-5** | **DAL A** |
 | **Automotive Electronics** | **ISO 26262:2018** | ISO 26262 Part 6 (Software) | **ISO 26262 Part 8 (Clause 11)**| Tool Confidence Levels: **TCL 1, TCL 2, TCL 3** | **ASIL D** |

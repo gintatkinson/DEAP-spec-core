@@ -247,23 +247,23 @@ where $\mathcal{H}_{\text{unsafe}}$ corresponds to one or more civil system haza
 
 The 16-row STPA matrix below systematically synthesizes all 4 UCA categories ($\mathcal{T}$) across the 5 primary avionic control subsystems: Flight Control Computer (Pitch/Roll), Autopilot Mode Logic, Auto-Throttle / Engine Thrust Reversers, Rudder Yaw Damper, and ARINC 653 Partition Switcher. Each UCA is classified by environmental context vector $C_{\text{context}}$, triggered hazard (FAA AC 25.1309-1A / EASA CS-25.1309), severity classification (ARP4761 / ARP4754A), and software development assurance level (RTCA DO-178C / DO-254).
 
-| UCA ID | Controller ($C$) | Control Action ($CA$) | STPA UCA Category ($\text{Type}$) | Environmental Context Vector ($C_{\text{context}}$) | Triggered System Hazard | Severity Classification | DO-178C DAL Level |
+| UCA ID | Controller (C) | Control Action (CA) | STPA UCA Category (\text{Type}) | Environmental Context Vector (C_{\text{context}}) | Triggered System Hazard | Severity Classification | DO-178C DAL Level |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **UCA-01** | Flight Control Computer (FCC) | Pitch Nose-Up Recovery Command | **1. Not Provided** | $h < 500\text{ ft AGL}$, $V_{\text{CAS}} < V_{\text{ref}}$, $\alpha > 12.0^{\circ}$, $WoW = \text{False}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_1:** Controlled Flight Into Terrain (CFIT) | Catastrophic | **DAL A** |
-| **UCA-02** | Flight Control Computer (FCC) | Pitch High-Rate Elevator Command | **2. Provided Unsafely** | $\alpha > 14.5^{\circ}$, $V_{\text{CAS}} < V_{\text{stall}} + 5\text{ kts}$, $\theta > 18.0^{\circ}$, $WoW = \text{False}$, $S_{\text{phase}} \in \{\text{CLIMB}, \text{APPROACH}\}$ | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
-| **UCA-03** | Flight Control Computer (FCC) | Roll Stabilization Aileron Command | **3. Provided Too Late** | Command processing latency $t_{\text{latency}} > 50\text{ ms}$, severe turbulence gust $\mathbf{d}(t)$, $S_{\text{phase}} = \text{CRUISE}$ | **H_5:** Airframe Structural Overstress | Hazardous | **DAL B** |
-| **UCA-04** | Flight Control Computer (FCC) | Elevator Auto-Trim Torque Drive | **4. Applied Too Long** | Continuous trim drive applied for $t > 2.0\text{ s}$ after manual pilot override / AP disconnect signal | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
-| **UCA-05** | Autopilot Mode Logic | Auto-Go-Around (GA) Mode Engage | **1. Not Provided** | ILS glideslope deviation $> 1.5\text{ dots}$ below decision height $h < 200\text{ ft AGL}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_1:** Controlled Flight Into Terrain (CFIT) | Catastrophic | **DAL A** |
-| **UCA-06** | Autopilot Mode Logic | Autopilot Pitch Down Trim Command | **2. Provided Unsafely** | Radio altimeter sensor fault / lock loss at low altitude $h < 400\text{ ft AGL}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_1:** Controlled Flight Into Terrain (CFIT) | Catastrophic | **DAL A** |
-| **UCA-07** | Autopilot Mode Logic | VNAV Descent Mode Transition | **3. Provided Too Early** | Executed $15\text{ s}$ prior to ATC altitude clearance boundary, $h = 24,000\text{ ft MSL}$, $S_{\text{phase}} = \text{CRUISE}$ | **H_3:** Mid-Air Collision (MAC) | Hazardous | **DAL B** |
-| **UCA-08** | Autopilot Mode Logic | Nose-Up Pitch Hold Command | **4. Applied Too Long** | Pitch command maintained for $t > 5.0\text{ s}$ after Go-Around mode disengagement, $V_{\text{CAS}} < V_{\text{min}}$ | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
-| **UCA-09** | Auto-Throttle System | Engine Thrust Increase Command | **1. Not Provided** | Airspeed decay $V_{\text{CAS}} < V_{\text{stall-warning}}$ ($V_{\text{CAS}} < 1.1 V_{\text{stall}}$), $h > 500\text{ ft AGL}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
-| **UCA-10** | Auto-Throttle / Reverser | Engine Thrust Reverser Deploy Command | **2. Provided Unsafely** | In-flight execution ($WoW = \text{False}$, $h > 50\text{ ft AGL}$, $V_{\text{CAS}} = 250\text{ kts}$, $S_{\text{phase}} \in \{\text{CLIMB}, \text{CRUISE}\}$) | **H_6:** Uncommanded Thrust Reversal | Catastrophic | **DAL A** |
-| **UCA-11** | Auto-Throttle System | Idle Thrust Retard Command | **3. Provided Too Early** | Issued $5.0\text{ s}$ prior to main landing gear touchdown, $h = 80\text{ ft AGL}$, $S_{\text{phase}} = \text{APPROACH}$ | **H_4:** Runway Excursion / Hard Landing | Major | **DAL C** |
-| **UCA-12** | Auto-Throttle / Reverser | Reverse Thrust Actuator Drive Power | **4. Applied Too Long** | Reverse thrust applied for $t > 3.0\text{ s}$ after ground taxi speed drops below $V_{\text{CAS}} < 10\text{ kts}$, $S_{\text{phase}} = \text{TAXI}$ | **H_4:** Runway / Taxiway Excursion | Major | **DAL C** |
-| **UCA-13** | Rudder Yaw Damper | Asymmetric Thrust Compensation Yaw Command | **1. Not Provided** | Single engine failure event ($T_{\text{eng1}} - T_{\text{eng2}} > 40\%$), $V_{\text{CAS}} > V_1$, $h > 100\text{ ft AGL}$, $S_{\text{phase}} = \text{TAKEOFF}$ | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
-| **UCA-14** | Rudder Yaw Damper | Full Scale Rudder Deflection Command | **2. Provided Unsafely** | Airspeed exceeds maneuvering speed ($V_{\text{CAS}} > V_A = 270\text{ kts}$), $h = 15,000\text{ ft MSL}$, $S_{\text{phase}} = \text{CRUISE}$ | **H_5:** Airframe Structural Overstress | Catastrophic | **DAL A** |
-| **UCA-15** | ARINC 653 Partition Switcher | Executive Partition Context Switch Command | **1. Not Provided** | Flight Control Partition 1 execution minor frame deadline expired ($t > 20\text{ ms}$), $S_{\text{phase}} = \text{ALL}$ | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+| **UCA-01** | Flight Control Computer (FCC) | Pitch Nose-Up Recovery Command | **1. Not Provided** | h < 500\text{ ft AGL}, V_{\text{CAS}} < V_{\text{ref}}, \alpha > 12.0^{\circ}, WoW = \text{False}, S_{\text{phase}} = \text{APPROACH} | **H_1:** Controlled Flight Into Terrain (CFIT) | Catastrophic | **DAL A** |
+| **UCA-02** | Flight Control Computer (FCC) | Pitch High-Rate Elevator Command | **2. Provided Unsafely** | \alpha > 14.5^{\circ}, V_{\text{CAS}} < V_{\text{stall}} + 5, \theta > 18.0^{\circ}, WoW = \text{False}, S_{\text{phase}} \in \{\text{CLIMB}, \text{APPROACH}\} | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+| **UCA-03** | Flight Control Computer (FCC) | Roll Stabilization Aileron Command | **3. Provided Too Late** | Command processing latency t_{\text{latency}} > 50, severe turbulence gust \mathbf{d}(t), S_{\text{phase}} = \text{CRUISE} | **H_5:** Airframe Structural Overstress | Hazardous | **DAL B** |
+| **UCA-04** | Flight Control Computer (FCC) | Elevator Auto-Trim Torque Drive | **4. Applied Too Long** | Continuous trim drive applied for t > 2.0 after manual pilot override / AP disconnect signal | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+| **UCA-05** | Autopilot Mode Logic | Auto-Go-Around (GA) Mode Engage | **1. Not Provided** | ILS glideslope deviation > 1.5\text{ dots} below decision height h < 200\text{ ft AGL}, S_{\text{phase}} = \text{APPROACH} | **H_1:** Controlled Flight Into Terrain (CFIT) | Catastrophic | **DAL A** |
+| **UCA-06** | Autopilot Mode Logic | Autopilot Pitch Down Trim Command | **2. Provided Unsafely** | Radio altimeter sensor fault / lock loss at low altitude h < 400\text{ ft AGL}, S_{\text{phase}} = \text{APPROACH} | **H_1:** Controlled Flight Into Terrain (CFIT) | Catastrophic | **DAL A** |
+| **UCA-07** | Autopilot Mode Logic | VNAV Descent Mode Transition | **3. Provided Too Early** | Executed 15 prior to ATC altitude clearance boundary, h = 24,000\text{ ft MSL}, S_{\text{phase}} = \text{CRUISE} | **H_3:** Mid-Air Collision (MAC) | Hazardous | **DAL B** |
+| **UCA-08** | Autopilot Mode Logic | Nose-Up Pitch Hold Command | **4. Applied Too Long** | Pitch command maintained for t > 5.0 after Go-Around mode disengagement, V_{\text{CAS}} < V_{\text{min}} | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+| **UCA-09** | Auto-Throttle System | Engine Thrust Increase Command | **1. Not Provided** | Airspeed decay V_{\text{CAS}} < V_{\text{stall-warning}} (V_{\text{CAS}} < 1.1 V_{\text{stall}}), h > 500\text{ ft AGL}, S_{\text{phase}} = \text{APPROACH} | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+| **UCA-10** | Auto-Throttle / Reverser | Engine Thrust Reverser Deploy Command | **2. Provided Unsafely** | In-flight execution (WoW = \text{False}, h > 50\text{ ft AGL}, V_{\text{CAS}} = 250, S_{\text{phase}} \in \{\text{CLIMB}, \text{CRUISE}\}) | **H_6:** Uncommanded Thrust Reversal | Catastrophic | **DAL A** |
+| **UCA-11** | Auto-Throttle System | Idle Thrust Retard Command | **3. Provided Too Early** | Issued 5.0 prior to main landing gear touchdown, h = 80\text{ ft AGL}, S_{\text{phase}} = \text{APPROACH} | **H_4:** Runway Excursion / Hard Landing | Major | **DAL C** |
+| **UCA-12** | Auto-Throttle / Reverser | Reverse Thrust Actuator Drive Power | **4. Applied Too Long** | Reverse thrust applied for t > 3.0 after ground taxi speed drops below V_{\text{CAS}} < 10, S_{\text{phase}} = \text{TAXI} | **H_4:** Runway / Taxiway Excursion | Major | **DAL C** |
+| **UCA-13** | Rudder Yaw Damper | Asymmetric Thrust Compensation Yaw Command | **1. Not Provided** | Single engine failure event (T_{\text{eng1}} - T_{\text{eng2}} > 40\%), V_{\text{CAS}} > V_1, h > 100\text{ ft AGL}, S_{\text{phase}} = \text{TAKEOFF} | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
+| **UCA-14** | Rudder Yaw Damper | Full Scale Rudder Deflection Command | **2. Provided Unsafely** | Airspeed exceeds maneuvering speed (V_{\text{CAS}} > V_A = 270), h = 15,000\text{ ft MSL}, S_{\text{phase}} = \text{CRUISE} | **H_5:** Airframe Structural Overstress | Catastrophic | **DAL A** |
+| **UCA-15** | ARINC 653 Partition Switcher | Executive Partition Context Switch Command | **1. Not Provided** | Flight Control Partition 1 execution minor frame deadline expired (t > 20), S_{\text{phase}} = \text{ALL} | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
 | **UCA-16** | ARINC 653 Partition Switcher | Partition Preemption Switch Command | **2. Provided Unsafely** | Preempting active DAL A Flight Control Partition 1 to service lower-criticality Partition 4 during maneuver | **H_2:** Loss of Control in Flight (LOC-I) | Catastrophic | **DAL A** |
 
 #### 3.2.3 System Loss & Hazard Mapping Matrix
@@ -310,19 +310,19 @@ $$
 - **SC-02 (Derivation from UCA-02):**
 
 $$
-\forall t, \quad \left(\alpha(t) > 14.5^{\circ} \lor V_{\text{CAS}}(t) < V_{\text{stall}} + 5\text{ kts}\right) \implies CA_{\text{pitch-up}}(t) \le 0.0^{\circ} \quad (\text{Pitch Clamp Engaged})
+\forall t, \quad \left(\alpha(t) > 14.5^{\circ} \lor V_{\text{CAS}}(t) < V_{\text{stall}} + 5\right) \implies CA_{\text{pitch-up}}(t) \le 0.0^{\circ} \quad (\text{Pitch Clamp Engaged})
 $$
 
 - **SC-03 (Derivation from UCA-03):**
 
 $$
-\forall t, \quad t_{\text{latency}}\left(CA_{\text{aileron}}\right) \le 10\text{ ms} \quad (\text{ARINC 653 Execution Bound})
+\forall t, \quad t_{\text{latency}}\left(CA_{\text{aileron}}\right) \le 10 \quad (\text{ARINC 653 Execution Bound})
 $$
 
 - **SC-04 (Derivation from UCA-04):**
 
 $$
-\forall t, \quad \left(\text{Signal}_{\text{pilot-override}} = \text{True} \lor \text{Signal}_{\text{ap-disengage}} = \text{True}\right) \implies \text{Torque}_{\text{trim-drive}}(t + 5\text{ ms}) = 0.0\text{ Nm}
+\forall t, \quad \left(\text{Signal}_{\text{pilot-override}} = \text{True} \lor \text{Signal}_{\text{ap-disengage}} = \text{True}\right) \implies \text{Torque}_{\text{trim-drive}}(t + 5) = 0.0
 $$
 
 - **SC-05 (Derivation from UCA-05):**
@@ -334,7 +334,7 @@ $$
 - **SC-06 (Derivation from UCA-06):**
 
 $$
-\forall t, \quad \left(\text{Status}_{\text{rad-alt}} = \text{INVALID} \land h < 400\text{ ft}\right) \implies \text{Trim}_{\text{pitch-down}}(t) = \text{INHIBITED}
+\forall t, \quad \left(\text{Status}_{\text{rad-alt}} = \text{INVALID} \land h < 400\right) \implies \text{Trim}_{\text{pitch-down}}(t) = \text{INHIBITED}
 $$
 
 - **SC-07 (Derivation from UCA-07):**
@@ -346,19 +346,19 @@ $$
 - **SC-08 (Derivation from UCA-08):**
 
 $$
-\forall t, \quad \left(\text{Mode}_{\text{GA}} = \text{DISENGAGED}\right) \implies \left(t_{\text{hold}}(CA_{\text{nose-up}}) \le 0\text{ ms}\right)
+\forall t, \quad \left(\text{Mode}_{\text{GA}} = \text{DISENGAGED}\right) \implies \left(t_{\text{hold}}(CA_{\text{nose-up}}) \le 0\right)
 $$
 
 - **SC-09 (Derivation from UCA-09):**
 
 $$
-\forall t, \quad \left(V_{\text{CAS}}(t) < 1.1 V_{\text{stall}} \land h > 500\text{ ft}\right) \implies \text{Command}_{\text{thrust-increase}}(t) = \text{MAX-TOGA}
+\forall t, \quad \left(V_{\text{CAS}}(t) < 1.1 V_{\text{stall}} \land h > 500\right) \implies \text{Command}_{\text{thrust-increase}}(t) = \text{MAX-TOGA}
 $$
 
 - **SC-10 (Derivation from UCA-10):**
 
 $$
-\forall t, \quad \left(WoW = \text{False} \lor h(t) > 50\text{ ft}\right) \implies \text{Power}_{\text{reverser-solenoid}}(t) = \text{ISOLATED} \quad (\text{Hardware Lockout})
+\forall t, \quad \left(WoW = \text{False} \lor h(t) > 50\right) \implies \text{Power}_{\text{reverser-solenoid}}(t) = \text{ISOLATED} \quad (\text{Hardware Lockout})
 $$
 
 - **SC-11 (Derivation from UCA-11):**
@@ -370,7 +370,7 @@ $$
 - **SC-12 (Derivation from UCA-12):**
 
 $$
-\forall t, \quad \left(V_{\text{CAS}}(t) < 10\text{ kts} \land WoW = \text{True}\right) \implies \text{Reverser}_{\text{actuator-drive}}(t + 500\text{ ms}) = \text{OFF}
+\forall t, \quad \left(V_{\text{CAS}}(t) < 10 \land WoW = \text{True}\right) \implies \text{Reverser}_{\text{actuator-drive}}(t + 500) = \text{OFF}
 $$
 
 - **SC-13 (Derivation from UCA-13):**
@@ -388,7 +388,7 @@ $$
 - **SC-15 (Derivation from UCA-15):**
 
 $$
-\forall t, \quad \left(\text{Timer}_{\text{minor-frame-partition1}} \ge 20\text{ ms}\right) \implies \text{Switch}_{\text{partition-context}}(t) = \text{FORCED}
+\forall t, \quad \left(\text{Timer}_{\text{minor-frame-partition1}} \ge 20\right) \implies \text{Switch}_{\text{partition-context}}(t) = \text{FORCED}
 $$
 
 - **SC-16 (Derivation from UCA-16):**
@@ -509,13 +509,13 @@ where:
 
 #### 4.1.5 SAE ARP4761A Severity Classification & Probability Boundaries
 
-| Severity Category | Qualitative Definition | Quantitative Probability Boundary (per Flight Hour) | Max Allowable Criticality ($\beta \cdot \lambda_m$) | Required Software / Hardware Assurance Level |
+| Severity Category | Qualitative Definition | Quantitative Probability Boundary (per Flight Hour) | Max Allowable Criticality (\beta \cdot \lambda_m) | Required Software / Hardware Assurance Level |
 | :--- | :--- | :--- | :--- | :--- |
-| **Catastrophic** | Total aircraft loss, fatal injuries to all occupants | $P < 10^{-9}$ (Extremely Improbable) | $\le 10^{-9}$ | **DO-178C DAL A / DO-254 DAL A** |
-| **Hazardous / Severe-Major** | Severe reduction in safety margins, physical distress or high pilot workload | $P < 10^{-7}$ (Extremely Remote) | $\le 10^{-7}$ | **DO-178C DAL B / DO-254 DAL B** |
-| **Major** | Significant reduction in safety margins, inconvenience or injury to occupants | $P < 10^{-5}$ (Remote) | $\le 10^{-5}$ | **DO-178C DAL C / DO-254 DAL C** |
-| **Minor** | Slight reduction in safety margins, minor pilot action | $P < 10^{-3}$ (Reasonably Probable) | $\le 10^{-3}$ | **DO-178C DAL D / DO-254 DAL D** |
-| **No Safety Effect** | Zero impact on operational safety or crew workload | $P \ge 10^{-3}$ (Frequent) | N/A | **DO-178C DAL E / DO-254 DAL E** |
+| **Catastrophic** | Total aircraft loss, fatal injuries to all occupants | P < 10^{-9} (Extremely Improbable) | \le 10^{-9} | **DO-178C DAL A / DO-254 DAL A** |
+| **Hazardous / Severe-Major** | Severe reduction in safety margins, physical distress or high pilot workload | P < 10^{-7} (Extremely Remote) | \le 10^{-7} | **DO-178C DAL B / DO-254 DAL B** |
+| **Major** | Significant reduction in safety margins, inconvenience or injury to occupants | P < 10^{-5} (Remote) | \le 10^{-5} | **DO-178C DAL C / DO-254 DAL C** |
+| **Minor** | Slight reduction in safety margins, minor pilot action | P < 10^{-3} (Reasonably Probable) | \le 10^{-3} | **DO-178C DAL D / DO-254 DAL D** |
+| **No Safety Effect** | Zero impact on operational safety or crew workload | P \ge 10^{-3} (Frequent) | N/A | **DO-178C DAL E / DO-254 DAL E** |
 
 ---
 
@@ -548,20 +548,20 @@ DEAP extends FMECA into low-level hardware, avionic bus interfaces, FPGA registe
 
 The 12-row quantitative FMECA matrix below synthesizes component failure rates ($\lambda_p$), failure mode ratios ($\alpha$), loss probabilities ($\beta$), local and system effects, RPN scores, and DEAP mechanical mitigations.
 
-| Item ID | Subsystem / Component | Failure Mode | Root Cause | Failure Rate $\lambda_p$ (per $10^6$ hr) | Failure Mode Ratio $\alpha$ | Loss Beta $\beta$ | Local Effect | System Effect | S | O | D | RPN | DEAP Mechanical Mitigation Strategy |
+| Item ID | Subsystem / Component | Failure Mode | Root Cause | Failure Rate \lambda_p (per 10^6 hr) | Failure Mode Ratio \alpha | Loss Beta \beta | Local Effect | System Effect | S | O | D | RPN | DEAP Mechanical Mitigation Strategy |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **FMECA-01** | ARINC 429 Rx Interface | Parity Bit Flip / SSM Corruption | EMI transient coupling on differential pair | $1.25 \times 10^{-6}$ | 0.60 | 0.05 | Receiver FIFO word discard; invalid SSM state | Temporary loss of ADC barometric altitude feed | 7 | 4 | 2 | **56** | Dual-channel bus voting logic + ARINC 429 Parity Verification Linter. |
-| **FMECA-02** | MIL-STD-1553 Transceiver | Bus Babbling (RT Stuck Transmitter) | Transceiver gate short to power rail | $4.50 \times 10^{-7}$ | 0.15 | 0.20 | Bus A saturated with un-arbitrated frames | Delays in flight management telemetry and surface feedback | 6 | 3 | 3 | **54** | Hardware fail-passive isolator + bus monitor timeout gate ($t < 660\,\mu\text{s}$). |
-| **FMECA-03** | FPGA Math ALU | Q16.16 MSB Overflow ($+32767 \to -32768$) | Unbounded integrator sum in pitch loop | $2.10 \times 10^{-7}$ | 0.25 | 0.95 | Sign bit inversion in pitch accumulator | Unintended elevator control surface hardover | 10 | 2 | 2 | **40** | AdaCore SPARK formal proof + hardware saturation arithmetic AST verifier. |
-| **FMECA-04** | FPGA Configuration SRAM | SEU Radiation Bit Flip | Cosmic heavy ion collision in Block RAM | $8.90 \times 10^{-6}$ | 0.40 | 0.80 | Routing table or gain bit corruption | Sudden pitch channel control loop instability | 9 | 5 | 2 | **90** | Triple Modular Redundancy (TMR) + periodic SRAM scrubbing engine. |
-| **FMECA-05** | IMU MEMS Gyroscope | High-Rate Bias Drift ($\Delta \omega > 2.0^\circ/\text{s}$) | Thermal stress / micro-machined beam fatigue | $3.20 \times 10^{-6}$ | 0.35 | 0.70 | EKF attitude covariance buildup | Aircraft pitch/roll angle divergence & LOC-I | 10 | 4 | 2 | **80** | Multi-IMU innovation residual test + dual GPS/optical flow fallback. |
-| **FMECA-06** | Pitot-Static Barometer | Pressure Transducer Freeze | Ice crystallization in static port | $5.10 \times 10^{-6}$ | 0.30 | 0.60 | Constant altitude output despite descent | Autopilot under-reads altitude, CFIT risk | 10 | 4 | 3 | **120** | Dual heated static probe + synthetic GNSS/radar altitude cross-check. |
-| **FMECA-07** | DAA LiDAR Unit | Point-Cloud Sparsity (> 85% drop) | Mie scattering in dense fog / rain | $1.20 \times 10^{-5}$ | 0.50 | 0.75 | Obstacle distance estimation drop | Un-detected thin wire / intruder collision | 9 | 5 | 3 | **135** | Multi-spectral 1550nm pulsed LiDAR + FMCW millimeter-wave radar fusion. |
-| **FMECA-08** | Navigation Camera | Sensor Pixel Dazzle / Glare Saturation | Solar glare at low sun angles / UV corona | $8.40 \times 10^{-6}$ | 0.45 | 0.30 | High-contrast image frame saturation | Optical feature tracking loss; hover drift | 5 | 5 | 2 | **50** | Dynamic exposure control + optical/thermal IR dual-camera fusion. |
-| **FMECA-09** | LiPo Battery BMS | Single-Cell Voltage Collapse (< 3.0V) | High-current gust load / electrolyte decay | $2.80 \times 10^{-6}$ | 0.20 | 0.90 | Bus supply voltage sag below 14V | Flight controller brownout & loss of flight | 10 | 3 | 2 | **60** | Active BMS current limiter + automated low-voltage power-shedding AST gate. |
-| **FMECA-10** | BMS I2C Fuel Gauge | SMBus Clock Stretch Lockup | High-voltage transmission line EMI noise | $6.30 \times 10^{-6}$ | 0.30 | 0.25 | State-of-Charge (SoC) update freeze | False battery level display; premature crash | 7 | 4 | 2 | **56** | Hardware I2C bus reset timer + redundant CAN-bus BMS interface. |
-| **FMECA-11** | ESC Motor Drive | H-Bridge MOSFET Thermal Breakdown | Die thermal runaway under over-current | $1.80 \times 10^{-6}$ | 0.25 | 0.85 | Phase short circuit to ground/power | Propulsion motor lost; asymmetric thrust | 9 | 3 | 2 | **54** | Dual isolation relays with automatic hardware power cutoff lines. |
-| **FMECA-12** | DroneCAN Bus Controller | Bus Arbitration Loss / Signal Noise | Ground loop potential / ESD discharge | $4.20 \times 10^{-6}$ | 0.40 | 0.40 | Throttle command frame dropping | Actuator response lag; control degradation | 8 | 4 | 2 | **64** | Redundant dual CAN transceivers + automatic hardware bus recovery. |
+| **FMECA-01** | ARINC 429 Rx Interface | Parity Bit Flip / SSM Corruption | EMI transient coupling on differential pair | 1.25 \times 10^{-6} | 0.60 | 0.05 | Receiver FIFO word discard; invalid SSM state | Temporary loss of ADC barometric altitude feed | 7 | 4 | 2 | **56** | Dual-channel bus voting logic + ARINC 429 Parity Verification Linter. |
+| **FMECA-02** | MIL-STD-1553 Transceiver | Bus Babbling (RT Stuck Transmitter) | Transceiver gate short to power rail | 4.50 \times 10^{-7} | 0.15 | 0.20 | Bus A saturated with un-arbitrated frames | Delays in flight management telemetry and surface feedback | 6 | 3 | 3 | **54** | Hardware fail-passive isolator + bus monitor timeout gate (t < 660\,\mu\text{s}). |
+| **FMECA-03** | FPGA Math ALU | Q16.16 MSB Overflow (+32767 \to -32768) | Unbounded integrator sum in pitch loop | 2.10 \times 10^{-7} | 0.25 | 0.95 | Sign bit inversion in pitch accumulator | Unintended elevator control surface hardover | 10 | 2 | 2 | **40** | AdaCore SPARK formal proof + hardware saturation arithmetic AST verifier. |
+| **FMECA-04** | FPGA Configuration SRAM | SEU Radiation Bit Flip | Cosmic heavy ion collision in Block RAM | 8.90 \times 10^{-6} | 0.40 | 0.80 | Routing table or gain bit corruption | Sudden pitch channel control loop instability | 9 | 5 | 2 | **90** | Triple Modular Redundancy (TMR) + periodic SRAM scrubbing engine. |
+| **FMECA-05** | IMU MEMS Gyroscope | High-Rate Bias Drift (\Delta \omega > 2.0^\circ/\text{s}) | Thermal stress / micro-machined beam fatigue | 3.20 \times 10^{-6} | 0.35 | 0.70 | EKF attitude covariance buildup | Aircraft pitch/roll angle divergence & LOC-I | 10 | 4 | 2 | **80** | Multi-IMU innovation residual test + dual GPS/optical flow fallback. |
+| **FMECA-06** | Pitot-Static Barometer | Pressure Transducer Freeze | Ice crystallization in static port | 5.10 \times 10^{-6} | 0.30 | 0.60 | Constant altitude output despite descent | Autopilot under-reads altitude, CFIT risk | 10 | 4 | 3 | **120** | Dual heated static probe + synthetic GNSS/radar altitude cross-check. |
+| **FMECA-07** | DAA LiDAR Unit | Point-Cloud Sparsity (> 85% drop) | Mie scattering in dense fog / rain | 1.20 \times 10^{-5} | 0.50 | 0.75 | Obstacle distance estimation drop | Un-detected thin wire / intruder collision | 9 | 5 | 3 | **135** | Multi-spectral 1550nm pulsed LiDAR + FMCW millimeter-wave radar fusion. |
+| **FMECA-08** | Navigation Camera | Sensor Pixel Dazzle / Glare Saturation | Solar glare at low sun angles / UV corona | 8.40 \times 10^{-6} | 0.45 | 0.30 | High-contrast image frame saturation | Optical feature tracking loss; hover drift | 5 | 5 | 2 | **50** | Dynamic exposure control + optical/thermal IR dual-camera fusion. |
+| **FMECA-09** | LiPo Battery BMS | Single-Cell Voltage Collapse (< 3.0V) | High-current gust load / electrolyte decay | 2.80 \times 10^{-6} | 0.20 | 0.90 | Bus supply voltage sag below 14V | Flight controller brownout & loss of flight | 10 | 3 | 2 | **60** | Active BMS current limiter + automated low-voltage power-shedding AST gate. |
+| **FMECA-10** | BMS I2C Fuel Gauge | SMBus Clock Stretch Lockup | High-voltage transmission line EMI noise | 6.30 \times 10^{-6} | 0.30 | 0.25 | State-of-Charge (SoC) update freeze | False battery level display; premature crash | 7 | 4 | 2 | **56** | Hardware I2C bus reset timer + redundant CAN-bus BMS interface. |
+| **FMECA-11** | ESC Motor Drive | H-Bridge MOSFET Thermal Breakdown | Die thermal runaway under over-current | 1.80 \times 10^{-6} | 0.25 | 0.85 | Phase short circuit to ground/power | Propulsion motor lost; asymmetric thrust | 9 | 3 | 2 | **54** | Dual isolation relays with automatic hardware power cutoff lines. |
+| **FMECA-12** | DroneCAN Bus Controller | Bus Arbitration Loss / Signal Noise | Ground loop potential / ESD discharge | 4.20 \times 10^{-6} | 0.40 | 0.40 | Throttle command frame dropping | Actuator response lag; control degradation | 8 | 4 | 2 | **64** | Redundant dual CAN transceivers + automatic hardware bus recovery. |
 
 ---
 
@@ -602,7 +602,7 @@ DEAP leverages **AdaCore SPARK Ada 2012** to achieve formal mathematical verific
 - **Zero Dynamic Heap Memory Allocation:** Proving total static memory allocation at compile-time.
 
 #### 4.4.4 dSPACE HIL Automated Fault Injection Testing
-Physical validation of FMECA failure modes is executed via **dSPACE SCALEXIO Hardware-in-the-Loop (HIL)** test environments. DEAP test runners trigger automated real-time fault injection on physical buses and sensors—injecting ARINC 429 parity bit flips, MIL-STD-1553 bus babbling, MEMS gyro drift, and BMS cell voltage drops. DEAP verifies that the flight control computer detects the fault within specified latency boundaries ($t < 10\text{ ms}$) and asserts appropriate fail-passive or fail-operational safety mitigations.
+Physical validation of FMECA failure modes is executed via **dSPACE SCALEXIO Hardware-in-the-Loop (HIL)** test environments. DEAP test runners trigger automated real-time fault injection on physical buses and sensors—injecting ARINC 429 parity bit flips, MIL-STD-1553 bus babbling, MEMS gyro drift, and BMS cell voltage drops. DEAP verifies that the flight control computer detects the fault within specified latency boundaries ($t < 10$) and asserts appropriate fail-passive or fail-operational safety mitigations.
 
 ---
 

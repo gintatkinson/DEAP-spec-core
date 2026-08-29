@@ -135,6 +135,6 @@ Downstream customer mission specifications placed in `docs/conops/MISSION_INTENT
 ## KaTeX / LaTeX Mathematical Formatting Mandate
 
 All markdown documents in this directory MUST strictly conform to KaTeX / LaTeX mathematical rendering requirements:
-- Multi-line aligned equations MUST be enclosed in `\begin{aligned} ... \end{aligned}` within `$$` delimiters on dedicated lines.
+- Multi-line aligned equations MUST be enclosed in `\begin{aligned} ... \end{aligned}` within double-dollar delimiters on dedicated lines.
 - Bare alignment tabs `&` outside an alignment environment (`aligned`, `matrix`, `cases`) and `\begin{align*}` environments are strictly forbidden.
 - Inline math expressions MUST be enclosed in single `$ ... $` delimiters.

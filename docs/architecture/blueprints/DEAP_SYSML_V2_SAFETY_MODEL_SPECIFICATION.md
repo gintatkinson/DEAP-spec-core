@@ -63,12 +63,12 @@ The SysML v2 safety architecture is encapsulated within `package DEAP_Safety_Arc
 | Package Name | Domain Role & Description | Primary SysML v2 Constructs |
 | :--- | :--- | :--- |
 | **`Certification_Requirements`** | Defines airworthiness and regulatory targets (DO-178C, DO-254, ARP4754A/4761, SORA v2.5). | `requirement def` |
-| **`System_Losses_And_Hazards`** | Defines top-down System Losses ($L_1 \dots L_4$) and System Hazards ($H_1 \dots H_6$) per SAE ARP4761 & FAA AC 25.1309-1A. | `requirement def` |
-| **`Aircraft_State_Space`** | Formalizes continuous state vector $x(t)$ for flight dynamics & sensor inputs. | `attribute def` |
+| **`System_Losses_And_Hazards`** | Defines top-down System Losses (L_1 \dots L_4) and System Hazards (H_1 \dots H_6) per SAE ARP4761 & FAA AC 25.1309-1A. | `requirement def` |
+| **`Aircraft_State_Space`** | Formalizes continuous state vector x(t) for flight dynamics & sensor inputs. | `attribute def` |
 | **`Avionic_System_Parts`** | Defines primary flight computers, guidance engines, actuators, and sensor suites. | `part def` |
 | **`Databus_Port_Definitions`** | Defines avionics databuses (ARINC 429, MIL-STD-1553B, C2 5G, CAN Bus). | `port def` |
-| **`STPA_Unsafe_Control_Actions`** | Contains 16 formal STPA Unsafe Control Actions ($UCA_{01} \dots UCA_{16}$) with `@TriggersHazard` annotations. | `requirement def` |
-| **`STPA_Safety_Control_Constraints`** | Contains 32 formal safety control constraints ($SC_1 \dots SC_{32}$) with `@SafetyRealises`. | `requirement def` |
+| **`STPA_Unsafe_Control_Actions`** | Contains 16 formal STPA Unsafe Control Actions (UCA_{01} \dots UCA_{16}) with `@TriggersHazard` annotations. | `requirement def` |
+| **`STPA_Safety_Control_Constraints`** | Contains 32 formal safety control constraints (SC_1 \dots SC_{32}) with `@SafetyRealises`. | `requirement def` |
 | **`FMECA_Risk_Profiles`** | Represents hardware fault modes (`FMECA-HW-01` to `08`) with RPN metrics. | `attribute def` |
 | **`Stateflow_Execution_State_Machines`** | Defines ARINC 653 100ms major frame schedule & fail-safe FSM transitions. | `state def` |
 | **`Simulink_Export_Profile`** | Defines metadata annotations (`@SimulinkBlock`, `@StateflowChart`, `@SimulinkSignal`). | `attribute def` |
@@ -361,8 +361,8 @@ To enable automated synthesis into MATLAB Simulink (`.slx`) and Stateflow (`.sfx
 
 | SysML v2 Source Construct | MATLAB Target Representation | Generated Simulink / Stateflow Asset |
 | :--- | :--- | :--- |
-| `package System_Losses_And_Hazards` | `slreq.ReqSet` Target | Top-level system safety loss ($L_1 \dots L_4$) and hazard ($H_1 \dots H_6$) requirement nodes in Simulink Requirements. |
-| `package STPA_Unsafe_Control_Actions` | Stateflow Assertion & `slreq.ReqSet` | Unsafe Control Action items ($UCA_{01} \dots UCA_{16}$) with `@TriggersHazard` links, DAL metadata, and Stateflow hazard monitor blocks. |
+| `package System_Losses_And_Hazards` | `slreq.ReqSet` Target | Top-level system safety loss (L_1 \dots L_4) and hazard (H_1 \dots H_6) requirement nodes in Simulink Requirements. |
+| `package STPA_Unsafe_Control_Actions` | Stateflow Assertion & `slreq.ReqSet` | Unsafe Control Action items (UCA_{01} \dots UCA_{16}) with `@TriggersHazard` links, DAL metadata, and Stateflow hazard monitor blocks. |
 | `part def` | `Simulink.BlockDiagram` / Subsystem | Atomic Subsystem block (`Simulink.BlockType = 'SubSystem'`) with inports and outports. |
 | `port def` | `Simulink.Bus` / Inport / Outport | `Simulink.BusObject` definition with typed signal elements matching port specifications. |
 | `attribute def` | `Simulink.Parameter` / Signal | Block parameter or signal attribute in MATLAB Workspace / Data Dictionary (`Simulink.DataDictionary`). |

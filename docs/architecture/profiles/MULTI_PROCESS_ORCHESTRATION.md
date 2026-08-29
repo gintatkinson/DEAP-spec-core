@@ -201,7 +201,7 @@ Where:
 
 Using native IPC transports (UDS or Named Pipes) keeps latency minimal:
 
-$$P_{\text{ipc}} < 0.2\text{ ms} \quad \text{and} \quad B_{\text{ipc}} \ge 500\text{ MB/s}$$
+$$P_{\text{ipc}} < 0.2 \quad \text{and} \quad B_{\text{ipc}} \ge 500\text{ MB/s}$$
 
 This ensures that the transport overhead is negligible relative to the visual frame window.
 

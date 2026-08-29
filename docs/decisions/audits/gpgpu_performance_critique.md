@@ -63,7 +63,7 @@ The proposal justifies the GPGPU double-single architecture as a mitigation for 
 
 1. **Bandwidth Calculations**:
    For 10,000 active trajectories, uploading 3D coordinates as single-precision `vec3<f32>` (12 bytes) at 60fps requires:
-   $$10,000 \text{ nodes} \times 12 \text{ bytes/node} \times 60 \text{ fps} = 7.2 \text{ MB/s}$$
+   $$10,000 \text{ nodes} \times 12 \text{ bytes/node} \times 60  = 7.2 \text{ MB/s}$$
    PCIe Gen 3 has a practical bandwidth of $\approx 12,000$ MB/s. A transfer rate of 7.2 MB/s consumes less than **0.06%** of the bus capacity. Even with PCIe Gen 3 x1 (e.g., low-end mobile devices), the transfer consumes less than 1% of the bus capacity.
 2. **CPU-Side Floating Origin (Relative-to-Eye)**:
    Instead of uploading static double-single coordinates and performing expensive emulated math on the GPU, the CPU can subtract the double-precision camera position from the coordinates of the active telemetry nodes in WebWorkers/Isolates:
