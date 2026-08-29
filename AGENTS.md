@@ -178,3 +178,7 @@ is found, HALT and escalate as a blocker. Do not substitute direct coordinator w
 - **No Master Blueprint Duplication**: Downstream projects MUST NOT duplicate or copy master core blueprint files (`DEAP_MASTER_ARCHITECTURE.md`, `THREE_TIER_GOVERNANCE_BLUEPRINT.md`, `DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml`). Central specification blueprints belong exclusively in the upstream specification repository (`gintatkinson/DEAP-spec-core`).
 - **Mandatory Repository `.gitignore`**: All downstream projects and workspace repositories MUST include a root `.gitignore` file.
 - **Zero `.DS_Store` Policy**: OS artifact metadata files (`.DS_Store`) are strictly forbidden in git index and working tree across all repositories. Automated cleanup and linter gates enforce zero `.DS_Store` presence.
+
+## Commit Message Non-Closure Invariant (No Auto-Close Keywords)
+- **Commit Message Non-Closure Invariant**: Automated agents and scripts are strictly prohibited from using auto-closing trigger keywords (`fix #`, `fixes #`, `fixed #`, `close #`, `closes #`, `closed #`, `resolve #`, `resolves #`, `resolved #`) in git commit messages.
+- All issue citations in git commit messages MUST use neutral syntax, e.g., `(#<id>)` or `(refs #<id>)`, ensuring issues remain in `status:fixed-resolved` until explicitly closed by the Product Owner.

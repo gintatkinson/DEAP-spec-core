@@ -59,6 +59,15 @@ If no valid token is present in the environment for the detected or configured p
 
 Product Owner (PO) issue closure authority applies **identically across both GitHub and GitLab**. Automated agents, subagents, and background scripts are strictly permitted to transition issues only up to `status::fixed-resolved` (or `status:fixed-resolved` on GitHub) with verified evidence comments. Transitioning an issue to `Closed` (or applying `status::closed`) requires formal Product Owner / Certification Authority validation.
 
+### Commit Message Issue Reference Rule (No Auto-Close Keywords)
+
+Because GitHub and GitLab automatically close referenced issues when commit messages containing trigger keywords (`fix #<id>`, `fixes #<id>`, `fixed #<id>`, `close #<id>`, `closes #<id>`, `closed #<id>`, `resolve #<id>`, `resolves #<id>`, `resolved #<id>`) are merged or pushed to the default branch, **agents and scripts are strictly forbidden from using auto-closing trigger keywords in commit messages**.
+
+All issue references in git commit messages MUST use neutral reference syntax:
+- **Permitted**: `feat(compiler): multi-mode FMECA extraction (#50, #51)` or `fix(auditor): harden LinkValidator (refs #50)`
+- **Strictly Forbidden**: `(fix #50, fix #51)`, `(closes #50)`, `(resolved #51)`, or any closing keyword preceding `#<id>`.
+
+
 ## Relationship to other rules
 
 - See `rules/platform-independence.md` for specification content rules (WHAT vs HOW) and for all Mermaid syntax constraints.

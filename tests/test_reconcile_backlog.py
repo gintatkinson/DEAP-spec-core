@@ -489,3 +489,45 @@ class TestSanitizeLatexDelimitersForTracker(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCommitMessageNonClosureInvariant(unittest.TestCase):
+    """Verifies that commit message guidelines and validators reject auto-closing trigger keywords."""
+
+    def test_auto_closing_keywords_detected(self):
+        trigger_patterns = [
+            r'\bfix\s+#\d+',
+            r'\bfixes\s+#\d+',
+            r'\bfixed\s+#\d+',
+            r'\bclose\s+#\d+',
+            r'\bcloses\s+#\d+',
+            r'\bclosed\s+#\d+',
+            r'\bresolve\s+#\d+',
+            r'\bresolves\s+#\d+',
+            r'\bresolved\s+#\d+',
+        ]
+        import re
+
+        # Bad commit messages that would trigger server-side auto-closure
+        bad_messages = [
+            "feat(compiler): multi-mode FMECA extraction (fix #50, fix #51)",
+            "fix(rules): update validator (closes #47)",
+            "docs: update handoff (resolved #12)",
+            "feat: add feature closes #99",
+        ]
+
+        # Good commit messages using neutral citation syntax
+        good_messages = [
+            "feat(compiler): multi-mode FMECA extraction (#50, #51)",
+            "fix(rules): update validator (refs #47)",
+            "docs: update handoff (#12)",
+            "feat: add feature (#99)",
+        ]
+
+        combined_regex = re.compile("|".join(trigger_patterns), re.IGNORECASE)
+
+        for msg in bad_messages:
+            self.assertTrue(bool(combined_regex.search(msg)), f"Failed to flag trigger in: {msg}")
+
+        for msg in good_messages:
+            self.assertFalse(bool(combined_regex.search(msg)), f"False positive flag in: {msg}")

@@ -817,3 +817,6 @@ Updated frontmatter `last_updated` date to `2026-08-29` and generalized the 3-la
 Reinforce the pure schema-driven compiler invariant in Tier 1 functional governance for `DEAP-spec-core` (Upstream Specification Core Compiler), ensuring all examples use generic domain and interface primitives while downstream distribution templates provide domain-specific regulatory and platform bindings.
 
 Non-destructive: semantic chain rules and all 16 quality gates preserved, line count maintained.
+
+### Amendment: Commit Message Non-Closure Invariant (#382)
+- Codified strict prohibition on auto-closing trigger keywords (`fix #`, `closes #`, `resolve #`) in git commit messages to guarantee that issues remain in `status:fixed-resolved` for Product Owner validation and are never closed by server-side push automation.

@@ -255,4 +255,5 @@ The pipeline explicitly substantiates CMMI Level 3 alignment across key engineer
 - `Verifying`: Code changes are in peer review (PR) and automated tests are executing.
 - `Fixed / Resolved`: Development work is complete, tests have passed, and the fix is integrated into `main`. The issue remains in this state awaiting customer feedback.
 - `Closed`: The issue is archived. This state is unreachable without explicit Product Owner/Customer validation approval.
+- **Commit Message Non-Closure Invariant**: Agents and automated scripts are strictly prohibited from using issue auto-closing keywords (`fix`, `fixes`, `fixed`, `close`, `closes`, `closed`, `resolve`, `resolves`, `resolved` preceding `#<id>`) in git commit messages. All commit messages referencing issues MUST use neutral citations: `(#<id>)` or `(refs #<id>)` to prevent server-side premature auto-closure.
 
