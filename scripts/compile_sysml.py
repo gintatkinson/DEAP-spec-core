@@ -85,21 +85,30 @@ except ImportError:
 def parse_stpa_ucas(content: str) -> List[Dict[str, Any]]:
     """
     Parses STPA Unsafe Control Actions (UCAs) from markdown tables, structured text,
-    or specification matrices.
+    or 4-guide-word specification matrices (MIL-STD-882E / STPA / SORA).
 
     Returns:
         List of dicts representing parsed UCAs with fields:
-        - id: UCA identifier (e.g. 'UCA-UAS-01')
+        - id: UCA identifier (e.g. 'UCA-UAS-01' or synthesized 'UCA_Engage_Autonomous_RTL_Not_providing_1')
         - controller: Controlling element (e.g. 'Flight Controller')
-        - control_action: Action commanded (e.g. 'Fail-Safe Return-to-Launch (RTL)')
-        - category: STPA UCA category (e.g. '1. Not Provided', '2. Provided Unsafely')
+        - control_action: Action commanded (e.g. 'Engage Autonomous RTL')
+        - category: STPA UCA guide word (e.g. 'Not providing', 'Providing', 'Too late', 'Stopped too soon')
         - context: Environmental Context / Trigger condition
-        - hazard: Associated System Hazard (e.g. 'H_UAS_1')
+        - hazard: Associated System Hazard (e.g. 'H-1, H-5')
+        - constraint: Formal safety constraint (e.g. 'SC-01, SC-06')
         - severity: Severity level (e.g. 'Catastrophic')
         - sail: SORA SAIL level (e.g. 'SAIL IV-VI')
     """
     ucas = []
-    # Pattern 1: Markdown table row with UCA
+
+    def _is_table_separator(line: str) -> bool:
+        s = line.strip()
+        if not s.startswith("|"):
+            return False
+        inner = s.replace("|", "").strip()
+        return bool(inner and set(inner) <= {"-", ":", " "} and "-" in inner)
+
+    # Pattern 1: Markdown table row with explicit UCA ID
     # | UCA ID | Controller | Control Action | STPA UCA Category | Context | Hazard | Severity | SAIL |
     row_pattern = re.compile(
         r'\|\s*(?:\*\*)?(UCA(?:-[A-Za-z0-9_]+)?-\d+)(?:\*\*)?\s*\|'
@@ -129,11 +138,72 @@ def parse_stpa_ucas(content: str) -> List[Dict[str, Any]]:
             "category": category,
             "context": context,
             "hazard": hazard,
+            "constraint": "",
             "severity": severity,
             "sail": sail
         })
 
-    # Pattern 2: Generic UCA extraction fallback (e.g. list items or headings)
+    # Pattern 2: 4-Guide-Word STPA Taxonomy Matrix (MIL-STD-882E / SORA)
+    # | Control Action | Guide Word | Context / State | Resulting Hazard | Safety Constraint |
+    lines = content.splitlines()
+    in_guideword_table = False
+    active_action = ""
+    action_counter = {}
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            in_guideword_table = False
+            continue
+
+        if _is_table_separator(stripped):
+            continue
+
+        lower = stripped.lower()
+        if "control action" in lower and "guide word" in lower:
+            in_guideword_table = True
+            continue
+
+        if in_guideword_table:
+            cols = [c.strip() for c in stripped.strip("|").split("|")]
+            if len(cols) >= 4:
+                col_action = cols[0].strip().strip("*")
+                col_guideword = cols[1].strip().strip("*")
+                col_context = cols[2].strip()
+                col_hazard = cols[3].strip().strip("*")
+                col_constraint = cols[4].strip().strip("*") if len(cols) > 4 else ""
+
+                if col_action and not col_action.startswith("-"):
+                    active_action = col_action
+
+                # Verify guide word is recognized STPA guide word
+                gw_lower = col_guideword.lower()
+                is_valid_gw = any(g in gw_lower for g in [
+                    "not providing", "providing", "too early", "too late",
+                    "out of order", "stopped too soon", "applied too long"
+                ])
+
+                if is_valid_gw and (col_context or col_hazard):
+                    clean_action = _sanitize_id(active_action or "SafetyAction")
+                    clean_gw = _sanitize_id(col_guideword)
+                    key = f"{clean_action}_{clean_gw}"
+                    action_counter[key] = action_counter.get(key, 0) + 1
+                    synthesized_id = f"UCA_{clean_action}_{clean_gw}_{action_counter[key]}"
+
+                    if not any(u["id"] == synthesized_id for u in ucas):
+                        ucas.append({
+                            "id": synthesized_id,
+                            "controller": "FlightSafetyController",
+                            "control_action": active_action,
+                            "category": col_guideword,
+                            "context": col_context,
+                            "hazard": col_hazard,
+                            "constraint": col_constraint,
+                            "severity": "Catastrophic",
+                            "sail": "SAIL II-IV"
+                        })
+
+    # Pattern 3: Generic UCA extraction fallback (e.g. list items or headings)
     if not ucas:
         generic_pattern = re.compile(r'\b(UCA(?:-[A-Za-z0-9_]+)?-\d+)\b')
         for match in generic_pattern.finditer(content):
@@ -146,6 +216,7 @@ def parse_stpa_ucas(content: str) -> List[Dict[str, Any]]:
                     "category": "UnsafeControlAction",
                     "context": "OperationalBoundExceeded",
                     "hazard": "H_System_Hazard",
+                    "constraint": "SC_Safety_Constraint",
                     "severity": "Critical",
                     "sail": "SafetyLevel_High"
                 })
@@ -155,9 +226,20 @@ def parse_stpa_ucas(content: str) -> List[Dict[str, Any]]:
 
 def parse_fmeca_modes(content: str) -> List[Dict[str, Any]]:
     """
-    Parses FMECA failure modes from markdown tables or specification text.
+    Parses FMECA failure modes from markdown tables or specification text,
+    supporting both qualitative RPN tables and multi-mode quantitative MIL-STD-1629A tables.
     """
     fmecas = []
+
+    def _is_table_separator(line: str) -> bool:
+        s = line.strip()
+        if not s.startswith("|"):
+            return False
+        inner = s.replace("|", "").strip()
+        return bool(inner and set(inner) <= {"-", ":", " "} and "-" in inner)
+
+    # Pattern 1: Classic explicit FMECA ID row
+    # | FMECA-ID | Component | Failure Mode | Effect | Mitigation |
     row_pattern = re.compile(
         r'\|\s*(?:\*\*)?(FMECA(?:-[A-Za-z0-9_]+)?-\d+)(?:\*\*)?\s*\|'
         r'\s*([^|]+)\s*\|'
@@ -178,8 +260,110 @@ def parse_fmeca_modes(content: str) -> List[Dict[str, Any]]:
             "component": component,
             "failure_mode": failure_mode,
             "effect": effect,
-            "mitigation": mitigation
+            "mitigation": mitigation,
+            "is_quantitative": False
         })
+
+    # Pattern 2: Multi-Mode Quantitative / Qualitative FMECA Table with Context Inheritance
+    lines = content.splitlines()
+    in_fmeca_table = False
+    is_quantitative = False
+    active_component = ""
+    comp_mode_count = {}
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            in_fmeca_table = False
+            continue
+
+        if _is_table_separator(stripped):
+            continue
+
+        lower = stripped.lower()
+        if "failure mode" in lower or "failure mode & mechanism" in lower or "failure mechanism" in lower:
+            # Check if this is an explicit FMECA-ID table header
+            if "fmeca-id" in lower or "fmeca id" in lower:
+                in_fmeca_table = False
+                continue
+            in_fmeca_table = True
+            is_quantitative = "lambda" in lower or "alpha" in lower or "c_m" in lower or "criticality" in lower
+            continue
+
+        if in_fmeca_table:
+            cols = [c.strip() for c in stripped.strip("|").split("|")]
+            if len(cols) >= 3:
+                raw_comp = cols[0].strip().strip("*")
+                if raw_comp and not raw_comp.startswith("-"):
+                    active_component = raw_comp
+
+                failure_mode = cols[1].strip() if len(cols) > 1 else ""
+
+                # Skip header-like rows or empty mode rows
+                if not failure_mode or "failure mode" in failure_mode.lower() or "failure mechanism" in failure_mode.lower():
+                    continue
+
+                clean_comp = _sanitize_id(active_component or "Component")
+                comp_mode_count[clean_comp] = comp_mode_count.get(clean_comp, 0) + 1
+                mode_idx = comp_mode_count[clean_comp]
+                synthesized_id = f"FMECA_{clean_comp}_Mode_{mode_idx}"
+
+                if is_quantitative and len(cols) >= 8:
+                    def _parse_float(val_str: str) -> float:
+                        try:
+                            clean_val = re.sub(r'[^0-9eE\.\-]', '', val_str)
+                            return float(clean_val) if clean_val else 0.0
+                        except ValueError:
+                            return 0.0
+
+                    lambda_p = _parse_float(cols[2])
+                    alpha = _parse_float(cols[3])
+                    beta = _parse_float(cols[4])
+                    c_m = _parse_float(cols[5])
+                    c_r = _parse_float(cols[6])
+                    severity = cols[7].strip()
+                    mitigation = cols[8].strip() if len(cols) > 8 else ""
+
+                    fmecas.append({
+                        "id": synthesized_id,
+                        "component": active_component,
+                        "failure_mode": failure_mode,
+                        "lambda_p": lambda_p,
+                        "alpha": alpha,
+                        "beta": beta,
+                        "c_m": c_m,
+                        "c_r": c_r,
+                        "severity": severity,
+                        "mitigation": mitigation,
+                        "is_quantitative": True
+                    })
+                else:
+                    # Qualitative / Standard columns
+                    effect = cols[2].strip() if len(cols) > 2 else ""
+                    mitigation = cols[-1].strip() if len(cols) > 3 else ""
+                    fmecas.append({
+                        "id": synthesized_id,
+                        "component": active_component,
+                        "failure_mode": failure_mode,
+                        "effect": effect,
+                        "mitigation": mitigation,
+                        "is_quantitative": False
+                    })
+
+    # Pattern 3: Generic fallback
+    if not fmecas:
+        generic_pattern = re.compile(r'\b(FMECA(?:-[A-Za-z0-9_]+)?-\d+)\b')
+        for match in generic_pattern.finditer(content):
+            fid = match.group(1)
+            if not any(f["id"] == fid for f in fmecas):
+                fmecas.append({
+                    "id": fid,
+                    "component": "GenericComponent",
+                    "failure_mode": "GenericFailureMode",
+                    "effect": "DegradedOperation",
+                    "mitigation": "RedundantSwitchover",
+                    "is_quantitative": False
+                })
 
     return fmecas
 
@@ -196,7 +380,7 @@ def _sanitize_id(identifier: str) -> str:
 def _derive_formal_rta_expression(uca: Dict[str, Any]) -> str:
     """
     Synthesizes a mathematically verifiable formal assertion predicate expression
-    from an STPA UCA context and control action.
+    from an STPA UCA context, guide word, and control action.
     """
     uca_id = uca.get("id", "")
     context = uca.get("context", "")
@@ -204,18 +388,43 @@ def _derive_formal_rta_expression(uca: Dict[str, Any]) -> str:
     category = uca.get("category", "").lower()
 
     # Clean LaTeX math formatting
-    clean_ctx = re.sub(r'[\$\\_{}]', '', context)
+    clean_ctx = re.sub(r'[\$\_{}]', '', context)
     clean_ctx = re.sub(r'\\text\{([^}]*)\}', r'\1', clean_ctx)
     clean_ctx = re.sub(r'\\mathbf\{([^}]*)\}', r'\1', clean_ctx)
     clean_ctx = re.sub(r'\\mu', 'micro', clean_ctx)
     clean_ctx = re.sub(r'\\le', '<=', clean_ctx)
     clean_ctx = re.sub(r'\\ge', '>=', clean_ctx)
 
-    # Standard AST assertion synthesis using generic predicates
-    if "loss" in clean_ctx.lower() or "t_loss" in clean_ctx.lower() or "timeout" in clean_ctx.lower():
-        return "lossDuration <= timeoutLimit"
-    elif "bound" in clean_ctx.lower() or "limit" in clean_ctx.lower() or "threshold" in clean_ctx.lower() or "exceeded" in clean_ctx.lower():
-        return "systemParameter <= maxThreshold"
+    if "not providing" in category:
+        if "c2" in clean_ctx.lower() or "loss" in clean_ctx.lower() or "link" in clean_ctx.lower():
+            return "c2LinkLossDuration < 30.0"
+        elif "pressure" in clean_ctx.lower() or "bar" in clean_ctx.lower():
+            return "railPressure >= 13.0"
+        elif "distance" in clean_ctx.lower() or "boundary" in clean_ctx.lower():
+            return "distanceToBoundary >= 50.0"
+        else:
+            return "systemCommandIssued == true"
+    elif "providing" in category:
+        if "flare" in clean_ctx.lower() or "agl" in clean_ctx.lower():
+            return "altitudeAGL > 2.0"
+        elif "cruise" in clean_ctx.lower():
+            return "flightPhase != Cruise"
+        else:
+            return "boundaryInBounds == true"
+    elif "too late" in category:
+        if "soc" in clean_ctx.lower() or "battery" in clean_ctx.lower():
+            return "batterySoC >= 0.20"
+        elif "velocity" in clean_ctx.lower() or "m/s" in clean_ctx.lower() or "v =" in clean_ctx.lower():
+            return "boundaryCrossVelocity <= 31.0"
+        else:
+            return "reactionLatency <= maxAllowedLatency"
+    elif "stopped too soon" in category:
+        if "altitude" in clean_ctx.lower():
+            return "transitAltitude >= safeTransitAltitude"
+        else:
+            return "commandHoldDuration >= minRequiredDuration"
+    elif "applied too long" in category:
+        return "turnHoldDuration <= maxTurnDuration"
     else:
         return "systemParameter <= maxThreshold"
 
@@ -231,8 +440,9 @@ def compile_uca_to_constraint(uca: Dict[str, Any]) -> Any:
     expression = _derive_formal_rta_expression(uca)
 
     doc = (
-        f"STPA RTA Safety Invariant for {uca_id} | Controller: {uca.get('controller', '')} | "
-        f"Hazard: {uca.get('hazard', '')} | Severity: {uca.get('severity', '')}"
+        f"STPA RTA Safety Invariant for {uca_id} | Action: {uca.get('control_action', '')} | "
+        f"Guide Word: {uca.get('category', '')} | Hazard: {uca.get('hazard', '')} | "
+        f"Constraint: {uca.get('constraint', '')} | Severity: {uca.get('severity', '')}"
     )
 
     if SysMLConstraintDef:
@@ -259,7 +469,16 @@ def compile_fmeca_to_constraint(fmeca: Dict[str, Any]) -> Any:
     name = f"Constraint_{clean_id}"
     comp = _sanitize_id(fmeca.get("component", "Component"))
     expression = f"{comp}_healthStatus == Normal"
-    doc = f"FMECA Safety Invariant for {fmeca_id} | Failure Mode: {fmeca.get('failure_mode', '')}"
+
+    if fmeca.get("is_quantitative"):
+        doc = (
+            f"MIL-STD-1629A FMECA Invariant for {fmeca_id} | Component: {fmeca.get('component', '')} | "
+            f"Failure Mode: {fmeca.get('failure_mode', '')} | lambda_p: {fmeca.get('lambda_p', 0.0)}/10^6 hr | "
+            f"alpha: {fmeca.get('alpha', 0.0)} | beta: {fmeca.get('beta', 0.0)} | "
+            f"Cm: {fmeca.get('c_m', 0.0):.2e} | Cr: {fmeca.get('c_r', 0.0):.2e} | Mitigation: {fmeca.get('mitigation', '')}"
+        )
+    else:
+        doc = f"FMECA Safety Invariant for {fmeca_id} | Failure Mode: {fmeca.get('failure_mode', '')}"
 
     if SysMLConstraintDef:
         return SysMLConstraintDef(
@@ -274,8 +493,6 @@ def compile_fmeca_to_constraint(fmeca: Dict[str, Any]) -> Any:
         "is_assertion": False,
         "doc": doc
     }
-
-
 def compile_stpa_to_ast(content: str, package_name: str = "AutonomousUAS_SafetyConstraints") -> Any:
     """
     Compiles STPA and FMECA hazard analyses into a canonical SysMLPackage AST containing

@@ -21,7 +21,6 @@
 - **SysML v2 MATLAB Export Blueprint**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/blueprints/DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.md
 - **DEAP Agent Orchestration Harness (DEAP-Harness) Blueprint**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/blueprints/DEAP_DEEPSEEK_HARNESS_INTEGRATION_BLUEPRINT.md
 - **Master Architecture Specification**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/core/DEAP_MASTER_ARCHITECTURE.md
-- **Polyrepo Migration Map**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/core/DEAP_POLYREPO_MIGRATION_MAP.md
 - **Three-Tier Governance Blueprint**: https://github.com/gintatkinson/DEAP-spec-core/blob/main/docs/architecture/core/THREE_TIER_GOVERNANCE_BLUEPRINT.md
 
 ---

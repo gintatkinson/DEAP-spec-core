@@ -1,20 +1,20 @@
-# Digital Engineering Agent Platform (DEAP) — Low-Altitude UAS Infrastructure Safety Platform
+# Digital Engineering Agent Platform (DEAP) — Core Specification Compiler
 
-> **Repository Identifier:** `DEAP-uas-infrastructure-safety`  
-> **Repository Role:** `PIPELINE_DISTRIBUTION_TEMPLATE` (Upstream Template for UAS Safety Governance)  
-> **Customer Data Policy:** Downstream project workspaces are created via `install_pipeline.sh`. Do not commit customer-specific implementation artifacts to this template repository.  
+> **Repository Identifier:** `DEAP-spec-core`  
+> **Repository Role:** `UPSTREAM_SPEC_CORE_COMPILER` (Digital Engineering Agent Platform Core Specification Compiler)  
+> **Classification:** `Abstract Model-Based Systems Engineering (MBSE) Compiler & Multi-Agent Verification Platform`  
 > **Status:** `PRODUCTION-GRADE / ACTIVE`  
-> **Classification:** `Low-Altitude UAS Infrastructure Safety & Autonomous Airspace Platform`  
-> **Target Regulatory Frameworks:** `JARUS SORA v2.5 (SAIL I–VI)` | `ASTM F3269-17 RTA` | `ASTM F3411-22a Remote ID` | `RTCA DO-365B DAA`  
-> **Primary Technology Profiles:** `ROS2 C++ Real-Time` | `PX4 Autopilot Flight Module`  
+> **Primary Commercial Toolchain Integration:** `MATLAB / Simulink / Stateflow / Embedded Coder`  
+> **Supported Schema Standards:** `SysML v2 (OMG)` | `OMG IDL` | `AUTOSAR ARXML` | `YANG (Network Topology)` | `OpenAPI v3` | `Protobuf v3`  
+> **Multi-Provider Issue Tracking:** `GitHub Issues` | `GitLab Issues` | `Atlassian Jira (Cloud & Data Center)`  
 
 ---
 
 ## 1. System Overview
 
-The **DEAP Low-Altitude UAS Infrastructure Safety Platform** (`DEAP-uas-infrastructure-safety`) is a standalone downstream domain platform built on the Digital Engineering Agent Platform (DEAP) architecture. It provides an end-to-end safety assurance, detect-and-avoid (DAA), run-time assurance (RTA), and Remote ID infrastructure integration platform for uncrewed aircraft systems (UAS), urban air mobility (UAM), and autonomous flight fleets operating in low-altitude airspace.
+The **Digital Engineering Agent Platform Core Specification Compiler (`DEAP-spec-core`)** is the upstream abstract systems engineering compiler and multi-agent verification framework for DEAP. It provides deterministic translation, model-based validation, bidirectional synchronization, and quality gate enforcement bridging formal engineering models (SysML v2, YANG, IDL, ARXML, OpenAPI, Protobuf) with downstream Agile specification backlogs and autonomous code generation.
 
-By combining System-Theoretic Process Analysis (STPA) with Failure Mode, Effects, and Criticality Analysis (FMECA) tailored for autonomous robotics and airspace integration, this platform enforces strict SORA SAIL risk mitigations down to ROS2 C++ lifecycle nodes, PX4 flight controllers, and continuous test verification gates.
+Operating purely on Abstract Syntax Tree (AST) tokens without hardcoding domain concepts, `DEAP-spec-core` serves as the upstream parent compiler from which domain-specific distribution templates (e.g. `DEAP-uas-infrastructure-safety`, automotive, medical, and telecommunications) and downstream customer projects are derived via `scripts/install_pipeline.sh`.
 
 ---
 
@@ -24,30 +24,27 @@ This platform explicitly declares **MATLAB / Simulink / Stateflow / Embedded Cod
 
 ---
 
-## 2. Supported Regulatory & Airspace Frameworks
+## 2. Supported Schema & Modeling Standards
 
-| Standard | Domain & Scope | Target Assurance | DEAP Mechanical Automation |
+| Standard / Format | Modeling Scope | AST Mapping Primitives | Compiler Ingestion & Validation |
 | :--- | :--- | :--- | :--- |
-| **JARUS SORA v2.5** | Specific Operation Risk Assessment | SAIL I to SAIL VI (Catastrophic / Urban Airspace) | Validates ground risk (GRC) and air risk (ARC) mitigations, TMS containment, and fail-safe Return-to-Launch (RTL) rules. |
-| **ASTM F3269-17** | Run-Time Assurance (RTA) for Aircraft Systems | Non-complex safety net monitor (RTA Architecture) | Enforces deterministic fail-safe switching logic between un-verified advanced control loops and certified recovery baselines. |
-| **ASTM F3411-22a** | Broadcast & Network Remote ID | Direct Broadcast & Network ASTM RID Protocol | AST linters verify 1Hz transmission frequency, location payload integrity, and cryptographic authentication tags. |
-| **RTCA DO-365B** | Detect and Avoid (DAA) Systems | Minimum Operational Performance Standards (MOPS) | Validates TCAS II / ACAS sUAS alert & guidance logic, well-clear boundary boundaries, and hazard collision avoidance. |
+| **SysML v2 (OMG)** | Systems architecture, behavior, requirements | `package`, `part def`, `port def`, `action def`, `state def`, `requirement def` | Bidirectional SSOT synchronization, full-AST compilation, invariant proving via SLDV hooks. |
+| **OMG IDL (v4.2)** | Interface definition, RPC contracts, DDS types | `module`, `interface`, `struct`, `union`, `enum`, `@topic` | Automatic projection to port interfaces, data transfer objects, and real-time middleware bindings. |
+| **AUTOSAR ARXML** | Automotive E/E architecture, software components | `AR-PACKAGE`, `SW-COMPONENT-TYPE`, `P-PORT-PROTOTYPE`, `RUNNABLE-ENTITY` | Component-to-Feature allocation, runnable sequence mapping, and lifecycle constraint validation. |
+| **YANG (Network Topology)** | Network topology, operational state, configuration | `module`, `container`, `list`, `leaf`, `rpc`, `notification` | Multi-layer network model compilation, JSON/RESTCONF serialization, and AST parity gates. |
+| **OpenAPI v3** | REST API endpoints, web service schemas | `paths`, `components/schemas`, `parameters`, `responses` | Automatic projection to Feature API boundaries, User Story contract tests, and request/response models. |
+| **Protobuf v3** | Serialization schemas, gRPC service methods | `message`, `service`, `rpc`, `enum` | High-throughput binary serialization mapping, RPC sequence diagram generation, and payload validation. |
 
 ---
 
-## 3. Platform Technology Profiles
+## 3. Multi-Platform Implementation Profiles Overview
 
-### 3.1 ROS2 C++ Profile (`.pipeline/profiles/ros2_cpp.md`)
-- **Framework:** ROS 2 (Humble / Iron / Jazzy) with `rclcpp`
-- **Execution Lifecycle:** `rclcpp_lifecycle::LifecycleNode` state machine management
-- **Real-Time Memory:** Zero allocation in active control loops (`rttest` verification)
-- **Communication Safety:** Hardened Quality of Service (QoS) profiles (`RELIABILITY_RELIABLE`, `TRANSIENT_LOCAL`)
-
-### 3.2 PX4 Autopilot Profile (`.pipeline/profiles/px4_module.md`)
-- **Autopilot Architecture:** PX4 Autopilot Firmware & uORB Messaging
-- **Fail-Safe Management:** PX4 Flight Mode Safety Gates (Geofence, Battery, Data Link Loss, Fail-Safe RTL)
-- **Interface Protocol:** MAVLink v2.0 with microRTPS / XRCE-DDS bridge
-- **Hardware Integration:** STM32 / Pixhawk flight controller hardware target constraints
+DEAP supports decoupled downstream implementation profiles residing under `.pipeline/profiles/`:
+- **Logical UI / Mobile (`flutter.md`):** Cross-platform Flutter desktop/mobile with 60 FPS viewport guarantees and decoupled state management.
+- **Operator Console / Web (`react.md`):** React/TypeScript web application architecture with REST/WebSocket interfaces.
+- **Embedded Real-Time / Robotics (`ros2_cpp.md`):** ROS2 C++ real-time lifecycle nodes with deterministic zero-allocation execution.
+- **Flight Autopilot & Safety Nets (`px4_module.md`):** PX4 flight modules with uORB messaging and ASTM F3269-17 run-time assurance monitors.
+- **Safety-Critical Firmware (C / SPARK Ada):** MISRA C and formal SPARK Ada kernels synthesized via MATLAB / Simulink Embedded Coder.
 
 ---
 

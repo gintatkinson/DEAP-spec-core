@@ -3,7 +3,7 @@ title: "Project Constitution — Functional Layer"
 project: "Digital Engineering Agent Platform (DEAP)"
 tier: functional
 created: "2026-06-29"
-last_updated: "2026-08-24"
+last_updated: "2026-08-29"
 ---
 
 # Project Constitution: Digital Engineering Agent Platform (DEAP)
@@ -117,10 +117,10 @@ graph TD
 - Feature titles use the format: `[Verb] [Object] [Qualifier]`.
 
 ### BDD Scenario Format
-- All acceptance criteria MUST use Given-When-Then format adhering to canonical aerospace BDD templates:
-  - **Pattern A (ARINC 661 Cockpit Display Systems)**: `Given [UA Parameter Buffer State], When [ARINC 661 Binary Command Received], Then [CDS Widget State & Display Kernel Render Updated]`.
-  - **Pattern B (Real-Time Safety Statechart / Flight Control)**: `Given [Aircraft State Vector / Discrete Event], When [Safety FSM Transition Triggered], Then [Actuator Command / Symbology Graphic Rendered]`.
-  - **Pattern C (Decoupled Operator Console)**: `Given [Console Domain Model State], When [Operator Action Initiated], Then [ViewModel State & GUI Component Binding Updated]`.
+- All acceptance criteria MUST use Given-When-Then format adhering to canonical 3-layer semantic BDD templates:
+  - **Pattern A (Synchronous Display Kernel / Embedded Protocol)**: `Given [Domain Input Parameter Buffer State], When [Binary Command Message Received], Then [Widget State & Display Kernel Render Updated]`.
+  - **Pattern B (Real-Time Safety Statechart / Discrete Event Control)**: `Given [Domain State Vector / Discrete Event], When [Safety Statechart FSM Transition Triggered], Then [Actuator Command / Output Signal Generated]`.
+  - **Pattern C (Decoupled Operator Console / Web Interface)**: `Given [Console Domain Model State], When [Operator Action Initiated], Then [ViewModel State & GUI Component Binding Updated]`.
 - Negative scenarios (error cases, boundary violations, emergency failsafe modes) are MANDATORY for every constraint.
 
 ### User Story Format

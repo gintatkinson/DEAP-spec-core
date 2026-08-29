@@ -796,3 +796,24 @@ Non-destructive: additive quality gate registration and airworthiness governance
 
 
 
+---
+
+## AMEND-0014 — Domain-Agnostic Tier 1 Semantic Pattern Generalization & Governance Alignment
+
+- **Date:** 2026-08-29
+- **Logged:** 2026-08-29
+- **Motivating issue:** DEAP-spec-core Upstream Specification Core Compiler Domain Neutrality Alignment
+- **Approved by:** "PROCEED" — approved implementation plan for clean domain remediation.
+- **Destructive:** no
+- **Line count:** 257
+- **Resulting SHA-256:** `de61ca04dbf1cbfdbb53709b14722863eb6f3ba7649fade49782d2655e29a010`
+
+### Change
+
+Updated frontmatter `last_updated` date to `2026-08-29` and generalized the 3-layer LUI semantic BDD patterns in Section *Requirements & Specifications Standards* to platform-independent domain models while preserving the mandatory 3-layer semantic chain.
+
+### Rationale
+
+Reinforce the pure schema-driven compiler invariant in Tier 1 functional governance for `DEAP-spec-core` (Upstream Specification Core Compiler), ensuring all examples use generic domain and interface primitives while downstream distribution templates provide domain-specific regulatory and platform bindings.
+
+Non-destructive: semantic chain rules and all 16 quality gates preserved, line count maintained.

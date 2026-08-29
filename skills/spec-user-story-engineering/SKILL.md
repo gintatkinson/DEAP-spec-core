@@ -60,7 +60,7 @@ For every BDD scenario and acceptance criteria set, you MUST generate and link t
      - Map the story to specific Domain Objects (the structural schema entities affected).
      - **UML Sequence Diagram & SysML Interaction Binding (Check 20)**: Include a **UML Sequence Diagram** (using Mermaid `sequenceDiagram`) illustrating the dynamic interaction between the Actor and specific Domain Objects.
        - *SysML Interaction Realization*: Parse SysML `interaction` AST blocks to construct lifelines, message sequences, and triggers.
-       - *Lifeline Notation*: All sequence diagrams must use the standard UML lifeline notation `name : Classifier` or `: Classifier` (using Mermaid alias syntax: `actor userActor as "userActor : UserActor"` or `participant flightGuidance as "flightGuidance : FlightGuidanceComputer"`).
+       - *Lifeline Notation*: All sequence diagrams must use the standard UML lifeline notation `name : Classifier` or `: Classifier` (using Mermaid alias syntax: `actor userActor as "userActor : UserActor"` or `participant systemService as "systemService : SystemService"`).
        - *Lifeline Part Binding*: Every internal `participant` classifier MUST resolve to a valid SysML `part def` declared in the SysML AST.
        - *Actor vs Participant (enforced — issue #277)*: The choice of keyword is semantic, not cosmetic, and determines whether the classifier must exist in a Feature class diagram / SysML part definition.
          - Declare a lifeline `actor` **only** when it represents an entity **outside the system boundary** — a human role, or a third-party system you do not model. An `actor` classifier is **exempt** from the structural-definition requirement, because external entities are correctly absent from the structural models.

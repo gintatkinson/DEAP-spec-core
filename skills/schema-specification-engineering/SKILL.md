@@ -187,7 +187,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     Formal allocation of SysML v2 `capability def` declarations mapped to this subsystem package:
     | Capability Name | Subsystem Package | Description / Objective |
     | --- | --- | --- |
-    | AutonomousCollisionAvoidance | FlightGuidance | Executes real-time detect-and-avoid trajectory deconfliction |
+    | TelemetryProcessing | SystemController | Executes real-time telemetry processing and state machine transitions |
 
     ### Subsystem Component Definition
     Define the subsystem representing the Epic as a UML Component specifying provided/required interfaces and operations.

@@ -16,18 +16,18 @@ By deeply embedding DeepSeek’s open-source reasoning models (DeepSeek-R1 for l
 
 ```mermaid
 flowchart TD
-    subgraph DEAP_Harness_Core["DEAP Agent Orchestration Harness (DEAP-Harness / DEAP-Seek Engine)"]
-        CoTEngine["Chain-of-Thought (CoT) Audit Engine\n(Captures raw DeepSeek-R1 <think> rationale)"]
-        AirGapRuntime["Air-Gapped Local Inference Engine\n(vLLM / SGLang / Ollama Provider Abstraction)"]
-        PipelineController["Multi-Pipeline Async Orchestration Controller\n(Automates Pipeline 0 -> 1 -> 2 State Machine)"]
+    subgraph DEAP_Harness_Core["DEAP Agent Orchestration Harness (DEAP-Seek Engine)"]
+        CoTEngine["Chain-of-Thought CoT Audit Engine (Captures DeepSeek-R1 reasoning)"]
+        AirGapRuntime["Air-Gapped Local Inference Engine (Provider Abstraction)"]
+        PipelineController["Multi-Pipeline Async Orchestration Controller (State Machine Automator)"]
     end
 
     InputIntent["Customer Intent / SysML v2"] --> PipelineController
-    PipelineController --> P0["Pipeline 0: Pre-Spec Safety\n(Worker 0A -> 0B -> 0C)"]
-    P0 -->|"pipeline0_handoff_contract.json"| P1["Pipeline 1: Agile Projection\n(Epics, Features, BDD User Stories)"]
-    P1 -->|"reconcile_backlog.py"| P2["Pipeline 2: TDD Code Synthesis\n(ROS2 C++ / PX4 / SPARK Ada)"]
+    PipelineController --> P0["Pipeline 0: Pre-Spec Safety (Worker 0A -> 0B -> 0C)"]
+    P0 -->|"pipeline0_handoff_contract.json"| P1["Pipeline 1: Agile Projection (Epics, Features, BDD User Stories)"]
+    P1 -->|"reconcile_backlog.py"| P2["Pipeline 2: TDD Code Synthesis (Generic Implementation Engine)"]
     
-    CoTEngine --> AuditLog[".pipeline/diagnostics/cot_audit_log.json\n(DO-178C & SORA SAIL Audit Evidence)"]
+    CoTEngine --> AuditLog[".pipeline/diagnostics/cot_audit_log.json (Audit Evidence Log)"]
     AirGapRuntime --> SecureLab["Defense & Aerospace Air-Gapped Facility"]
 ```
 
@@ -52,9 +52,9 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    CLI["DEAP-Harness CLI\n(deap-harness run)"] --> ConfigLoader["Configuration & Profile Loader\n(deap_harness_config.yaml)"]
-    ConfigLoader --> ProviderManager["Inference Provider Manager\n(vLLM / SGLang / Ollama / Local API)"]
-    ProviderManager --> DualEngine["Dual-LLM Engine\n(DeepSeek-R1 CoT + DeepSeek-V3 Tools)"]
+    CLI["DEAP-Harness CLI (deap-harness run)"] --> ConfigLoader["Configuration and Profile Loader (deap_harness_config.yaml)"]
+    ConfigLoader --> ProviderManager["Inference Provider Manager (Provider Abstraction)"]
+    ProviderManager --> DualEngine["Dual-LLM Engine (DeepSeek-R1 CoT + DeepSeek-V3 Tools)"]
     DualEngine --> SubagentDispatcher["Context-Isolated Subagent Dispatcher"]
     SubagentDispatcher --> GateEnforcer["Constitutional Quality Gate Enforcer"]
 ```
