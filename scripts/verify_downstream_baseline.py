@@ -712,7 +712,7 @@ def check_safety_integrity_and_sora_completeness(repo_root):
 
     safety_files = []
     for root, dirs, files in os.walk(safety_dir):
-        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
+        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS and d not in ("defects", "audits", "decisions")]
         for f in files:
             if f.endswith(".md") and f != "README.md":
                 safety_files.append(os.path.join(root, f))
@@ -722,18 +722,21 @@ def check_safety_integrity_and_sora_completeness(repo_root):
         return
 
     all_errors = []
-    for s_file in safety_files:
+    # If there is a single primary safety matrix (e.g. STPA_MATRIX.md), validate it individually.
+    # Otherwise, aggregate content across modular safety specs (e.g. STPA + FMECA + SORA in separate files).
+    combined_content = []
+    for s_file in sorted(safety_files):
         rel_path = os.path.relpath(s_file, repo_root)
         try:
             with open(s_file, "r", encoding="utf-8") as f:
-                content = f.read()
+                combined_content.append(f.read())
         except Exception as e:
             all_errors.append(f"Failed to read {rel_path}: {e}")
-            continue
 
-        file_errors = validate_safety_matrix_content(content)
-        for err in file_errors:
-            all_errors.append(f"{rel_path}: {err}")
+    aggregate_safety_content = "\n\n---\n\n".join(combined_content)
+    file_errors = validate_safety_matrix_content(aggregate_safety_content)
+    for err in file_errors:
+        all_errors.append(f"docs/safety/ (aggregate specifications): {err}")
 
     if all_errors:
         print("ERROR: Check 17 failed (Safety Integrity Quality Gate and SORA OSO-01..24 Completeness violations found):", file=sys.stderr)

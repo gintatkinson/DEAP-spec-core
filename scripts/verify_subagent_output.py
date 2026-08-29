@@ -24,14 +24,22 @@ VALID_MERMAID_HEADERS = (
     'classDiagram',
     'graph TD',
     'graph LR',
+    'graph TB',
+    'graph BT',
+    'graph RL',
     'flowchart TD',
     'flowchart LR',
+    'flowchart TB',
+    'flowchart BT',
+    'flowchart RL',
     'sequenceDiagram',
     'stateDiagram-v2',
     'stateDiagram',
     'erDiagram',
     'gantt',
     'pie',
+    'mindmap',
+    'timeline',
 )
 
 
