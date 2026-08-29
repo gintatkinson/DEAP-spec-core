@@ -68,6 +68,9 @@ def _extract_title(filepath: str) -> Optional[str]:
             content = fh.read(2048)
     except Exception:
         return None
+    table_title_match = re.search(r'^\s*\|\s*\*\*Title\*\*\s*\|\s*(.*?)\s*\|\s*$', content, re.MULTILINE | re.IGNORECASE)
+    if table_title_match:
+        return table_title_match.group(1).strip()
     match = re.search(r'^title:\s*(["\']?)(.*?)\1\s*$', content, re.MULTILINE)
     if match:
         return match.group(2).strip()

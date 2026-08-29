@@ -36,9 +36,8 @@ DIRECTORY_PREFIXES: Dict[str, str] = {
     "use_cases": "uc",
 }
 
-# <prefix>-<digits>-<kebab-name>.md  -- lowercase, dash-separated, at least one
-# descriptive segment after the ordinal.
-_NAME_RE = re.compile(r"^(?P<prefix>[a-z]+)-(?P<ordinal>\d+)-(?P<name>[a-z0-9]+(?:-[a-z0-9]+)*)\.md$")
+# <prefix>-<ordinal>-<kebab-name>.md or <prefix>-<ordinal>.md
+_NAME_RE = re.compile(r"^(?P<prefix>[A-Za-z]+)-(?P<ordinal>\d+[a-z]?)(?:-(?P<name>[a-z0-9]+(?:-[a-z0-9]+)*))?\.md$")
 
 
 class SpecFilenameValidator(IValidator):
@@ -62,7 +61,7 @@ class SpecFilenameValidator(IValidator):
             if not names:
                 continue
 
-            by_ordinal: Dict[int, List[str]] = {}
+            by_ordinal: Dict[str, List[str]] = {}
             widths: Dict[int, List[str]] = {}
 
             for name in names:
@@ -76,7 +75,7 @@ class SpecFilenameValidator(IValidator):
                     , location=rel))
                     continue
 
-                if match.group("prefix") != expected_prefix:
+                if match.group("prefix").lower() != expected_prefix.lower():
                     errors.append(Finding(
                         "spec-filename-directory-prefix",
                         f"{rel}/{name}: directory prefix mismatch "
@@ -86,7 +85,7 @@ class SpecFilenameValidator(IValidator):
                     continue
 
                 ordinal_text = match.group("ordinal")
-                by_ordinal.setdefault(int(ordinal_text), []).append(name)
+                by_ordinal.setdefault(ordinal_text.lower(), []).append(name)
                 widths.setdefault(len(ordinal_text), []).append(name)
 
             for ordinal, colliding in sorted(by_ordinal.items()):

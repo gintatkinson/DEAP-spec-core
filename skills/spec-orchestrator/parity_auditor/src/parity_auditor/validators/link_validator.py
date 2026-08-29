@@ -11,83 +11,91 @@ from ..core.workspace import WorkspaceRepository
 _LINK_RE = re.compile(r'\[[^\]]+\]\(([^)]+)\)')
 _GITHUB_BLOB_RE = re.compile(r'https://github\.com/[^\s/]+/[^\s/]+/blob/[^\s/]+/[^\s\)\]\'">]+')
 
+EXCLUDED_SCAN_DIRS = {".git", ".pytest_cache", ".dart_tool", "node_modules", "build", "diagnostics"}
+
 class LinkValidator(IValidator):
     def validate(self, repo: WorkspaceRepository, **kwargs) -> List[Finding]:
         workspace_dir = repo.workspace_dir
+        repo_name = os.path.basename(os.path.abspath(workspace_dir))
         errors: List[Finding] = []
 
-        repo_name = os.path.basename(os.path.abspath(workspace_dir))
-
-        search_dirs = [
-            os.path.join(workspace_dir, "docs"),
-            os.path.join(workspace_dir, "rules"),
-            os.path.join(workspace_dir, "skills"),
-            os.path.join(workspace_dir, ".pipeline"),
-        ]
+        search_dirs = kwargs.get("search_dirs")
+        if not search_dirs:
+            rules = repo.get_codebase_rules()
+            backlog_dirs = rules.backlog_directories
+            search_dirs = [
+                os.path.join(workspace_dir, "docs"),
+                os.path.join(workspace_dir, "rules"),
+                os.path.join(workspace_dir, "skills"),
+                os.path.join(workspace_dir, ".pipeline"),
+            ]
+            for dir_key in ["features", "epics", "user_stories", "use_cases"]:
+                rel = getattr(backlog_dirs, dir_key, None)
+                if rel:
+                    p = os.path.join(workspace_dir, rel)
+                    if p not in search_dirs:
+                        search_dirs.append(p)
 
         markdown_files = []
         # Add root markdown files
-        for item in os.listdir(workspace_dir):
-            if item.endswith(".md") and not item.startswith("."):
-                markdown_files.append(os.path.join(workspace_dir, item))
+        try:
+            for item in os.listdir(workspace_dir):
+                if item.endswith(".md") and not item.startswith("."):
+                    markdown_files.append(os.path.join(workspace_dir, item))
+        except OSError:
+            pass
 
-        # Walk all documentation directories
+        # Walk all search directories
         for root_dir in search_dirs:
             if not os.path.isdir(root_dir):
                 continue
-            for dirpath, _, filenames in os.walk(root_dir):
+            for dirpath, dirnames, filenames in os.walk(root_dir):
+                # Exclude internal / diagnostic directories
+                dirnames[:] = [d for d in dirnames if d not in EXCLUDED_SCAN_DIRS]
                 # Skip historical point-in-time audit snapshots
                 if "docs/audits" in dirpath or "docs/decisions" in dirpath or "docs/designs" in dirpath:
                     continue
                 for filename in filenames:
                     if filename.endswith(".md") and not filename.startswith("."):
-                        markdown_files.append(os.path.join(dirpath, filename))
-
-        # Also add configured backlog dirs if outside docs/
-        rules = repo.get_codebase_rules()
-        backlog_dirs = getattr(rules, "backlog_directories", None)
-        if backlog_dirs:
-            for dir_key in ["features", "epics", "user_stories", "use_cases"]:
-                rel = getattr(backlog_dirs, dir_key, None)
-                if rel:
-                    target = os.path.join(workspace_dir, rel)
-                    if os.path.isdir(target):
-                        for f in os.listdir(target):
-                            if f.endswith(".md") and not f.startswith("."):
-                                full_p = os.path.join(target, f)
-                                if full_p not in markdown_files:
-                                    markdown_files.append(full_p)
+                        full_p = os.path.join(dirpath, filename)
+                        if full_p not in markdown_files:
+                            markdown_files.append(full_p)
 
         for filepath in markdown_files:
             rel_path = os.path.relpath(filepath, workspace_dir)
             source_dir = os.path.dirname(filepath)
 
             try:
-                with open(filepath, "r", encoding="utf-8") as f:
+                with open(filepath, "r", encoding="utf-8", errors="replace") as f:
                     content = f.read()
-            except Exception:
+            except OSError:
                 continue
 
-            links_to_check = []
-            for match in _LINK_RE.finditer(content):
-                links_to_check.append(match.group(1).strip())
+            # Strip fenced code blocks and inline code spans before link extraction
+            content_clean = re.sub(r'```[\s\S]*?```', '', content)
+            content_clean = re.sub(r'~~~[\s\S]*?~~~', '', content_clean)
+            content_clean = re.sub(r'`+[\s\S]*?`+', '', content_clean)
 
-            for match in _GITHUB_BLOB_RE.finditer(content):
-                m_url = match.group(0).strip()
-                if m_url not in links_to_check:
-                    links_to_check.append(m_url)
+            # Find all links
+            links_to_check = []
+            for match in _LINK_RE.finditer(content_clean):
+                links_to_check.append(match.group(1))
+
+            for match in _GITHUB_BLOB_RE.finditer(content_clean):
+                if match.group(0) not in links_to_check:
+                    links_to_check.append(match.group(0))
 
             for link_raw in links_to_check:
-                # Prohibit non-portable file:/// URI scheme
+                # Prohibit non-portable file:// and file:/// URI schemes
                 if link_raw.startswith("file://") or link_raw.startswith("file:/"):
                     errors.append(Finding(
-                        "markdown-forbidden-file-protocol-link",
-                        f"{rel_path}: Absolute file URI scheme is forbidden: '{link_raw}'. Links must use repository-relative paths.",
+                        "markdown-local-file-protocol-forbidden",
+                        f"{rel_path}: Local file protocol link is forbidden: '{link_raw}'. Internal references must use repository-relative paths.",
                         location=rel_path
                     ))
                     continue
 
-                                # Skip template placeholders / examples
+                # Skip template placeholders / examples
                 if any(placeholder in link_raw for placeholder in [
                     "-XX-", "XX-name", "link-to-", "URL", "target", "example.com", "file.sysml",
                     "docs/features/feat-", "docs/epics/epic-", "docs/user-stories/us-", "docs/use-cases/uc-",
@@ -96,16 +104,17 @@ class LinkValidator(IValidator):
                     if not os.path.exists(os.path.join(workspace_dir, link_raw)):
                         continue
 
-                link_target = link_raw.split("#")[0].strip()
-
+                link_target = link_raw.split("#")[0].strip()  # strip fragments
                 if not link_target:
-                    continue  # In-page anchor like `#section`
+                    # Anchor-only link within same document
+                    continue
 
                 # Check if it's an external GitHub/GitLab blob URL for a different repository
                 if ("github.com/" in link_raw or "gitlab.com/" in link_raw) and repo_name not in link_raw:
                     continue
 
                 is_blob = False
+                # Clean up GitHub blob URLs for this repository, if any
                 if "blob/" in link_target and repo_name in link_target:
                     parts = link_target.split("blob/")
                     if len(parts) > 1:
@@ -123,7 +132,8 @@ class LinkValidator(IValidator):
                             link_target = path_parts[1]
                             is_blob = True
 
-                if link_target.startswith("http://") or link_target.startswith("https://") or link_target.startswith("mailto:"):
+                # Skip external URLs (http, https, mailto, etc.)
+                if re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*://', link_target) or link_target.startswith("mailto:"):
                     continue
 
                 if link_target.startswith("/"):
@@ -131,20 +141,18 @@ class LinkValidator(IValidator):
                 elif is_blob:
                     resolved_path = os.path.join(workspace_dir, link_target)
                 else:
-                    # Check relative to source_dir first, then relative to workspace_dir
-                    rel_to_source = os.path.normpath(os.path.join(source_dir, link_target))
-                    rel_to_root = os.path.normpath(os.path.join(workspace_dir, link_target))
-                    if os.path.exists(rel_to_source):
-                        resolved_path = rel_to_source
-                    elif os.path.exists(rel_to_root):
-                        resolved_path = rel_to_root
-                    else:
-                        resolved_path = rel_to_source
+                    # Standard markdown relative link resolved from current file directory,
+                    # or fallback to repository root relative path
+                    resolved_path = os.path.normpath(os.path.join(source_dir, link_target))
+                    if not os.path.exists(resolved_path):
+                        repo_resolved = os.path.normpath(os.path.join(workspace_dir, link_target))
+                        if os.path.exists(repo_resolved):
+                            resolved_path = repo_resolved
 
                 if not os.path.exists(resolved_path):
                     errors.append(Finding(
                         "markdown-broken-link-reference",
-                        f"{rel_path}: Broken markdown link points to non-existent target '{link_raw}'.",
+                        f"{rel_path}: Broken markdown link points to non-existent file '{link_raw}'.",
                         location=rel_path
                     ))
 

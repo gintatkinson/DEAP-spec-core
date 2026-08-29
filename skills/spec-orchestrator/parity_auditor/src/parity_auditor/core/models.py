@@ -103,7 +103,7 @@ class ValidationRules:
     use_case_undirected_actor_links_only: bool = True
     use_case_extend_arrow_direction_check: bool = True
     naming_conventions: Dict[str, str] = field(default_factory=lambda: {
-        "use_case": "^uc-\\d{2}-[a-z0-9\\-]+\\.md$"
+        "use_case": "^uc-\\d{2,3}-[a-z0-9\\-]+\\.md$"
     })
     test_data_shape_regex: str = "###\\s+1\\.\\s+Test\\s+Data\\s+Shape"
     test_data_block_regex: str = "```json"

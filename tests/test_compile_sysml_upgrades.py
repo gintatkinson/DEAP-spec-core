@@ -162,13 +162,13 @@ class TestCompileSysmlUpgrades(unittest.TestCase):
 
             test_file = os.path.join(docs_dir, "test.md")
             with open(test_file, "w", encoding="utf-8") as f:
-                f.write("[Broken Absolute Link](file:///Users/perkunas/test.md)")
+                f.write("[Broken Absolute Link](file:///home/dev/test.md)")
 
             repo = WorkspaceRepository(tmpdir)
             validator = LinkValidator()
             findings = validator.validate(repo)
 
-            self.assertTrue(any(f.rule_id == "markdown-forbidden-file-protocol-link" for f in findings))
+            self.assertTrue(any(f.rule_id == "markdown-local-file-protocol-forbidden" for f in findings))
 
 
 if __name__ == "__main__":

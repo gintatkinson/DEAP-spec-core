@@ -4,6 +4,138 @@ import re
 from typing import Dict, List, Set, Optional, Any
 from .models import CodebaseRules, FeatureFile, load_from_dict
 
+def extract_metadata_from_content(content: str) -> Dict[str, Any]:
+    if not content:
+        return {}
+
+    # 1. Parse native Markdown tables starting with '| Attribute | Specification Detail |' or '| Metadata | Value |'
+    table_header_re = re.compile(
+        r'^\s*\|\s*(?:Attribute|Metadata)\s*\|\s*(?:Specification Detail|Value)\s*\|\s*$',
+        re.IGNORECASE | re.MULTILINE
+    )
+    table_header_match = table_header_re.search(content)
+    if table_header_match:
+        data: Dict[str, Any] = {}
+        table_start_idx = table_header_match.start()
+        lines = content[table_start_idx:].splitlines()
+        
+        in_table = False
+        for i, line in enumerate(lines):
+            line_str = line.strip()
+            if not line_str.startswith("|") or not line_str.endswith("|"):
+                if in_table:
+                    break
+                continue
+
+            if i == 0 or table_header_re.match(line_str):
+                in_table = True
+                continue
+
+            # Skip table separator row (| :--- | :--- |)
+            if re.match(r'^\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*$', line_str):
+                continue
+
+            parts = [p.strip() for p in line_str.split("|")]
+            if len(parts) >= 4:
+                raw_key = parts[1].strip()
+                raw_val = parts[2].strip()
+
+                # Clean markdown formatting from key
+                clean_key = re.sub(r'[*`_]', '', raw_key).strip()
+                # Normalize key to snake_case
+                norm_key = re.sub(r'[\s\-]+', '_', clean_key.lower())
+                norm_key = re.sub(r'[^a-z0-9_]', '', norm_key).strip('_')
+
+                if not norm_key:
+                    continue
+
+                # Specific key normalizations
+                if norm_key in ("issue_id", "issueid", "id"):
+                    norm_key = "issue_id"
+                elif norm_key in ("parent_epic", "parentepic", "parent_epic_id", "epic"):
+                    norm_key = "epic"
+                elif norm_key in ("specification_source", "spec_source", "specsource"):
+                    norm_key = "spec_source"
+                elif norm_key in ("sysml_test_case", "test_case", "testcase"):
+                    norm_key = "sysml_test_case"
+                elif norm_key in ("sysml_interaction", "interaction"):
+                    norm_key = "sysml_interaction"
+                elif norm_key in ("schema_containers", "schemacontainers", "schema_container"):
+                    norm_key = "schema_containers"
+                elif norm_key in ("interface_type", "interfacetype"):
+                    norm_key = "interface_type"
+                elif norm_key in ("generation_mode", "generationmode"):
+                    norm_key = "generation_mode"
+
+                val: Any = raw_val
+                # Convert issue_id to int (stripping # or quotes)
+                if norm_key == "issue_id":
+                    clean_id = re.sub(r'["\'#]', '', str(val)).strip()
+                    if clean_id.isdigit():
+                        val = int(clean_id)
+                    else:
+                        val = clean_id
+                else:
+                    val = val.replace(r'\|', '|')
+                    if norm_key in ("labels", "tags", "realizes"):
+                        if val.startswith("[") and val.endswith("]"):
+                            val = [item.strip().strip('"\'`') for item in val[1:-1].split(",") if item.strip()]
+                        elif "," in val:
+                            val = [item.strip().strip('"\'`') for item in val.split(",") if item.strip()]
+                        elif val:
+                            val = [val.strip().strip('"\'`')]
+                        else:
+                            val = []
+                    elif norm_key == "schema_containers":
+                        clean_str = val.strip().strip('"\'`')
+                        if clean_str.startswith("[") and clean_str.endswith("]"):
+                            val = [item.strip().strip('"\'`') for item in clean_str[1:-1].split(",") if item.strip()]
+                        elif "," in clean_str:
+                            val = [item.strip().strip('"\'`') for item in clean_str.split(",") if item.strip()]
+                        elif clean_str:
+                            val = [clean_str]
+                        else:
+                            val = []
+                    elif norm_key == "interface_type":
+                        clean_str = val.strip().strip('"\'`')
+                        if clean_str.startswith("[") and clean_str.endswith("]"):
+                            val = [item.strip().strip('"\'`') for item in clean_str[1:-1].split(",") if item.strip()]
+                        elif "," in clean_str:
+                            val = [item.strip().strip('"\'`') for item in clean_str.split(",") if item.strip()]
+
+                data[norm_key] = val
+                if norm_key == "epic":
+                    data["parent_epic"] = val
+                elif norm_key == "spec_source":
+                    data["specification_source"] = val
+                elif norm_key == "sysml_test_case":
+                    data["test_case"] = val
+                    data["test_cases"] = [val] if isinstance(val, str) else val
+
+        if data:
+            return data
+
+    # 2. Retain legacy YAML frontmatter fallback
+    if content.startswith("---"):
+        parts = content.split("---", 2)
+        if len(parts) >= 3:
+            frontmatter_text = parts[1]
+            try:
+                import yaml
+                data = yaml.safe_load(frontmatter_text.replace('\x01', ''))
+                if isinstance(data, dict):
+                    if "issue_id" in data:
+                        raw_id = data["issue_id"]
+                        clean_id = re.sub(r'["\'#]', '', str(raw_id)).strip()
+                        if clean_id.isdigit():
+                            data["issue_id"] = int(clean_id)
+                    return data
+            except Exception:
+                pass
+
+    return {}
+
+
 class WorkspaceRepository:
     def __init__(self, workspace_dir: Optional[str] = None):
         if not workspace_dir:
@@ -97,32 +229,10 @@ class WorkspaceRepository:
                 print(f"Warning: Failed to read feature file {filename}: {e}")
                 continue
 
-            labels = []
-            frontmatter_dict = {}
-            frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
-            if frontmatter_match:
-                frontmatter_text = frontmatter_match.group(1)
-                try:
-                    import yaml
-                    data = yaml.safe_load(frontmatter_text.replace('\x01', ''))
-                    if isinstance(data, dict):
-                        frontmatter_dict = data
-                        if "labels" in data:
-                            lbls = data["labels"]
-                            if isinstance(lbls, list):
-                                labels = [str(lbl).strip() for lbl in lbls]
-                            elif isinstance(lbls, str):
-                                labels_match = re.search(r"\[(.*?)\]", lbls)
-                                if labels_match:
-                                    labels = [lbl.strip().strip('"').strip("'") for lbl in labels_match.group(1).split(",")]
-                                else:
-                                    labels = [lbl.strip() for lbl in lbls.split(",") if lbl.strip()]
-                except Exception:
-                    for line in frontmatter_text.splitlines():
-                        if line.startswith("labels:"):
-                            labels_match = re.search(r"\[(.*?)\]", line)
-                            if labels_match:
-                                labels = [lbl.strip().strip('"').strip("'") for lbl in labels_match.group(1).split(",")]
+            frontmatter_dict = extract_metadata_from_content(content)
+            labels = frontmatter_dict.get("labels", [])
+            if isinstance(labels, str):
+                labels = [labels]
             
             features.append(FeatureFile(
                 filename=filename,
@@ -165,118 +275,3 @@ class WorkspaceRepository:
         from ..utils.color_utils import extract_hex_colors_from_json
         self._forbidden_colors = extract_hex_colors_from_json(tokens_data)
         return self._forbidden_colors
-
-
-def extract_metadata_from_content(content: str) -> Dict[str, Any]:
-    """Extracts metadata dictionary from specification frontmatter or Markdown tables."""
-    if not content:
-        return {}
-
-    # 1. Parse native Markdown tables starting with '| Attribute | Specification Detail |' or '| Metadata | Value |'
-    table_header_re = re.compile(
-        r'^\s*\|\s*(?:Attribute|Metadata)\s*\|\s*(?:Specification Detail|Value)\s*\|\s*$',
-        re.IGNORECASE | re.MULTILINE
-    )
-    table_header_match = table_header_re.search(content)
-    if table_header_match:
-        data: Dict[str, Any] = {}
-        table_start_idx = table_header_match.start()
-        lines = content[table_start_idx:].splitlines()
-        
-        in_table = False
-        for i, line in enumerate(lines):
-            line_str = line.strip()
-            if not line_str.startswith("|") or not line_str.endswith("|"):
-                if in_table:
-                    break
-                continue
-
-            if i == 0 or table_header_re.match(line_str):
-                in_table = True
-                continue
-
-            if re.match(r'^\s*\|\s*:?-+:?\s*\|\s*:?-+:?\s*\|\s*$', line_str):
-                continue
-
-            parts = [p.strip() for p in line_str.split("|")]
-            if len(parts) >= 4:
-                raw_key = parts[1].strip()
-                raw_val = parts[2].strip()
-
-                clean_key = re.sub(r'[*`_]', '', raw_key).strip()
-                norm_key = re.sub(r'[\s\-]+', '_', clean_key.lower())
-                norm_key = re.sub(r'[^a-z0-9_]', '', norm_key).strip('_')
-
-                if not norm_key:
-                    continue
-
-                if norm_key in ("issue_id", "issueid", "id"):
-                    norm_key = "issue_id"
-                elif norm_key in ("parent_epic", "parentepic", "parent_epic_id", "epic"):
-                    norm_key = "epic"
-                elif norm_key in ("specification_source", "spec_source", "specsource"):
-                    norm_key = "spec_source"
-                elif norm_key in ("sysml_test_case", "test_case", "testcase"):
-                    norm_key = "sysml_test_case"
-                elif norm_key in ("sysml_interaction", "interaction"):
-                    norm_key = "sysml_interaction"
-                elif norm_key in ("schema_containers", "schemacontainers", "schema_container"):
-                    norm_key = "schema_containers"
-                elif norm_key in ("interface_type", "interfacetype"):
-                    norm_key = "interface_type"
-                elif norm_key in ("generation_mode", "generationmode"):
-                    norm_key = "generation_mode"
-
-                val: Any = raw_val
-                if norm_key == "issue_id":
-                    clean_id = re.sub(r'["\'#]', "", str(val)).strip()
-                    if clean_id.isdigit():
-                        val = int(clean_id)
-                    else:
-                        val = clean_id
-                else:
-                    val = val.replace(r'\|', '|')
-                    if norm_key in ("labels", "tags", "realizes"):
-                        if val.startswith("[") and val.endswith("]"):
-                            val = [item.strip().strip('"\'`') for item in val[1:-1].split(",") if item.strip()]
-                        elif "," in val:
-                            val = [item.strip().strip('"\'`') for item in val.split(",") if item.strip()]
-                        elif val:
-                            val = [val.strip().strip('"\'\`')]
-                        else:
-                            val = []
-                    elif norm_key == "schema_containers":
-                        clean_str = val.strip().strip('"\'\`')
-                        if clean_str.startswith("[") and clean_str.endswith("]"):
-                            val = [item.strip().strip('"\'`') for item in clean_str[1:-1].split(",") if item.strip()]
-                        elif "," in clean_str:
-                            val = [item.strip().strip('"\'`') for item in clean_str.split(",") if item.strip()]
-                        elif clean_str:
-                            val = [clean_str]
-                        else:
-                            val = []
-
-                data[norm_key] = val
-                if norm_key == "epic":
-                    data["parent_epic"] = val
-                elif norm_key == "spec_source":
-                    data["specification_source"] = val
-                elif norm_key == "sysml_test_case":
-                    data["test_case"] = val
-                    data["test_cases"] = [val] if isinstance(val, str) else val
-
-        if data:
-            return data
-
-    # 2. Fallback to YAML frontmatter
-    fm_match = re.search(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
-    if fm_match:
-        try:
-            import yaml
-            parsed = yaml.safe_load(fm_match.group(1))
-            if isinstance(parsed, dict):
-                return parsed
-        except Exception:
-            pass
-
-    return {}

@@ -4,9 +4,20 @@ import json
 from typing import List
 from .base import IValidator
 from ..core.findings import Finding
-from ..core.workspace import WorkspaceRepository
+from ..core.workspace import WorkspaceRepository, extract_metadata_from_content
 
 class LogicalUiValidator(IValidator):
+    NON_UI_HANDLERS = {
+        "MCPToolHandler",
+        "RESTEndpointHandler",
+        "gRPCMethodHandler",
+        "GraphQLQueryHandler",
+        "RegisterBuffer",
+        "DiscreteSignal",
+        "SerialDataStream",
+        "I2CBusDevice",
+    }
+
     def validate(self, repo: WorkspaceRepository, **kwargs) -> List[str]:
         rules = repo.get_codebase_rules()
         backlog_dirs = rules.backlog_directories
@@ -114,34 +125,43 @@ class LogicalUiValidator(IValidator):
             
             fm = getattr(feat, "frontmatter", None)
             if not fm or not isinstance(fm, dict):
-                fm = {}
-                fm_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
-                if fm_match:
-                    try:
-                        import yaml
-                        parsed_fm = yaml.safe_load(fm_match.group(1).replace('\x01', ''))
-                        if isinstance(parsed_fm, dict):
-                            fm = parsed_fm
-                    except Exception as e:
-                        errors.append(Finding(
-                            "logical-ui-feature-frontmatter-must-parse",
-                            f"Logical UI Compliance: Failed to parse frontmatter YAML in '{rel_path}': {e}",
-                            location=rel_path,
-                        ))
+                fm = extract_metadata_from_content(content)
             
             declared_interface_types = []
             if isinstance(fm, dict):
                 raw_it = fm.get("interface_type")
                 if isinstance(raw_it, str):
-                    declared_interface_types.append(raw_it.lower())
+                    for piece in raw_it.split(","):
+                        if piece.strip():
+                            declared_interface_types.append(piece.strip().lower())
                 elif isinstance(raw_it, list):
-                    declared_interface_types.extend([str(x).lower() for x in raw_it])
+                    for item in raw_it:
+                        for piece in str(item).split(","):
+                            if piece.strip():
+                                declared_interface_types.append(piece.strip().lower())
                 
                 raw_its = fm.get("interface_types")
                 if isinstance(raw_its, list):
                     declared_interface_types.extend([str(x).lower() for x in raw_its])
 
-            non_ui_types = {"api", "config", "persistence", "gate", "cli", "backend"}
+            non_ui_types = {
+                "api",
+                "config",
+                "persistence",
+                "gate",
+                "cli",
+                "backend",
+                "rest",
+                "grpc",
+                "graphql",
+                "discretesignal",
+                "mcp",
+                "serial",
+                "i2c",
+                "registerbuffer",
+                "serialdatastream",
+                "i2cbusdevice",
+            }
             
             target_match = re.search(r"##\s*(?:\d+\.\s*)?Logical\s+UI\s+&\s+(?:Layout|Interface)\s+Bindings(.*?)(?=##|\Z)", content, re.DOTALL | re.IGNORECASE)
             
@@ -226,8 +246,9 @@ class LogicalUiValidator(IValidator):
                                 self._validate_ds_path(ds_clean, rel_path, errors)
                     
                     if declared_interface_types:
+                        non_interface_types = {"api", "config", "persistence", "gate", "cli", "backend"}
                         for chan in declared_interface_types:
-                            if chan in non_ui_types:
+                            if chan in non_interface_types:
                                 continue
                             norm_chan = "gui" if chan == "ui" else chan
                             if norm_chan not in table_channels and chan not in table_channels:
@@ -310,7 +331,7 @@ class LogicalUiValidator(IValidator):
 
                 # Ensure specified target component is a valid layout component (if not N/A or deferred)
                 for c in sorted(specified_components):
-                    if not self._is_unbound_or_deferred(c) and c not in {"MCPToolHandler", "RESTEndpointHandler", "gRPCMethodHandler", "GraphQLQueryHandler", "RegisterBuffer", "DiscreteSignal", "SerialDataStream", "I2CBusDevice"}:
+                    if not self._is_unbound_or_deferred(c) and c not in self.NON_UI_HANDLERS:
                         if c not in component_types and not (c == "TopologyMap" and ("topology_pane" in container_ids or "TopologyMap" in component_types)):
                             errors.append(Finding(
                                 "logical-ui-component-type-must-exist-in-the-layout",
@@ -330,7 +351,7 @@ class LogicalUiValidator(IValidator):
                         expected_type = container_to_type.get(container_val)
                         if expected_type and specified_components:
                             for c in sorted(specified_components):
-                                if not self._is_unbound_or_deferred(c) and c != expected_type:
+                                if not self._is_unbound_or_deferred(c) and c != expected_type and c not in self.NON_UI_HANDLERS:
                                     if c == "TopologyMap" and container_val == "topology_pane":
                                         continue
                                     errors.append(Finding(
@@ -345,7 +366,7 @@ class LogicalUiValidator(IValidator):
 
                 if target_match and GEODETIC_REGEX.search(content):
                     has_unbound = any(self._is_unbound_or_deferred(c) for c in specified_components)
-                    if not has_unbound and (any(c not in VALID_SPATIAL_COMPONENTS for c in specified_components) or not specified_components):
+                    if not has_unbound and (any(c not in VALID_SPATIAL_COMPONENTS and c not in self.NON_UI_HANDLERS for c in specified_components) or not specified_components):
                         errors.append(Finding(
                             "logical-ui-spatial-feature-requires-a-spatial-component",
                             f"Logical UI Compliance: Feature '{rel_path}' contains spatial/geodetic attributes but fails to map to a spatial view component ('TopologyMap', 'TopographicalView', 'GeoSpatialViewer', 'PropertyGrid', or 'TableView').",

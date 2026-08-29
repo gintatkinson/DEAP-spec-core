@@ -100,7 +100,7 @@ Downstream customer mission specifications placed in `docs/conops/MISSION_INTENT
 ---
 
 ## 4. Aircraft & Payload Specification
-- **Airframe Type:** Multi-Rotor / VTOL Fixed-Wing Hybrid ($< 25\,\text{kg}$ MTOW).
+- **Airframe Type:** Multi-Rotor / VTOL Fixed-Wing Hybrid (17.0 kg MTOW (JARUS SORA SAIL II MTOM Envelope)).
 - **Propulsion & Energy:** Electric Quad-Rotor / Octocopter with dual redundant LiPo battery packs.
 - **Avionics & Compute Target:** Pixhawk / PX4 Autopilot flight controller interfaced via microRTPS/XRCE-DDS to ROS2 C++ Companion Computer.
 - **Safety Critical Subsystems:**

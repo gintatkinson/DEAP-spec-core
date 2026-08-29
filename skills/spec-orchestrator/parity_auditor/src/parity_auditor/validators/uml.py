@@ -545,7 +545,7 @@ class UmlValidator(IValidator):
                         errors.append(Finding("checklist-item-requires-a-semantic-justification", f"User Story {filename} contains a checklist item with a missing or invalid parenthetical semantic justification at the end: '{cb.strip()}'.", location=filename))
                         
         usecase_files = get_md_files(use_cases_dir)
-        use_case_naming = val_rules.naming_conventions.get("use_case", r"^uc-\d{2}-[a-z0-9\-]+\.md$")
+        use_case_naming = val_rules.naming_conventions.get("use_case", r"^uc-\d{2,3}-[a-z0-9\-]+\.md$")
         for filepath in usecase_files:
             basename = os.path.basename(filepath)
             

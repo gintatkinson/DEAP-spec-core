@@ -299,3 +299,92 @@ $$
         assert "table-column-count-mismatch" in rule_ids
         assert "katex-forbidden-math-in-table" in rule_ids
         assert all(isinstance(f, Finding) for f in findings)
+
+
+def test_detects_unisolated_opening_display_delimiter():
+    """Verify detection of display math delimiter '$$' with trailing or leading text on opening line."""
+    bad_opening_trailing_md = r"""
+# Test Feature
+
+$$\begin{aligned}
+x &= y + z \\
+a &= b / c
+\end{aligned}
+$$
+"""
+    findings = check_katex_text(bad_opening_trailing_md, source="bad_opening_trailing.md")
+    unisolated = [f for f in findings if f.rule_id == "katex-unisolated-display-delimiter"]
+    assert len(unisolated) == 1
+    assert "display math delimiter '$$' must be on its own isolated line" in str(unisolated[0])
+    assert r"found '$$\begin{aligned}'" in str(unisolated[0])
+
+    bad_opening_leading_md = r"""
+Given the system equation: $$
+\begin{aligned}
+x &= y + z
+\end{aligned}
+$$
+"""
+    findings2 = check_katex_text(bad_opening_leading_md, source="bad_opening_leading.md")
+    unisolated2 = [f for f in findings2 if f.rule_id == "katex-unisolated-display-delimiter"]
+    assert len(unisolated2) == 1
+    assert "display math delimiter '$$' must be on its own isolated line" in str(unisolated2[0])
+    assert "found 'Given the system equation: $$'" in str(unisolated2[0])
+
+
+def test_detects_unisolated_closing_display_delimiter():
+    """Verify detection of display math delimiter '$$' with leading or trailing text on closing line."""
+    bad_closing_leading_md = r"""
+# Test Feature
+
+$$
+\begin{aligned}
+x &= y + z \\
+a &= b / c
+\end{aligned}$$
+"""
+    findings = check_katex_text(bad_closing_leading_md, source="bad_closing_leading.md")
+    unisolated = [f for f in findings if f.rule_id == "katex-unisolated-display-delimiter"]
+    assert len(unisolated) == 1
+    assert "display math delimiter '$$' must be on its own isolated line" in str(unisolated[0])
+    assert r"found '\end{aligned}$$'" in str(unisolated[0])
+
+    bad_closing_trailing_md = r"""
+$$
+\begin{aligned}
+x &= y + z
+\end{aligned}
+$$ where x is the state vector.
+"""
+    findings2 = check_katex_text(bad_closing_trailing_md, source="bad_closing_trailing.md")
+    unisolated2 = [f for f in findings2 if f.rule_id == "katex-unisolated-display-delimiter"]
+    assert len(unisolated2) == 1
+    assert "display math delimiter '$$' must be on its own isolated line" in str(unisolated2[0])
+    assert "found '$$ where x is the state vector.'" in str(unisolated2[0])
+
+
+def test_allows_clean_isolated_display_delimiters():
+    """Verify that multi-line display math blocks with clean, isolated $$ delimiters and single-line blocks pass."""
+    clean_md = r"""
+# Clean Specifications
+
+$$
+\begin{aligned}
+\dot{x} &= f(x, u) \\
+y &= h(x)
+\end{aligned}
+$$
+
+    $$
+    \begin{aligned}
+    a &= b + c
+    \end{aligned}
+    $$
+
+$$ E = m c^2 $$
+"""
+    findings = check_katex_text(clean_md, source="clean_delimiters.md")
+    unisolated = [f for f in findings if f.rule_id == "katex-unisolated-display-delimiter"]
+    assert len(unisolated) == 0
+    assert len(findings) == 0
+

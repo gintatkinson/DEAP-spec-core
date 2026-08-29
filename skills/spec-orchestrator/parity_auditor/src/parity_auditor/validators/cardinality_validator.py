@@ -13,7 +13,7 @@ import yaml
 
 from .base import IValidator
 from ..core.findings import Finding
-from ..core.workspace import WorkspaceRepository
+from ..core.workspace import WorkspaceRepository, extract_metadata_from_content
 
 # Import SysML v2 AST classes safely
 try:
@@ -48,13 +48,8 @@ except ImportError:
 
 
 def _extract_frontmatter(content: str):
-    m = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
-    if not m:
-        return None
-    try:
-        return yaml.safe_load(m.group(1).replace('\x01', ''))
-    except Exception:
-        return None
+    meta = extract_metadata_from_content(content)
+    return meta if meta else None
 
 
 def _find_sysml_files(repo: WorkspaceRepository, schemas_dir: Optional[str] = None) -> List[str]:

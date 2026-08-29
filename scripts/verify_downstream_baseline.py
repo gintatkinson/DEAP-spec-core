@@ -746,8 +746,53 @@ def check_safety_integrity_and_sora_completeness(repo_root):
 
     print("Success: Check 17 verified (Safety Integrity Quality Gate: 8 pillars, 24 SORA OSOs, 15+ FMECA rows, 4 UCA categories, ASTM F3269-17 RTA, and MATLAB/Simulink hooks).")
 
+def check_anti_hallucination_quality_gate(repo_root):
+    """Check 18: Automated Anti-Hallucination Quality Gate and Provenance Citation Verifier.
+
+    Validates:
+    1. scripts/audit_hallucinations.py exists, is non-empty, and is executable.
+    2. Runs audit_hallucinations scanner across markdown specifications and schema models,
+       enforcing parametric consistency and zero ungrounded AI/deep-learning buzzwords.
+    """
+    script_path = os.path.join(repo_root, "scripts", "audit_hallucinations.py")
+    if not os.path.isfile(script_path):
+        print(f"ERROR: Check 18 failed: scripts/audit_hallucinations.py missing in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+    if os.path.getsize(script_path) == 0:
+        print(f"ERROR: Check 18 failed: scripts/audit_hallucinations.py is empty in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+    if not os.access(script_path, os.X_OK):
+        print(f"ERROR: Check 18 failed: scripts/audit_hallucinations.py is not executable in repository root '{repo_root}'.", file=sys.stderr)
+        sys.exit(1)
+
+    upstream_marker = os.path.join(repo_root, ".pipeline", "upstream")
+    if os.path.isdir(upstream_marker):
+        print("Success: Check 18 verified (Upstream distribution template detected — audit_hallucinations.py tooling verified).")
+        return
+
+    # In downstream repository: if no concrete specs or safety models exist, skip
+    docs_dir = os.path.join(repo_root, "docs")
+    if not os.path.isdir(docs_dir):
+        print("Success: Check 18 verified (Downstream repository detected — docs/ directory not present).")
+        return
+
+    try:
+        res = subprocess.run([sys.executable, script_path, "--repo-root", repo_root], capture_output=True, text=True, cwd=repo_root)
+        if res.returncode != 0:
+            print("ERROR: Check 18 failed (Anti-Hallucination Quality Gate violations found):", file=sys.stderr)
+            if res.stdout:
+                print(res.stdout, file=sys.stderr)
+            if res.stderr:
+                print(res.stderr, file=sys.stderr)
+            sys.exit(1)
+    except Exception as e:
+        print(f"ERROR: Check 18 failed: Execution error running audit_hallucinations.py: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    print("Success: Check 18 verified (Anti-Hallucination Quality Gate: parametric consistency, zero ungrounded buzzwords, and provenance citations).")
+
 def _run_verification(args, dest, repo_root, is_flutter, is_react):
-    # Run Checks 10, 11, 12, 13, 14, 15, 16, and 17
+    # Run Checks 10, 11, 12, 13, 14, 15, 16, 17, and 18
     check_gitignore_exists(repo_root)
     check_no_ds_store_files(repo_root)
     check_no_duplicate_master_blueprints(dest)
@@ -756,6 +801,7 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
     check_reconcile_backlog_tooling_exists(repo_root)
     check_upstream_template_clean_landing_zones(repo_root)
     check_safety_integrity_and_sora_completeness(repo_root)
+    check_anti_hallucination_quality_gate(repo_root)
 
     if is_flutter:
         print(f"Verifying conformance for platform 'flutter' at '{dest}'...")

@@ -24,6 +24,7 @@ Rules enforced
   opened by ``class X {`` and closed only by a line consisting of ``}``, so the
   same-line brace never closes it; a later ``}`` pops the leaked block and the
   classes after it are silently attached to the wrong namespace. Issue #279.
+* Multi-target ampersand chaining shorthand in connection lines (`A --> B & C & D`).
 
 Deliberately not enforced
 -------------------------
@@ -43,7 +44,7 @@ Deliberately not enforced
 
 import os
 import re
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple, Union
 
 from .base import IValidator
 from ..core.findings import Finding
@@ -114,6 +115,13 @@ MERMAID_SEQUENCE_RESERVED_KEYWORDS = {
 _SEQUENCE_PARTICIPANT = re.compile(
     r"^\s*(?:participant|actor)\s+(?P<alias>\"[^\"]+\"|[^\s:]+)",
     re.I
+)
+
+# Connection arrow tokens for flowchart, graph, and state diagrams
+_CONNECTION_ARROWS = (
+    "-->", "==>", "-.->", "->>", "->", "---", "===", "-.-",
+    "<--", "<==", "<-.-", "<-->", "<==>", "--o", "o--", "--*", "*--",
+    "<|--", "--|>", "..>", "<..", "..|>", "<|..",
 )
 
 # No directories are excluded from the default scan.
@@ -245,203 +253,254 @@ def _in_class_body(body: Sequence[str], idx: int) -> bool:
     return depth > 0
 
 
-def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
+def check_mermaid_block(
+    body: Union[str, Sequence[str]],
+    start: int = 1,
+    kind: str = "",
+    source: str = "<input>",
+) -> List[Finding]:
+    """Check a single mermaid diagram block for documented rule violations."""
+    errors: List[Finding] = []
+    if isinstance(body, str):
+        body_lines = body.splitlines()
+    else:
+        body_lines = list(body)
+
+    if not body_lines:
+        return errors
+
+    # Detect kind if not provided
+    if not kind:
+        for line in body_lines:
+            stripped = line.strip().lower()
+            if stripped and not stripped.startswith("%%"):
+                kind = next((k for k in _DIAGRAM_KINDS if stripped.startswith(k)), "")
+                break
+
+    first_line_content = ""
+    header_lineno = 0
+    for offset, line in enumerate(body_lines):
+        lineno = start + offset
+        line_strip = line.strip()
+        if not line_strip or line_strip.startswith("%%"):
+            continue
+        first_line_content = line_strip.lower()
+        header_lineno = lineno
+        break
+
+    if first_line_content:
+        is_valid = any(first_line_content.startswith(h) for h in _DIAGRAM_KINDS)
+        if not is_valid:
+            errors.append(Finding(
+                "mermaid-missing-diagram-header",
+                f"{source}:{header_lineno}: missing or invalid Mermaid diagram header "
+                f"({first_line_content!r}). The first non-comment line inside a mermaid block MUST declare a valid diagram type header.",
+                location=f"{source}"
+            ))
+    else:
+        errors.append(Finding(
+            "mermaid-missing-diagram-header",
+            f"{source}:{start}: missing or invalid Mermaid diagram header "
+            f"(''). The first non-comment line inside a mermaid block MUST declare a valid diagram type header.",
+            location=f"{source}"
+        ))
+
+    for offset, line in enumerate(body_lines):
+        lineno = start + offset
+        line_strip = line.strip()
+
+        if not line_strip or line_strip.startswith("%%"):
+            continue
+
+        if line_strip.count('"') % 2 != 0:
+            errors.append(Finding(
+                "mermaid-unclosed-quotes",
+                f"{source}:{lineno}: unclosed double quotes in line "
+                f"({line_strip!r}). Mermaid diagrams must have matching double quotes.",
+                location=f"{source}"
+            ))
+
+        # Check multi-target ampersand chaining '&' in connections
+        # Detect any connection line containing '&' (e.g. -->.*& or ==>.*& or -.->.*&)
+        clean_conn = re.sub(r'"[^"]*"', '', line_strip)
+        if any(arrow in clean_conn for arrow in _CONNECTION_ARROWS) and "&" in clean_conn:
+            errors.append(Finding(
+                "mermaid-forbidden-ampersand-chaining",
+                f"{source}:{lineno}: multi-target ampersand chaining '&' is forbidden in Mermaid connections ('{line.strip()}'). Declare each edge on its own line (e.g., 'A --> B' and 'A --> C').",
+                location=f"{source}"
+            ))
+
+        if kind in ("graph", "flowchart", "sequencediagram", "statediagram", "statediagram-v2"):
+            unquoted_bracket = validate_mermaid_angle_bracket_escaping(line_strip)
+            if unquoted_bracket:
+                errors.append(Finding(
+                    "mermaid-diagram-unquoted-brackets-forbidden",
+                    f"{source}:{lineno}: unquoted '{unquoted_bracket}' character in Mermaid diagram "
+                    f"line: '{line_strip}'. Transitions, labels, or guards containing comparison "
+                    f"operators or brackets MUST be enclosed in double quotes.",
+                    location=f"{source}"
+                ))
+
+        if kind in ("graph", "flowchart"):
+            unquoted_title = validate_mermaid_subgraph_title_quoting(line_strip)
+            if unquoted_title:
+                errors.append(Finding(
+                    "mermaid-subgraph-title-must-be-quoted",
+                    f"{source}:{lineno}: unquoted subgraph title containing spaces or hyphens "
+                    f"({unquoted_title!r}). Subgraph titles with spaces or hyphens MUST be enclosed in double quotes.",
+                    location=f"{source}"
+                ))
+            
+            unquoted_labels = validate_mermaid_node_label_quoting(line_strip)
+            for label in unquoted_labels:
+                errors.append(Finding(
+                    "mermaid-node-label-must-be-quoted",
+                    f"{source}:{lineno}: unquoted special characters in node label "
+                    f"({label!r}). Node labels containing slashes, colons, parentheses, or brackets MUST be enclosed in double quotes.",
+                    location=f"{source}"
+                ))
+
+        if kind == "sequencediagram":
+            part_match = _SEQUENCE_PARTICIPANT.match(line_strip)
+            if part_match:
+                raw_alias = part_match.group("alias")
+                clean_alias = raw_alias.strip('"').lower()
+                if clean_alias in MERMAID_SEQUENCE_RESERVED_KEYWORDS:
+                    errors.append(Finding(
+                        "mermaid-reserved-keyword-as-participant-alias",
+                        f"{source}:{lineno}: reserved keyword '{clean_alias}' used as sequence diagram participant alias/ID "
+                        f"({line_strip!r}). Using reserved keywords like 'link', 'actor', 'participant', 'loop', 'opt', 'alt', 'rect', 'note', 'end' as participant aliases breaks Mermaid rendering. Rename the participant alias.",
+                        location=f"{source}"
+                    ))
+
+        # --- semicolons in Note statements and message text ---------------
+        payload: Optional[str] = None
+        note = _NOTE.match(line)
+        if note:
+            payload = note.group("text")
+        else:
+            msg = _MESSAGE.match(line)
+            if msg:
+                payload = msg.group("text")
+        if payload and ";" in payload:
+            errors.append(Finding(
+                "mermaid-no-semicolon-in-note-or-message",
+                f"{source}:{lineno}: semicolon in Mermaid Note or message text "
+                f"({line.strip()!r}). Mermaid parses ';' as a statement separator, "
+                f"so the rest of the line becomes a new statement and the diagram "
+                f"fails to render. Replace it with a comma, dash or space.",
+                location=f"{source}"
+            ))
+
+        if kind != "classdiagram":
+            continue
+
+        # --- class-diagram-only rules --------------------------------------
+        if _ONE_LINE_EMPTY_CLASS.match(line):
+            errors.append(Finding(
+                "mermaid-no-single-line-empty-class-body",
+                f"{source}:{lineno}: single-line empty Mermaid class body "
+                f"({line.strip()!r}). A same-line closing brace never closes the "
+                f"block, so a later '}}' pops it instead and every class after it "
+                f"is attached to the wrong namespace. Put the closing brace on its "
+                f"own line, or omit the braces entirely.",
+                location=f"{source}"
+            ))
+
+        member = _MEMBER.match(line)
+        if member and not _BRACE_ONLY.match(member.group("rest")) \
+                and _in_class_body(body_lines, offset):
+            if ":" in line:
+                errors.append(Finding(
+                    "mermaid-no-colon-in-class-member",
+                    f"{source}:{lineno}: colon inside a Mermaid class member line "
+                    f"({line.strip()!r}). Use 'ReturnType methodName(Type arg)' "
+                    f"spacing instead.",
+                    location=f"{source}"
+                ))
+            if "{" in line or "}" in line:
+                errors.append(Finding(
+                    "mermaid-no-curly-brace-in-class-member",
+                    f"{source}:{lineno}: curly brace inside a Mermaid class member "
+                    f"line ({line.strip()!r}). Use parentheses, e.g. "
+                    f"'(default earth)'.",
+                    location=f"{source}"
+                ))
+            rest = member.group("rest")
+            reserved_match = re.match(r"^(link|style|click|callback)\b", rest, re.I)
+            if reserved_match:
+                errors.append(Finding(
+                    "mermaid-reserved-keyword-in-class-member",
+                    f"{source}:{lineno}: reserved keyword '{reserved_match.group(1)}' used as unquoted class member "
+                    f"({line.strip()!r}). This breaks rendering. Quote the member or rename it.",
+                    location=f"{source}"
+                ))
+
+        class_note = _CLASS_NOTE.match(line)
+        if class_note and ":" in class_note.group("text"):
+            errors.append(Finding(
+                "mermaid-no-colon-in-note-string",
+                f"{source}:{lineno}: colon inside a Mermaid note string "
+                f"({line.strip()!r}). Colons in notes break rendering.",
+                location=f"{source}"
+            ))
+
+        if _RELATIONSHIP.search(line) and _STEREOTYPE.search(line):
+            errors.append(Finding(
+                "mermaid-no-stereotype-on-relationship",
+                f"{source}:{lineno}: stereotype on a Mermaid relationship line "
+                f"({line.strip()!r}). Use a plain label such as 'references'.",
+                location=f"{source}"
+            ))
+
+        rel_label = _RELATIONSHIP_LABEL.match(line)
+        if rel_label:
+            label = rel_label.group("label").strip()
+            # Issue #333: a colon is not a "special character that quoting fixes".
+            # Mermaid treats ':' as a statement separator, so it ends the statement
+            # wherever it appears — inside quotes as much as outside. The quoting
+            # rule was generalised from spaces, where quoting genuinely works, and
+            # the resulting label satisfied the gate while GitHub refused to render
+            # it. Checked before the quoting rule so a quoted colon is still caught.
+            if ":" in label:
+                errors.append(Finding(
+                    "mermaid-no-colon-in-relationship-label",
+                    f"{source}:{lineno}: colon inside a Mermaid relationship label "
+                    f"({line.strip()!r}). Quoting does not help: Mermaid parses ':' "
+                    f"as a statement separator wherever it occurs, so the renderer "
+                    f"fails with \"Expecting 'NEWLINE', 'EOF', got 'LABEL'\". Drop "
+                    f"the namespace prefix or replace the colon, e.g. "
+                    f': "augments nw node".',
+                    location=f"{source}",
+                ))
+            elif label and not label.startswith('"') and re.search(r"\s", label):
+                errors.append(Finding(
+                    "mermaid-relationship-label-must-be-quoted",
+                    f"{source}:{lineno}: unquoted Mermaid relationship label "
+                    f"containing spaces ({line.strip()!r}). Enclose it in "
+                    f'double quotes, e.g. : "renders one instance".',
+                    location=f"{source}"
+                ))
+
+    return errors
+
+
+def check_mermaid_text(text: str, source: str = "<input>") -> List[Finding]:
     """Return one error string per documented-rule violation. Empty means clean."""
-    errors: List[str] = []
+    errors: List[Finding] = []
     blocks, unclosed = _blocks(text)
 
     for start in unclosed:
         errors.append(Finding(
-                    "mermaid-fence-must-be-closed",
+            "mermaid-fence-must-be-closed",
             f"{source}:{start}: unclosed ```mermaid fence. Every diagram must be "
             f"closed with a matching {FENCE} on its own line, or the block leaks "
-            f"into the surrounding document."
-        , location=f"{source}"))
+            f"into the surrounding document.",
+            location=f"{source}"
+        ))
 
     for start, body, kind in blocks:
-        first_line_content = ""
-        header_lineno = 0
-        for offset, line in enumerate(body):
-            lineno = start + offset + 1
-            line_strip = line.strip()
-            if not line_strip or line_strip.startswith("%%"):
-                continue
-            first_line_content = line_strip.lower()
-            header_lineno = lineno
-            break
-        
-        if first_line_content:
-            is_valid = any(first_line_content.startswith(h) for h in _DIAGRAM_KINDS)
-            if not is_valid:
-                errors.append(Finding(
-                    "mermaid-missing-diagram-header",
-                    f"{source}:{header_lineno}: missing or invalid Mermaid diagram header "
-                    f"({first_line_content!r}). The first non-comment line inside a mermaid block MUST declare a valid diagram type header.",
-                    location=f"{source}"
-                ))
-        else:
-            errors.append(Finding(
-                "mermaid-missing-diagram-header",
-                f"{source}:{start}: missing or invalid Mermaid diagram header "
-                f"(''). The first non-comment line inside a mermaid block MUST declare a valid diagram type header.",
-                location=f"{source}"
-            ))
-
-        for offset, line in enumerate(body):
-            lineno = start + offset + 1
-            line_strip = line.strip()
-
-            if not line_strip or line_strip.startswith("%%"):
-                continue
-
-            if line_strip.count('"') % 2 != 0:
-                errors.append(Finding(
-                    "mermaid-unclosed-quotes",
-                    f"{source}:{lineno}: unclosed double quotes in line "
-                    f"({line_strip!r}). Mermaid diagrams must have matching double quotes.",
-                    location=f"{source}"
-                ))
-
-            if kind in ("graph", "flowchart", "sequencediagram", "statediagram", "statediagram-v2"):
-                unquoted_bracket = validate_mermaid_angle_bracket_escaping(line_strip)
-                if unquoted_bracket:
-                    errors.append(Finding(
-                        "mermaid-diagram-unquoted-brackets-forbidden",
-                        f"{source}:{lineno}: unquoted '{unquoted_bracket}' character in Mermaid diagram "
-                        f"line: '{line_strip}'. Transitions, labels, or guards containing comparison "
-                        f"operators or brackets MUST be enclosed in double quotes."
-                    , location=f"{source}"))
-
-            if kind in ("graph", "flowchart"):
-                unquoted_title = validate_mermaid_subgraph_title_quoting(line_strip)
-                if unquoted_title:
-                    errors.append(Finding(
-                        "mermaid-subgraph-title-must-be-quoted",
-                        f"{source}:{lineno}: unquoted subgraph title containing spaces or hyphens "
-                        f"({unquoted_title!r}). Subgraph titles with spaces or hyphens MUST be enclosed in double quotes."
-                    , location=f"{source}"))
-                
-                unquoted_labels = validate_mermaid_node_label_quoting(line_strip)
-                for label in unquoted_labels:
-                    errors.append(Finding(
-                        "mermaid-node-label-must-be-quoted",
-                        f"{source}:{lineno}: unquoted special characters in node label "
-                        f"({label!r}). Node labels containing slashes, colons, parentheses, or brackets MUST be enclosed in double quotes."
-                    , location=f"{source}"))
-
-            if kind == "sequencediagram":
-                part_match = _SEQUENCE_PARTICIPANT.match(line_strip)
-                if part_match:
-                    raw_alias = part_match.group("alias")
-                    clean_alias = raw_alias.strip('"').lower()
-                    if clean_alias in MERMAID_SEQUENCE_RESERVED_KEYWORDS:
-                        errors.append(Finding(
-                            "mermaid-reserved-keyword-as-participant-alias",
-                            f"{source}:{lineno}: reserved keyword '{clean_alias}' used as sequence diagram participant alias/ID "
-                            f"({line_strip!r}). Using reserved keywords like 'link', 'actor', 'participant', 'loop', 'opt', 'alt', 'rect', 'note', 'end' as participant aliases breaks Mermaid rendering. Rename the participant alias.",
-                            location=f"{source}"
-                        ))
-
-            # --- semicolons in Note statements and message text ---------------
-            payload: Optional[str] = None
-            note = _NOTE.match(line)
-            if note:
-                payload = note.group("text")
-            else:
-                msg = _MESSAGE.match(line)
-                if msg:
-                    payload = msg.group("text")
-            if payload and ";" in payload:
-                errors.append(Finding(
-                    "mermaid-no-semicolon-in-note-or-message",
-                    f"{source}:{lineno}: semicolon in Mermaid Note or message text "
-                    f"({line.strip()!r}). Mermaid parses ';' as a statement separator, "
-                    f"so the rest of the line becomes a new statement and the diagram "
-                    f"fails to render. Replace it with a comma, dash or space."
-                , location=f"{source}"))
-
-            if kind != "classdiagram":
-                continue
-
-            # --- class-diagram-only rules --------------------------------------
-            if _ONE_LINE_EMPTY_CLASS.match(line):
-                errors.append(Finding(
-                    "mermaid-no-single-line-empty-class-body",
-                    f"{source}:{lineno}: single-line empty Mermaid class body "
-                    f"({line.strip()!r}). A same-line closing brace never closes the "
-                    f"block, so a later '}}' pops it instead and every class after it "
-                    f"is attached to the wrong namespace. Put the closing brace on its "
-                    f"own line, or omit the braces entirely."
-                , location=f"{source}"))
-
-            member = _MEMBER.match(line)
-            if member and not _BRACE_ONLY.match(member.group("rest")) \
-                    and _in_class_body(body, offset):
-                if ":" in line:
-                    errors.append(Finding(
-                    "mermaid-no-colon-in-class-member",
-                        f"{source}:{lineno}: colon inside a Mermaid class member line "
-                        f"({line.strip()!r}). Use 'ReturnType methodName(Type arg)' "
-                        f"spacing instead."
-                    , location=f"{source}"))
-                if "{" in line or "}" in line:
-                    errors.append(Finding(
-                    "mermaid-no-curly-brace-in-class-member",
-                        f"{source}:{lineno}: curly brace inside a Mermaid class member "
-                        f"line ({line.strip()!r}). Use parentheses, e.g. "
-                        f"'(default earth)'."
-                    , location=f"{source}"))
-                rest = member.group("rest")
-                reserved_match = re.match(r"^(link|style|click|callback)\b", rest, re.I)
-                if reserved_match:
-                    errors.append(Finding(
-                        "mermaid-reserved-keyword-in-class-member",
-                        f"{source}:{lineno}: reserved keyword '{reserved_match.group(1)}' used as unquoted class member "
-                        f"({line.strip()!r}). This breaks rendering. Quote the member or rename it."
-                    , location=f"{source}"))
-
-            class_note = _CLASS_NOTE.match(line)
-            if class_note and ":" in class_note.group("text"):
-                errors.append(Finding(
-                    "mermaid-no-colon-in-note-string",
-                    f"{source}:{lineno}: colon inside a Mermaid note string "
-                    f"({line.strip()!r}). Colons in notes break rendering."
-                , location=f"{source}"))
-
-            if _RELATIONSHIP.search(line) and _STEREOTYPE.search(line):
-                errors.append(Finding(
-                    "mermaid-no-stereotype-on-relationship",
-                    f"{source}:{lineno}: stereotype on a Mermaid relationship line "
-                    f"({line.strip()!r}). Use a plain label such as 'references'."
-                , location=f"{source}"))
-
-            rel_label = _RELATIONSHIP_LABEL.match(line)
-            if rel_label:
-                label = rel_label.group("label").strip()
-                # Issue #333: a colon is not a "special character that quoting fixes".
-                # Mermaid treats ':' as a statement separator, so it ends the statement
-                # wherever it appears — inside quotes as much as outside. The quoting
-                # rule was generalised from spaces, where quoting genuinely works, and
-                # the resulting label satisfied the gate while GitHub refused to render
-                # it. Checked before the quoting rule so a quoted colon is still caught.
-                if ":" in label:
-                    errors.append(Finding(
-                        "mermaid-no-colon-in-relationship-label",
-                        f"{source}:{lineno}: colon inside a Mermaid relationship label "
-                        f"({line.strip()!r}). Quoting does not help: Mermaid parses ':' "
-                        f"as a statement separator wherever it occurs, so the renderer "
-                        f"fails with \"Expecting 'NEWLINE', 'EOF', got 'LABEL'\". Drop "
-                        f"the namespace prefix or replace the colon, e.g. "
-                        f': "augments nw node".',
-                        location=f"{source}",
-                    ))
-                elif label and not label.startswith('"') and re.search(r"\s", label):
-                    errors.append(Finding(
-                    "mermaid-relationship-label-must-be-quoted",
-                        f"{source}:{lineno}: unquoted Mermaid relationship label "
-                        f"containing spaces ({line.strip()!r}). Enclose it in "
-                        f'double quotes, e.g. : "renders one instance".'
-                    , location=f"{source}"))
+        errors.extend(check_mermaid_block(body, start=start + 1, kind=kind, source=source))
 
     return errors
 
@@ -449,7 +508,7 @@ def check_mermaid_text(text: str, source: str = "<input>") -> List[str]:
 class MermaidSyntaxValidator(IValidator):
     """``IValidator`` wrapper scanning markdown trees for rule violations."""
 
-    def validate(self, repo: WorkspaceRepository, **kwargs) -> List[str]:
+    def validate(self, repo: WorkspaceRepository, **kwargs) -> List[Finding]:
         search_dirs = kwargs.get("search_dirs")
         if not search_dirs:
             search_dirs = [
@@ -458,7 +517,7 @@ class MermaidSyntaxValidator(IValidator):
                 os.path.join(repo.workspace_dir, "skills"),
             ]
 
-        errors: List[str] = []
+        errors: List[Finding] = []
         for root in search_dirs:
             if not os.path.isdir(root):
                 continue
@@ -477,3 +536,6 @@ class MermaidSyntaxValidator(IValidator):
                     rel = os.path.relpath(path, repo.workspace_dir)
                     errors.extend(check_mermaid_text(content, source=rel))
         return errors
+
+
+MermaidValidator = MermaidSyntaxValidator

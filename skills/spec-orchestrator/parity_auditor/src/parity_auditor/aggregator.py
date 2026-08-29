@@ -19,6 +19,7 @@ seventh, and only because one reader happened to hold all seven in mind at once.
 """
 
 import os
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Dict, List, Sequence
 
@@ -128,17 +129,59 @@ class AggregateReport:
         )
 
 
+def _workspace_label_at_depth(path: str, depth: int) -> str:
+    norm = os.path.normpath(path)
+    parts = [p for p in norm.split(os.sep) if p]
+    if not parts:
+        return norm
+    if depth >= len(parts):
+        return norm
+    return os.sep.join(parts[-depth:])
+
+
+def _build_workspace_labels(workspace_paths: Sequence[str]) -> Dict[str, str]:
+    """Map unique absolute workspace paths to disambiguated labels."""
+    valid_paths: List[str] = []
+    seen_real_paths = set()
+
+    for path in workspace_paths:
+        abs_path = os.path.abspath(path)
+        if not os.path.isdir(abs_path):
+            continue
+        real_path = os.path.realpath(abs_path)
+        if real_path in seen_real_paths:
+            continue
+        seen_real_paths.add(real_path)
+        valid_paths.append(abs_path)
+
+    depths = {p: 1 for p in valid_paths}
+    while True:
+        candidate_labels = {p: _workspace_label_at_depth(p, depths[p]) for p in valid_paths}
+        counts = Counter(candidate_labels.values())
+        collisions = False
+        for p in valid_paths:
+            lbl = candidate_labels[p]
+            if counts[lbl] > 1:
+                norm = os.path.normpath(p)
+                non_empty = [part for part in norm.split(os.sep) if part]
+                if depths[p] < len(non_empty):
+                    depths[p] += 1
+                    collisions = True
+        if not collisions:
+            break
+
+    return candidate_labels
+
+
 def collect(workspace_paths: Sequence[str]) -> AggregateReport:
     """Run the aggregating validators over each workspace and group by signature."""
     groups: Dict[str, SymptomGroup] = {}
     corpus: List[str] = []
     unmigrated = 0
 
-    for path in workspace_paths:
-        abs_path = os.path.abspath(path)
-        if not os.path.isdir(abs_path):
-            continue
-        label = os.path.basename(abs_path.rstrip(os.sep)) or abs_path
+    path_labels = _build_workspace_labels(workspace_paths)
+
+    for abs_path, label in path_labels.items():
         corpus.append(label)
 
         repo = WorkspaceRepository(workspace_dir=abs_path)

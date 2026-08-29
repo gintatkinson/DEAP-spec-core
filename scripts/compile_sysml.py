@@ -395,31 +395,40 @@ def _derive_formal_rta_expression(uca: Dict[str, Any]) -> str:
     clean_ctx = re.sub(r'\\le', '<=', clean_ctx)
     clean_ctx = re.sub(r'\\ge', '>=', clean_ctx)
 
-    if "not providing" in category:
-        if "c2" in clean_ctx.lower() or "loss" in clean_ctx.lower() or "link" in clean_ctx.lower():
+    lower_ctx = clean_ctx.lower()
+
+    if "t_loss" in lower_ctx or "link timeout" in lower_ctx or "lossduration" in lower_ctx:
+        return "lossDuration <= timeoutLimit"
+
+    if "not providing" in category or "not provided" in category or "1." in category:
+        if "c2" in lower_ctx and ("30" in lower_ctx or "bvlos" in lower_ctx):
             return "c2LinkLossDuration < 30.0"
-        elif "pressure" in clean_ctx.lower() or "bar" in clean_ctx.lower():
+        elif "c2" in lower_ctx or "loss" in lower_ctx or "link" in lower_ctx:
+            return "lossDuration <= timeoutLimit"
+        elif "pressure" in lower_ctx or "bar" in lower_ctx:
             return "railPressure >= 13.0"
-        elif "distance" in clean_ctx.lower() or "boundary" in clean_ctx.lower():
+        elif "distance" in lower_ctx or "boundary" in lower_ctx:
             return "distanceToBoundary >= 50.0"
         else:
             return "systemCommandIssued == true"
-    elif "providing" in category:
-        if "flare" in clean_ctx.lower() or "agl" in clean_ctx.lower():
+    elif "providing" in category or "2." in category:
+        if "flare" in lower_ctx:
             return "altitudeAGL > 2.0"
-        elif "cruise" in clean_ctx.lower():
+        elif "corridor" in lower_ctx or "boundary" in lower_ctx:
+            return "boundaryInBounds == true"
+        elif "cruise" in lower_ctx:
             return "flightPhase != Cruise"
         else:
-            return "boundaryInBounds == true"
-    elif "too late" in category:
-        if "soc" in clean_ctx.lower() or "battery" in clean_ctx.lower():
+            return "systemParameter <= maxThreshold"
+    elif "too late" in category or "3." in category or "too early" in category:
+        if "soc" in lower_ctx or "battery" in lower_ctx:
             return "batterySoC >= 0.20"
-        elif "velocity" in clean_ctx.lower() or "m/s" in clean_ctx.lower() or "v =" in clean_ctx.lower():
+        elif "velocity" in lower_ctx or "m/s" in lower_ctx or "v =" in lower_ctx:
             return "boundaryCrossVelocity <= 31.0"
         else:
             return "reactionLatency <= maxAllowedLatency"
-    elif "stopped too soon" in category:
-        if "altitude" in clean_ctx.lower():
+    elif "stopped too soon" in category or "4." in category:
+        if "altitude" in lower_ctx:
             return "transitAltitude >= safeTransitAltitude"
         else:
             return "commandHoldDuration >= minRequiredDuration"
@@ -1456,41 +1465,41 @@ def reverse_sync_specs_to_sysml(
     docs_dir: str = "docs",
     schema_path: Optional[str] = None,
     output_path: Optional[str] = None,
-    digest_path: Optional[str] = None
+    digest_path: Optional[str] = None,
+    allow_schema_overwrite: bool = False
 ) -> Tuple[Any, Dict[str, Any]]:
     """
     Executes Closed-Loop Reverse Synchronization from markdown specification corpus
     into the canonical SysML v2 AST Single Source of Truth (.pipeline/schema.sysml).
+
+    Enforces non-destructive AST merging and fail-safe parse exception handling.
 
     Parses:
     - docs/use-cases/UC-*.md -> UseCaseDef
     - docs/user-stories/US-*.md -> SysMLInteractionDef & SysMLTestCaseDef
     - docs/features/FEAT-*.md -> PartDef, SysMLOperationDef, ActionDef, SysMLConstraintDef
     - docs/epics/EPIC-*.md -> SysMLCapabilityDef
-    - docs/safety/STPA_MATRIX.md -> SysMLConstraintDef (assert constraint)
+    - docs/safety/STPA_MATRIX.md / FMECA_MATRIX.md -> SysMLConstraintDef (assert constraint)
 
-    Merges all extracted constructs into matching packages/parts, serializes the updated
-    SysML v2 textual model, and recomputes the cryptographic schema digest.
+    Merges all extracted constructs non-destructively into matching packages/parts, serializes
+    the updated SysML v2 textual model to output_path, and recomputes the cryptographic schema digest.
     """
     if not output_path:
         output_path = os.path.join(PROJECT_ROOT, ".pipeline", "schema.sysml")
     if not digest_path:
         digest_path = os.path.join(PROJECT_ROOT, ".pipeline", "schema-digest.json")
 
-    # Load existing package model
+    # 1. Fail-Safe Parsing: Raise explicit error on parse failure rather than swallowing exceptions
     pkg = None
-    if schema_path and os.path.exists(schema_path):
-        if SysMLParser:
-            try:
-                pkg = SysMLParser.parse_file(schema_path)
-            except Exception:
-                pass
-    elif output_path and os.path.exists(output_path):
-        if SysMLParser:
-            try:
-                pkg = SysMLParser.parse_file(output_path)
-            except Exception:
-                pass
+    source_schema = schema_path if (schema_path and os.path.exists(schema_path)) else (output_path if (output_path and os.path.exists(output_path)) else None)
+
+    if source_schema:
+        if SysMLParser is None:
+            raise RuntimeError("SysMLParser module is unavailable for schema synchronization.")
+        try:
+            pkg = SysMLParser.parse_file(source_schema)
+        except Exception as exc:
+            raise RuntimeError(f"Critical: Failed to parse master SysML schema '{source_schema}': {exc}. Aborting reverse-sync to prevent model corruption.") from exc
 
     if pkg is None:
         root_name = "AutonomousUAS_SSOT"
@@ -1562,11 +1571,11 @@ def reverse_sync_specs_to_sysml(
                     for fm_item in fmecas:
                         _merge_constraint_into_package(pkg, compile_fmeca_to_constraint(fm_item))
 
-    # Serialize SysML textual model with atomic write semantics
+    # 2. Non-Destructive Write: Write to output_path only, never mutate schema_path unless explicitly requested
     sysml_text = pkg.to_sysml() if hasattr(pkg, "to_sysml") else ""
     _atomic_write_file(output_path, sysml_text)
 
-    if schema_path and os.path.exists(schema_path) and os.path.abspath(schema_path) != os.path.abspath(output_path):
+    if allow_schema_overwrite and schema_path and os.path.exists(schema_path) and os.path.abspath(schema_path) != os.path.abspath(output_path):
         _atomic_write_file(schema_path, sysml_text)
 
     # Compute digest and node counts

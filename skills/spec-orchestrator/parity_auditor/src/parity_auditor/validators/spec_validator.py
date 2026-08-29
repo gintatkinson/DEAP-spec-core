@@ -5,18 +5,11 @@ import yaml
 
 from .base import IValidator
 from ..core.findings import Finding
-from ..core.workspace import WorkspaceRepository
+from ..core.workspace import WorkspaceRepository, extract_metadata_from_content
 
 
 def _extract_frontmatter(content: str) -> Dict[str, Any]:
-    m = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
-    if not m:
-        return {}
-    try:
-        data = yaml.safe_load(m.group(1).replace('\x01', ''))
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
+    return extract_metadata_from_content(content)
 
 
 class SpecValidator(IValidator):

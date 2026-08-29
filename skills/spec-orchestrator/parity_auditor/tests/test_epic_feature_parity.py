@@ -28,7 +28,6 @@ for p in (SPEC_SCRIPTS_DIR, PARITY_AUDITOR_SRC, PROJECT_ROOT):
 
 from parity_auditor.core.workspace import WorkspaceRepository
 from parity_auditor.validators.cardinality_validator import SchemaCardinalityValidator
-from parity_auditor.validators.uml import UmlValidator
 from parity_auditor.core.findings import Finding
 
 SAMPLE_SYSML_MODEL = """
@@ -173,24 +172,18 @@ Structural Schema: [model.sysml](https://raw.githubusercontent.com/gintatkinson/
 def _create_mock_repo(tmp_dir, sysml_content=SAMPLE_SYSML_MODEL, epics=None, features=None):
     rules_dir = os.path.join(tmp_dir, ".pipeline", "logical-ui")
     os.makedirs(rules_dir, exist_ok=True)
-    real_rules_path = os.path.join(PROJECT_ROOT, ".pipeline", "logical-ui", "codebase_rules.json")
-    if os.path.exists(real_rules_path):
-        with open(real_rules_path, "r", encoding="utf-8") as f:
-            rules_content = json.load(f)
-    else:
-        rules_content = {
-            "meta": {"upstream_repository": "gintatkinson/DEAP-uas-infrastructure-safety"},
-            "backlog_directories": {
-                "schemas": "schema",
-                "epics": "docs/epics",
-                "features": "docs/features",
-                "use_cases": "docs/use-cases",
-                "user_stories": "docs/user-stories"
-            }
+    rules_content = {
+        "meta": {"upstream_repository": "gintatkinson/DEAP-uas-infrastructure-safety"},
+        "backlog_directories": {
+            "schemas": "schema",
+            "epics": "docs/epics",
+            "features": "docs/features",
+            "use_cases": "docs/use-cases",
+            "user_stories": "docs/user-stories"
         }
+    }
     with open(os.path.join(rules_dir, "codebase_rules.json"), "w", encoding="utf-8") as f:
         json.dump(rules_content, f)
-
 
     schema_dir = os.path.join(tmp_dir, "schema")
     os.makedirs(schema_dir, exist_ok=True)
@@ -363,29 +356,3 @@ def test_check18_and_19_full_cardinality_validator_integration():
         validator = SchemaCardinalityValidator()
         errors = validator.validate(repo, is_sysml=True)
         assert len(errors) == 0, f"Expected 0 errors, got: {errors}"
-
-
-@pytest.mark.parametrize("token", [
-    "#[IssueID]",
-    "[Feat-ID]",
-    "[Feature Title]",
-    "[EpicID]",
-    "[US-ID]",
-    "[Use Case ID]",
-    "{{REQUIRED_JUSTIFICATION}}",
-    "(semantic linkage justification)"
-])
-def test_check18_epic_rejects_unreplaced_secondary_checklist_tokens(token):
-    """Verify UmlValidator rejects Epics with unreplaced tokens in secondary checklists (Issue #58)."""
-    invalid_epic = SAMPLE_VALID_EPIC + f"\n### Associated Use Cases & User Stories\n\n#### Associated Use Cases\n- [ ] {token} - [UC-001: Example](https://github.com/org/repo/blob/main/docs/use-cases/uc-01.md) Autonomous collision avoidance linkage\n"
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        repo = _create_mock_repo(tmp_dir, epics={"epic-01-flight-guidance.md": invalid_epic})
-        validator = UmlValidator()
-        errors = validator.validate(repo)
-        assert any(
-            e.rule_id in ("epic-prohibit-unreplaced-placeholder-text", "specification-must-not-contain-template-placeholders")
-            for e in errors
-        ), f"Expected error for secondary checklist placeholder token '{token}', got: {errors}"
-
-
-

@@ -10,6 +10,7 @@ across markdown specifications in the docs/ directory:
 4. Mismatched delimiters or unclosed \\begin{aligned} and alignment environments.
 5. Markdown table math prohibition: strictly ban $ ... $ delimiters in table cells/headers.
 6. Markdown table column count consistency: 1:1 match between header and delimiter rows.
+7. Un-isolated display math delimiters: opening and closing $$ must be on their own isolated lines.
 """
 
 import os
@@ -294,12 +295,24 @@ def check_katex_text(text: str, source: str = "<input>") -> List[Finding]:
                 _validate_display_block([(lineno, block_content)], source, errors)
                 continue
             elif not in_display_math:
+                if stripped != "$$":
+                    errors.append(Finding(
+                        "katex-unisolated-display-delimiter",
+                        f"{source}:{lineno}: display math delimiter '$$' must be on its own isolated line (found '{stripped}').",
+                        location=f"{source}:{lineno}"
+                    ))
                 in_display_math = True
                 display_start_lineno = lineno
                 after = line.split("$$", 1)[1]
                 display_lines = [(lineno, after)]
                 continue
             else:
+                if stripped != "$$":
+                    errors.append(Finding(
+                        "katex-unisolated-display-delimiter",
+                        f"{source}:{lineno}: display math delimiter '$$' must be on its own isolated line (found '{stripped}').",
+                        location=f"{source}:{lineno}"
+                    ))
                 in_display_math = False
                 before = line.split("$$", 1)[0]
                 display_lines.append((lineno, before))
