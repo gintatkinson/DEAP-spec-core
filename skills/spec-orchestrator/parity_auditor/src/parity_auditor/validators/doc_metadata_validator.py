@@ -53,8 +53,12 @@ def _normalize_key(key_raw: str) -> str:
         return "date"
     if clean in ("release_date", "released_date", "release", "published_date", "publication_date"):
         return "release_date"
-    if clean in ("status", "doc_status", "document_status"):
+    if clean in ("status", "doc_status", "document_status", "state"):
         return "status"
+    if clean in ("target_baseline", "target_base_line", "baseline", "target_version"):
+        return "target_baseline"
+    if clean in ("document_id", "doc_id", "id", "document_identifier", "doc_identifier", "spec_id"):
+        return "document_id"
     if clean in ("optional", "is_optional"):
         return "optional"
     return clean
@@ -205,7 +209,7 @@ def _parse_table_block(table_lines: List[Tuple[str, int]], extracted: Dict[str, 
     header_norms = [_normalize_key(h) for h in header_cells]
 
     # Case A: Horizontal / Columnar table (e.g. | Title | Version | Date |)
-    has_horizontal_keys = any(k in ("title", "version", "date", "release_date") for k in header_norms)
+    has_horizontal_keys = any(k in ("title", "version", "date", "release_date", "document_id", "target_baseline") for k in header_norms)
     if has_horizontal_keys and len(table_lines) >= 3:
         for row_text, lineno in table_lines[2:]:
             data_cells = [c.strip() for c in row_text.split("|")[1:-1]]
@@ -214,15 +218,15 @@ def _parse_table_block(table_lines: List[Tuple[str, int]], extracted: Dict[str, 
                     v_clean = _clean_str(data_cells[idx])
                     if k_norm and v_clean and k_norm not in extracted:
                         extracted[k_norm] = (v_clean, lineno)
-
-    # Case B: Vertical key-value table (e.g. | Key | Value |)
-    for row_text, lineno in table_lines[2:]:
-        cells = [c.strip() for c in row_text.split("|")[1:-1]]
-        if len(cells) >= 2:
-            k_norm = _normalize_key(cells[0])
-            v_clean = _clean_str(cells[1])
-            if k_norm and v_clean and k_norm not in extracted:
-                extracted[k_norm] = (v_clean, lineno)
+    else:
+        # Case B: Vertical key-value table (e.g. | Attribute | Specification Detail | or | Key | Value |)
+        for row_text, lineno in table_lines[2:]:
+            cells = [c.strip() for c in row_text.split("|")[1:-1]]
+            if len(cells) >= 2:
+                k_norm = _normalize_key(cells[0])
+                v_clean = _clean_str(cells[1])
+                if k_norm and v_clean and k_norm not in extracted:
+                    extracted[k_norm] = (v_clean, lineno)
 
 
 def _extract_table_metadata(content: str) -> Dict[str, Tuple[str, int]]:
@@ -281,7 +285,14 @@ class DocMetadataValidator(IValidator):
             if k not in extracted:
                 extracted[k] = v
 
-        # 2. Parse Markdown tables (vertical key-value or horizontal columnar)
+        # 2. Extract H1 heading
+        h1_info = _extract_h1_heading(content)
+        if h1_info is not None and h1_info[0]:
+            # If YAML frontmatter is NOT present (or didn't provide a title), extract title from H1 heading
+            if "title" not in yaml_data:
+                extracted["title"] = h1_info
+
+        # 3. Parse Markdown tables (vertical key-value or horizontal columnar)
         table_data = _extract_table_metadata(content)
         for k, v in table_data.items():
             if k not in extracted:
@@ -307,8 +318,8 @@ class DocMetadataValidator(IValidator):
         Executes document metadata and frontmatter validation.
 
         Scans markdown documents under docs/ and asserts:
-        1. Title presence in YAML frontmatter or Markdown table
-        2. Exact match between YAML title and the # H1 heading text
+        1. Title presence in YAML frontmatter or Markdown table / H1 heading
+        2. Exact match between YAML title and the # H1 heading text (if YAML frontmatter is present)
         3. Title format (clean canonical name without concatenated metadata)
         4. Version presence and semver conformance (v?X.Y[.Z])
         5. Date / Release Date presence and ISO 8601 conformance (YYYY-MM-DD)
@@ -343,10 +354,11 @@ class DocMetadataValidator(IValidator):
 
             yaml_data = _extract_yaml_frontmatter(content)
             table_data = _extract_table_metadata(content)
+            h1_info = _extract_h1_heading(content)
             extracted, is_optional = self.extract_metadata(content)
 
-            # Skip stub/optional files if they carry no metadata
-            if is_optional and not extracted:
+            # Skip stub/optional files marked as optional
+            if is_optional:
                 continue
 
             # 1. Validate presence of Title, Version, Date or Release Date
@@ -355,8 +367,6 @@ class DocMetadataValidator(IValidator):
             has_date = bool(extracted.get("date", ("", 0))[0] or extracted.get("release_date", ("", 0))[0])
 
             if not (has_title and has_version and has_date):
-                if is_optional and not extracted:
-                    continue
                 missing = []
                 if not has_title:
                     missing.append("Title")
@@ -403,12 +413,18 @@ class DocMetadataValidator(IValidator):
             titles_to_check: List[Tuple[str, int]] = []
             if "title" in yaml_data:
                 titles_to_check.append(yaml_data["title"])
-            if "title" in table_data and table_data["title"] not in titles_to_check:
+            if h1_info and h1_info[0]:
+                titles_to_check.append(h1_info)
+            if "title" in table_data:
                 titles_to_check.append(table_data["title"])
-            if not titles_to_check and "title" in extracted:
+            if "title" in extracted:
                 titles_to_check.append(extracted["title"])
 
+            seen_titles: Set[str] = set()
             for raw_title, t_line in titles_to_check:
+                if raw_title in seen_titles:
+                    continue
+                seen_titles.add(raw_title)
                 if _has_concatenated_title_metadata(raw_title):
                     loc = f"{rel_path}:{t_line}" if t_line > 0 else rel_path
                     errors.append(Finding(
@@ -418,10 +434,9 @@ class DocMetadataValidator(IValidator):
                         detail={"title": raw_title}
                     ))
 
-            # 5. Exact match between YAML title and the # H1 heading text
+            # 5. Exact match between YAML title and the # H1 heading text (if YAML frontmatter title is present)
             if "title" in yaml_data:
                 yaml_title = yaml_data["title"][0]
-                h1_info = _extract_h1_heading(content)
                 h1_title = h1_info[0] if h1_info is not None else ""
                 if yaml_title != h1_title:
                     errors.append(Finding(

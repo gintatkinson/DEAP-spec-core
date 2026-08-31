@@ -2,15 +2,17 @@
 Unit tests for DocMetadataValidator.
 
 Tests:
-1. Positive validation of valid ISO dates (YYYY-MM-DD), semver versions (v?X.Y[.Z]), and required fields.
-2. Negative validation of invalid dates (e.g. "August 2026", "2026/08/31", "2026-02-30").
-3. Negative validation of missing fields (missing Title, missing Version, missing Date).
-4. Negative validation of invalid version strings (e.g. "draft", "1", "alpha").
-5. Graceful skipping of READMEs, empty stubs, and documents marked optional.
-6. Detection and rejection of concatenated title strings.
-7. Validation of matching YAML frontmatter, H1 heading, and visual Markdown tables.
-8. Negative validation of mismatch between YAML title and H1 heading.
-9. Positive validation of agile specs with prefixes (# Epic: EPIC-001 — ...).
+1. Pure Markdown header (H1 Title + Visual Table, zero YAML frontmatter) passes 100%.
+2. Full 3-part header (YAML + H1 + Table) passes 100%.
+3. Positive validation of valid ISO dates (YYYY-MM-DD), semver versions (v?X.Y[.Z]), and required fields.
+4. Negative validation of invalid dates (e.g. "August 2026", "2026/08/31", "2026-02-30").
+5. Negative validation of missing fields (missing Title, missing Version, missing Date).
+6. Negative validation of invalid version strings (e.g. "draft", "1", "alpha").
+7. Graceful skipping of READMEs, empty stubs, and documents marked optional.
+8. Detection and rejection of concatenated title strings in H1 heading, YAML frontmatter, or tables.
+9. Validation of matching YAML frontmatter, H1 heading, and visual Markdown tables.
+10. Negative validation of mismatch between YAML title and H1 heading.
+11. Positive validation of agile specs with prefixes (# Epic: EPIC-001 — ...).
 """
 
 import os
@@ -105,6 +107,99 @@ date: 2026-08-31
         self.assertEqual(h1_info[0], "EPIC-001 — Core Architecture")
         self.assertEqual(h1_info[1], 11)
 
+    def test_pure_markdown_header_without_yaml_passes(self):
+        """Verify pure Markdown header (H1 Title + Visual Table, zero YAML frontmatter) passes 100%."""
+        content = """# Autonomous UAS Infrastructure Safety Concept of Operations
+
+| Attribute | Specification Detail |
+| :--- | :--- |
+| **Document ID** | DOC-CONOPS-001 |
+| **Version** | 1.0.0 |
+| **Date** | 2026-08-31 |
+| **Status** | APPROVED |
+| **Target Baseline** | v1.0.0 |
+
+## 1. Executive Summary
+Operational scope description.
+"""
+        # Test extract_metadata directly
+        extracted, is_optional = self.validator.extract_metadata(content)
+        self.assertFalse(is_optional)
+        self.assertEqual(extracted["title"][0], "Autonomous UAS Infrastructure Safety Concept of Operations")
+        self.assertEqual(extracted["version"][0], "1.0.0")
+        self.assertEqual(extracted["date"][0], "2026-08-31")
+        self.assertEqual(extracted["status"][0], "APPROVED")
+        self.assertEqual(extracted["target_baseline"][0], "v1.0.0")
+        self.assertEqual(extracted["document_id"][0], "DOC-CONOPS-001")
+
+        # Test full repository validation
+        with tempfile.TemporaryDirectory() as tmpdir:
+            docs_conops = os.path.join(tmpdir, "docs", "conops")
+            os.makedirs(docs_conops, exist_ok=True)
+            with open(os.path.join(docs_conops, "CONOPS.md"), "w", encoding="utf-8") as f:
+                f.write(content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            errors = self.validator.validate(repo)
+            self.assertEqual(errors, [])
+
+    def test_pure_markdown_header_with_title_in_table_passes(self):
+        """Verify pure Markdown header with title row in visual table passes 100%."""
+        content = """# Autonomous UAS Infrastructure Safety Concept of Operations
+
+| Attribute | Specification Detail |
+| :--- | :--- |
+| **Title** | Autonomous UAS Infrastructure Safety Concept of Operations |
+| **Document ID** | DOC-CONOPS-001 |
+| **Version** | 1.0.0 |
+| **Date** | 2026-08-31 |
+| **Status** | APPROVED |
+
+## 1. Executive Summary
+Operational scope description.
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            docs_conops = os.path.join(tmpdir, "docs", "conops")
+            os.makedirs(docs_conops, exist_ok=True)
+            with open(os.path.join(docs_conops, "CONOPS.md"), "w", encoding="utf-8") as f:
+                f.write(content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            errors = self.validator.validate(repo)
+            self.assertEqual(errors, [])
+
+    def test_full_three_part_header_passes(self):
+        """Verify full 3-part header (YAML frontmatter + H1 Title + Visual Table) passes 100%."""
+        content = """---
+title: Autonomous UAS Architecture Specification
+version: 1.0.0
+date: 2026-08-31
+---
+
+# Autonomous UAS Architecture Specification
+
+| Attribute | Specification Detail |
+| :--- | :--- |
+| **Document ID** | DOC-ARCH-001 |
+| **Title** | Autonomous UAS Architecture Specification |
+| **Version** | 1.0.0 |
+| **Date** | 2026-08-31 |
+| **Status** | APPROVED |
+| **Target Baseline** | v1.0.0 |
+
+## 1. System Overview
+Architecture description.
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            docs_arch = os.path.join(tmpdir, "docs", "architecture")
+            os.makedirs(docs_arch, exist_ok=True)
+            with open(os.path.join(docs_arch, "ARCH_SPEC.md"), "w", encoding="utf-8") as f:
+                f.write(content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            errors = self.validator.validate(repo)
+            self.assertEqual(errors, [])
+
     def test_valid_vertical_table_passes(self):
         """Verify valid vertical frontmatter metadata table passes without findings."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -174,8 +269,28 @@ Operational scope description.
             errors = self.validator.validate(repo)
             self.assertEqual(errors, [])
 
-    def test_missing_all_metadata_fields(self):
-        """Verify document missing metadata table emits doc-metadata-missing-field."""
+    def test_missing_all_metadata_fields_when_no_h1_and_no_table(self):
+        """Verify document missing H1 title and metadata table emits doc-metadata-missing-field for all fields."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            docs_conops = os.path.join(tmpdir, "docs", "conops")
+            os.makedirs(docs_conops, exist_ok=True)
+
+            content = """This document has no H1 heading and no frontmatter metadata table.
+Just plain text without metadata.
+"""
+            with open(os.path.join(docs_conops, "CONOPS.md"), "w", encoding="utf-8") as f:
+                f.write(content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            errors = self.validator.validate(repo)
+            self.assertEqual(len(errors), 1)
+            self.assertEqual(errors[0].rule_id, "doc-metadata-missing-field")
+            self.assertIn("Title", str(errors[0]))
+            self.assertIn("Version", str(errors[0]))
+            self.assertIn("Date", str(errors[0]))
+
+    def test_missing_version_and_date_with_h1_title(self):
+        """Verify document with H1 title but missing Version and Date emits doc-metadata-missing-field."""
         with tempfile.TemporaryDirectory() as tmpdir:
             docs_conops = os.path.join(tmpdir, "docs", "conops")
             os.makedirs(docs_conops, exist_ok=True)
@@ -191,9 +306,9 @@ This document does not contain a frontmatter table.
             errors = self.validator.validate(repo)
             self.assertEqual(len(errors), 1)
             self.assertEqual(errors[0].rule_id, "doc-metadata-missing-field")
-            self.assertIn("Title", str(errors[0]))
-            self.assertIn("Version", str(errors[0]))
-            self.assertIn("Date", str(errors[0]))
+            self.assertNotIn("Title", errors[0].detail["missing_fields"])
+            self.assertIn("Version", errors[0].detail["missing_fields"])
+            self.assertIn("Date (or Release Date)", errors[0].detail["missing_fields"])
 
     def test_missing_single_field_version(self):
         """Verify table missing Version field emits doc-metadata-missing-field."""
@@ -371,8 +486,8 @@ Operational scope description.
             errors = self.validator.validate(repo)
             self.assertEqual(errors, [])
 
-    def test_concatenated_title_fails(self):
-        """Verify document title containing concatenated metadata attributes emits doc-metadata-concatenated-title."""
+    def test_concatenated_title_in_table_fails(self):
+        """Verify document title in table containing concatenated metadata attributes emits doc-metadata-concatenated-title."""
         with tempfile.TemporaryDirectory() as tmpdir:
             docs_conops = os.path.join(tmpdir, "docs", "conops")
             os.makedirs(docs_conops, exist_ok=True)
@@ -399,36 +514,32 @@ Operational scope description.
             self.assertIn("Document title contains concatenated metadata attributes", str(errors[0]))
             self.assertIn("Mission Intent (DOC-MI-A5-001 v3.0.0 2026-08-31)", str(errors[0]))
 
-    def test_matching_yaml_frontmatter_h1_and_table_passes(self):
-        """Verify document with matching YAML frontmatter, H1 heading, and visual Markdown table passes."""
+    def test_concatenated_title_in_h1_heading_fails(self):
+        """Verify document title in H1 heading containing concatenated metadata attributes emits doc-metadata-concatenated-title."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            docs_arch = os.path.join(tmpdir, "docs", "architecture")
-            os.makedirs(docs_arch, exist_ok=True)
+            docs_conops = os.path.join(tmpdir, "docs", "conops")
+            os.makedirs(docs_conops, exist_ok=True)
 
-            content = """---
-title: Autonomous UAS Architecture Specification
-version: 1.0.0
-date: 2026-08-31
----
-
-# Autonomous UAS Architecture Specification
+            content = """# Mission Intent (DOC-MI-A5-001 v3.0.0 2026-08-31)
 
 | Attribute | Specification Detail |
 | :--- | :--- |
-| **Title** | Autonomous UAS Architecture Specification |
-| **Version** | 1.0.0 |
+| **Document ID** | DOC-MI-A5-001 |
+| **Version** | 3.0.0 |
 | **Date** | 2026-08-31 |
-| **Status** | APPROVED |
+| **Status** | DRAFT |
 
-## 1. System Overview
-Architecture description.
+## 1. Executive Summary
+Operational scope description.
 """
-            with open(os.path.join(docs_arch, "ARCH_SPEC.md"), "w", encoding="utf-8") as f:
+            with open(os.path.join(docs_conops, "MISSION_INTENT.md"), "w", encoding="utf-8") as f:
                 f.write(content)
 
             repo = WorkspaceRepository(workspace_dir=tmpdir)
             errors = self.validator.validate(repo)
-            self.assertEqual(errors, [])
+            self.assertEqual(len(errors), 1)
+            self.assertEqual(errors[0].rule_id, "doc-metadata-concatenated-title")
+            self.assertIn("Document title contains concatenated metadata attributes", str(errors[0]))
 
     def test_yaml_title_heading_mismatch_fails(self):
         """Verify mismatch between YAML frontmatter title and H1 heading emits doc-metadata-title-heading-mismatch."""
