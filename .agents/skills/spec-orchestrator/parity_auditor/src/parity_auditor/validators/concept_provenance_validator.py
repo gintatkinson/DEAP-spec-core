@@ -312,4 +312,160 @@ class ConceptProvenanceValidator(IValidator):
                                 detail={"parameter": gt.name, "claimed": doc_val, "ground_truth": gt.value, "error": rel_err}
                             ))
 
+        # Semantic OEM provenance checks
+        errors.extend(self.validate_semantic_oem_provenance(repo))
+
         return errors
+
+    def validate_semantic_oem_provenance(self, repo: WorkspaceRepository) -> List[Finding]:
+        """
+        Scans concept markdown documents in docs/conops/ for physical hardware
+        contradiction tokens against Level 0 OEM ground-truth extractions in schema/extracted/.
+        """
+        workspace_dir = repo.workspace_dir
+        extracted_dir = os.path.join(workspace_dir, "schema", "extracted")
+        if not os.path.isdir(extracted_dir):
+            return []
+
+        extracted_files: List[str] = []
+        for root, _, files in os.walk(extracted_dir):
+            for f in files:
+                if f.endswith(".md") and f != "README.md":
+                    extracted_files.append(os.path.join(root, f))
+
+        if not extracted_files:
+            return []
+
+        extracted_texts: List[str] = []
+        for ef in extracted_files:
+            try:
+                with open(ef, "r", encoding="utf-8", errors="ignore") as f:
+                    extracted_texts.append(f.read())
+            except Exception:
+                continue
+
+        if not extracted_texts:
+            return []
+
+        oem_text = "\n\n".join(extracted_texts)
+
+        # Baseline conditions from OEM ground truth
+        oem_no_recovery = bool(re.search(
+            r'\brecovery(?:\s+system)?\s*[:|]?\s*(?:is\s*)?(?:no\b|none\b|false\b|n/a\b|not\s+equipped|not\s+installed)',
+            oem_text,
+            re.IGNORECASE
+        ))
+        oem_ruddervator = bool(re.search(r'\bruddervators?\b', oem_text, re.IGNORECASE))
+        has_oem_pbit_11 = bool(re.search(r'(?:0x11\b[^\n]*?\bPBIT\b|\bPBIT\b[^\n]*?0x11\b)', oem_text, re.IGNORECASE))
+        has_oem_exchange_10 = bool(re.search(r'(?:0x10\b[^\n]*?\b(?:EXCHANGE|KEY_EXCHANGE)\b|\b(?:EXCHANGE|KEY_EXCHANGE)\b[^\n]*?0x10\b)', oem_text, re.IGNORECASE))
+        oem_esad_icd = has_oem_pbit_11 or has_oem_exchange_10
+
+        conops_dir = os.path.join(workspace_dir, "docs", "conops")
+        if not os.path.isdir(conops_dir):
+            return []
+
+        conops_files: List[Tuple[str, str]] = []
+        for root, _, files in os.walk(conops_dir):
+            for f in files:
+                if f.endswith(".md") and f != "README.md":
+                    full_p = os.path.join(root, f)
+                    rel_p = os.path.relpath(full_p, workspace_dir)
+                    conops_files.append((full_p, rel_p))
+
+        if not conops_files:
+            return []
+
+        findings: List[Finding] = []
+
+        for full_path, rel_path in conops_files:
+            try:
+                with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+            except Exception:
+                continue
+
+            lines = content.splitlines()
+            for lineno, line in enumerate(lines, start=1):
+                line_clean = line.strip()
+                if not line_clean:
+                    continue
+
+                # a) Asserting recovery systems when OEM extraction declares Recovery system: No / None
+                if oem_no_recovery:
+                    is_denial = bool(re.search(
+                        r'\b(?:no|none|without|never|not\s+equipped|not\s+installed|not\s+included)\b.*?\b(?:parachute|chute)\b',
+                        line,
+                        re.IGNORECASE
+                    ))
+                    if not is_denial:
+                        m_rec = re.search(
+                            r'\b(ballistic\s+parachute|recovery\s+parachute|parachute\s+recovery|parachute\s+system|emergency\s+parachute|pyrotechnic\s+parachute|recovery\s+chute|ballistic\s+chute|parachute)\b',
+                            line,
+                            re.IGNORECASE
+                        )
+                        if m_rec:
+                            token = m_rec.group(1)
+                            findings.append(Finding(
+                                "semantic-oem-provenance-contradiction",
+                                f"{rel_path}:{lineno}: Physical assertion ('{token}') contradicts Level 0 OEM Ground-Truth extraction baseline in schema/extracted/.",
+                                location=f"{rel_path}:{lineno}",
+                                detail={"file": rel_path, "line": lineno, "token": token}
+                            ))
+                            continue
+
+                # b) Asserting incorrect control surface taxonomy when OEM declares ruddervator
+                if oem_ruddervator:
+                    is_denial = bool(re.search(
+                        r'\b(?:no|none|without|never|not\s+equipped|not\s+installed|not\s+included)\b.*?\belevons?\b',
+                        line,
+                        re.IGNORECASE
+                    ))
+                    if not is_denial:
+                        m_elevon = re.search(
+                            r'\b(symmetrical\s+elevons?|elevon\s+actuators?|elevon\s+controls?|elevon\s+surfaces?|elevons?)\b',
+                            line,
+                            re.IGNORECASE
+                        )
+                        if m_elevon:
+                            token = m_elevon.group(1)
+                            findings.append(Finding(
+                                "semantic-oem-provenance-contradiction",
+                                f"{rel_path}:{lineno}: Physical assertion ('{token}') contradicts Level 0 OEM Ground-Truth extraction baseline in schema/extracted/.",
+                                location=f"{rel_path}:{lineno}",
+                                detail={"file": rel_path, "line": lineno, "token": token}
+                            ))
+                            continue
+
+                # c) Asserting inverted ESAD RS-485 opcodes
+                if oem_esad_icd:
+                    m_inv_pbit = re.search(
+                        r'\b((?:Opcode\s+)?0x10\s*[:\-—|]?\s*PBIT|PBIT\s*(?:\(0x10\)|opcode\s+0x10|[:\-—|]\s*0x10)|0x10\s+PBIT)\b',
+                        line,
+                        re.IGNORECASE
+                    )
+                    if m_inv_pbit:
+                        token = m_inv_pbit.group(1)
+                        findings.append(Finding(
+                            "semantic-oem-provenance-contradiction",
+                            f"{rel_path}:{lineno}: Physical assertion ('{token}') contradicts Level 0 OEM Ground-Truth extraction baseline in schema/extracted/.",
+                            location=f"{rel_path}:{lineno}",
+                            detail={"file": rel_path, "line": lineno, "token": token}
+                        ))
+                        continue
+
+                    m_inv_exch = re.search(
+                        r'\b((?:Opcode\s+)?0x11\s*[:\-—|]?\s*(?:Key\s+)?Exchange|(?:Key\s+)?Exchange\s*(?:\(0x11\)|opcode\s+0x11|[:\-—|]\s*0x11)|0x11\s+Exchange)\b',
+                        line,
+                        re.IGNORECASE
+                    )
+                    if m_inv_exch:
+                        token = m_inv_exch.group(1)
+                        findings.append(Finding(
+                            "semantic-oem-provenance-contradiction",
+                            f"{rel_path}:{lineno}: Physical assertion ('{token}') contradicts Level 0 OEM Ground-Truth extraction baseline in schema/extracted/.",
+                            location=f"{rel_path}:{lineno}",
+                            detail={"file": rel_path, "line": lineno, "token": token}
+                        ))
+                        continue
+
+        return findings

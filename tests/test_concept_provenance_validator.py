@@ -238,6 +238,135 @@ The vehicle has a system_mass = 1800.0 kg for target mission operations.
             errors = validator.validate(repo)
             self.assertEqual(errors, [])
 
+    def test_semantic_oem_provenance_fails_on_parachute_assertion(self):
+        """Verify that asserting recovery parachute when OEM declares Recovery system: No fails."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            schema_dir = os.path.join(tmpdir, "schema")
+            extracted_dir = os.path.join(schema_dir, "extracted")
+            conops_dir = os.path.join(tmpdir, "docs", "conops")
+            os.makedirs(extracted_dir, exist_ok=True)
+            os.makedirs(conops_dir, exist_ok=True)
+
+            with open(os.path.join(extracted_dir, "oem_specs.md"), "w", encoding="utf-8") as f:
+                f.write("# OEM Specifications\n\n| Property | Value |\n|---|---|\n| system_mass | 1800.0 kg |\n| Recovery system | No |\n")
+
+            conops_content = """# Mission Intent
+<!-- Source: schema/extracted/oem_specs.md -->
+
+The vehicle incorporates a ballistic parachute for emergency recovery.
+"""
+            with open(os.path.join(conops_dir, "MISSION_INTENT.md"), "w", encoding="utf-8") as f:
+                f.write(conops_content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            validator = ConceptProvenanceValidator()
+            errors = validator.validate(repo)
+
+            contra_errors = [e for e in errors if e.rule_id == "semantic-oem-provenance-contradiction"]
+            self.assertEqual(len(contra_errors), 1)
+            self.assertIn("Physical assertion ('ballistic parachute') contradicts Level 0 OEM Ground-Truth extraction baseline in schema/extracted/.", str(contra_errors[0]))
+            self.assertEqual(contra_errors[0].location, "docs/conops/MISSION_INTENT.md:4")
+
+    def test_semantic_oem_provenance_fails_on_elevon_assertion(self):
+        """Verify that asserting elevon taxonomy when OEM declares ruddervator tail surfaces fails."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            schema_dir = os.path.join(tmpdir, "schema")
+            extracted_dir = os.path.join(schema_dir, "extracted")
+            conops_dir = os.path.join(tmpdir, "docs", "conops")
+            os.makedirs(extracted_dir, exist_ok=True)
+            os.makedirs(conops_dir, exist_ok=True)
+
+            with open(os.path.join(extracted_dir, "flight_manual.md"), "w", encoding="utf-8") as f:
+                f.write("# Flight Manual\n\nThe airframe utilizes V-tail ruddervator control surfaces.\n")
+
+            conops_content = """# Concept of Operations
+<!-- Source: schema/extracted/flight_manual.md -->
+
+Pitch and yaw control are governed by symmetrical elevon actuators.
+"""
+            with open(os.path.join(conops_dir, "CONOPS.md"), "w", encoding="utf-8") as f:
+                f.write(conops_content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            validator = ConceptProvenanceValidator()
+            errors = validator.validate(repo)
+
+            contra_errors = [e for e in errors if e.rule_id == "semantic-oem-provenance-contradiction"]
+            self.assertEqual(len(contra_errors), 1)
+            self.assertIn("Physical assertion ('symmetrical elevon", str(contra_errors[0]))
+            self.assertIn("contradicts Level 0 OEM Ground-Truth extraction baseline in schema/extracted/.", str(contra_errors[0]))
+
+    def test_semantic_oem_provenance_fails_on_inverted_rs485_opcodes(self):
+        """Verify that asserting inverted RS-485 opcodes (0x10 PBIT or 0x11 Exchange) when OEM defines 0x11 PBIT and 0x10 Exchange fails."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            schema_dir = os.path.join(tmpdir, "schema")
+            extracted_dir = os.path.join(schema_dir, "extracted")
+            conops_dir = os.path.join(tmpdir, "docs", "conops")
+            os.makedirs(extracted_dir, exist_ok=True)
+            os.makedirs(conops_dir, exist_ok=True)
+
+            with open(os.path.join(extracted_dir, "esad_icd.md"), "w", encoding="utf-8") as f:
+                f.write("# ESAD ICD\n\n- Opcode 0x11: PBIT\n- Opcode 0x10: Exchange\n")
+
+            conops_content = """# Concept of Operations
+<!-- Source: schema/extracted/esad_icd.md -->
+
+The ESAD interface executes Opcode 0x10 PBIT on startup.
+Next, it performs Opcode 0x11 Exchange for session key agreement.
+"""
+            with open(os.path.join(conops_dir, "CONOPS.md"), "w", encoding="utf-8") as f:
+                f.write(conops_content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            validator = ConceptProvenanceValidator()
+            errors = validator.validate(repo)
+
+            contra_errors = [e for e in errors if e.rule_id == "semantic-oem-provenance-contradiction"]
+            self.assertEqual(len(contra_errors), 2)
+            self.assertIn("Opcode 0x10 PBIT", str(contra_errors[0]))
+            self.assertIn("Opcode 0x11 Exchange", str(contra_errors[1]))
+
+    def test_semantic_oem_provenance_passes_when_adhering_to_oem(self):
+        """Verify that concept document adhering 100% to OEM extraction baseline passes with zero errors."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            schema_dir = os.path.join(tmpdir, "schema")
+            extracted_dir = os.path.join(schema_dir, "extracted")
+            conops_dir = os.path.join(tmpdir, "docs", "conops")
+            os.makedirs(extracted_dir, exist_ok=True)
+            os.makedirs(conops_dir, exist_ok=True)
+
+            with open(os.path.join(extracted_dir, "oem_baseline.md"), "w", encoding="utf-8") as f:
+                f.write("""# OEM Baseline
+| Property | Value |
+|---|---|
+| system_mass | 1800.0 kg |
+| Recovery system | None |
+
+- Control surfaces: Ruddervator configuration
+- Opcode 0x11: PBIT
+- Opcode 0x10: Exchange
+""")
+
+            conops_content = """# Concept of Operations
+<!-- Source: schema/extracted/oem_baseline.md -->
+
+The vehicle has a system_mass = 1800.0 kg for target mission operations.
+Flight control is maintained via ruddervator surfaces on the empennage.
+No parachute is installed; safe recovery relies on conventional landing.
+The ESAD bus executes Opcode 0x11 for PBIT and Opcode 0x10 for Exchange.
+"""
+            with open(os.path.join(conops_dir, "CONOPS.md"), "w", encoding="utf-8") as f:
+                f.write(conops_content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            validator = ConceptProvenanceValidator()
+            errors = validator.validate(repo)
+
+            contra_errors = [e for e in errors if e.rule_id == "semantic-oem-provenance-contradiction"]
+            self.assertEqual(contra_errors, [])
+            self.assertEqual(errors, [])
+
 
 if __name__ == "__main__":
     unittest.main()
+
