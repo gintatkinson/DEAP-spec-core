@@ -152,7 +152,7 @@ if [ "$TARGET_DIR" = "$INSTALLER_ROOT" ] && [ -e "$INSTALLER_ROOT/.pipeline/upst
   exit 1
 fi
 
-rm -rf "$TARGET_DIR/skills" "$TARGET_DIR/rules" "$TARGET_DIR/.pipeline" "$TARGET_DIR/.agents" "$TARGET_DIR/scripts" "$TARGET_DIR/schema"
+rm -rf "$TARGET_DIR/skills" "$TARGET_DIR/rules" "$TARGET_DIR/.pipeline" "$TARGET_DIR/.agents" "$TARGET_DIR/scripts"
 cp -RP "$INSTALLER_ROOT/skills" "$TARGET_DIR/"
 cp -RP "$INSTALLER_ROOT/rules" "$TARGET_DIR/"
 cp -RP "$INSTALLER_ROOT/.pipeline" "$TARGET_DIR/"
@@ -160,7 +160,13 @@ rm -rf "$TARGET_DIR/.pipeline/upstream"
 rm -rf "$TARGET_DIR/.pipeline/diagnostics"
 cp -RP "$INSTALLER_ROOT/.agents" "$TARGET_DIR/"
 cp -RP "$INSTALLER_ROOT/scripts" "$TARGET_DIR/"
-cp -RP "$INSTALLER_ROOT/schema" "$TARGET_DIR/"
+if [ ! -e "$TARGET_DIR/schema" ]; then
+  if [ -d "$INSTALLER_ROOT/schema" ]; then
+    cp -RP "$INSTALLER_ROOT/schema" "$TARGET_DIR/"
+  else
+    mkdir -p "$TARGET_DIR/schema"
+  fi
+fi
 cp -P "$INSTALLER_ROOT/requirements.txt" "$TARGET_DIR/" 2>/dev/null || true
 cp -P "$INSTALLER_ROOT/pyproject.toml" "$TARGET_DIR/" 2>/dev/null || true
 cp -P "$INSTALLER_ROOT/.gitlab-ci.yml" "$TARGET_DIR/" 2>/dev/null || true
@@ -172,7 +178,9 @@ elif [ -f "$INSTALLER_ROOT/.gitignore" ]; then
   cp "$INSTALLER_ROOT/.gitignore" "$TARGET_DIR/"
 fi
 
-mkdir -p "$TARGET_DIR/schema"
+if [ ! -e "$TARGET_DIR/schema" ]; then
+  mkdir -p "$TARGET_DIR/schema"
+fi
 mkdir -p "$TARGET_DIR/tests"
 cp -RP "$INSTALLER_ROOT/tests/test_baseline.py" "$TARGET_DIR/tests/" 2>/dev/null || true
 cp -RP "$INSTALLER_ROOT/tests/test_safety_integrity.py" "$TARGET_DIR/tests/" 2>/dev/null || true

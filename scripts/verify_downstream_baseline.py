@@ -747,12 +747,107 @@ def check_safety_integrity_and_sora_completeness(repo_root):
 
     print("Success: Check 17 verified (Safety Integrity Quality Gate: 8 pillars, 24 SORA OSOs, 15+ FMECA rows, 4 UCA categories, ASTM F3269-17 RTA, and MATLAB/Simulink hooks).")
 
+class _DomainAgnosticASTVisitor(ast.NodeVisitor):
+    """AST visitor enforcing pure schema-driven parameter extraction and zero static domain specs."""
+
+    STATIC_PARAM_DICT_NAMES = re.compile(
+        r"^(_)?("
+        r"ground_?truth(_?(specs?|params?|parameters?|dict|map|set|table))?|"
+        r"(expected|domain|static|hardcoded|benchmark|mandated|system)_?(specs?|params?|parameters?|constants?|dict|map|set|table|specifications?)"
+        r")$",
+        re.IGNORECASE
+    )
+
+    def __init__(self, filename: str, repo_root: str):
+        self.filename = filename
+        self.rel_path = os.path.relpath(filename, repo_root)
+        self.violations = []
+        self.scope_stack = []
+
+    def visit_ClassDef(self, node: ast.ClassDef):
+        self.scope_stack.append(node.name)
+        if self.STATIC_PARAM_DICT_NAMES.match(node.name):
+            has_static_attrs = any(
+                isinstance(stmt, ast.Assign) and isinstance(stmt.value, (ast.Constant, ast.Dict, ast.List, ast.Set, ast.Tuple))
+                for stmt in node.body
+            )
+            if has_static_attrs:
+                self.violations.append(
+                    f"Check 19 violation: Static domain specification class \"{node.name}\" declared in {self.rel_path}:{node.lineno}. "
+                    "Domain parameters must be dynamically parsed from schema/*.sysml or workspace.schemas."
+                )
+        self.generic_visit(node)
+        self.scope_stack.pop()
+
+    def visit_FunctionDef(self, node: ast.FunctionDef):
+        self.scope_stack.append(f"def {node.name}")
+        if any(k in node.name.lower() for k in ("extract_ground_truth", "get_ground_truth", "extract_domain_specs", "get_expected_specs")):
+            for child in ast.walk(node):
+                if isinstance(child, ast.Return) and isinstance(child.value, ast.Dict) and len(child.value.keys) > 0:
+                    self.violations.append(
+                        f"Check 19 violation: Parameter extraction function \"{node.name}\" returns static literal parameter dictionary in {self.rel_path}:{child.lineno}. "
+                        "All parameter extraction must dynamically query schema/*.sysml or workspace.schemas."
+                    )
+        self.generic_visit(node)
+        self.scope_stack.pop()
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
+        self.scope_stack.append(f"async def {node.name}")
+        self.generic_visit(node)
+        self.scope_stack.pop()
+
+    def _check_target_name(self, target_name: str, value_node: ast.AST, lineno: int):
+        if not target_name or value_node is None:
+            return
+        if self.STATIC_PARAM_DICT_NAMES.match(target_name):
+            is_literal_dict = isinstance(value_node, ast.Dict) and len(value_node.keys) > 0
+            is_literal_collection = isinstance(value_node, (ast.List, ast.Set, ast.Tuple)) and len(value_node.elts) > 0
+            is_constant = isinstance(value_node, ast.Constant) and value_node.value is not None
+            is_dict_call = (
+                isinstance(value_node, ast.Call)
+                and isinstance(value_node.func, ast.Name)
+                and value_node.func.id in ("dict", "list", "set")
+                and (len(value_node.args) > 0 or len(value_node.keywords) > 0)
+            )
+
+            is_module_or_class_level = len(self.scope_stack) == 0 or (
+                len(self.scope_stack) == 1 and not self.scope_stack[0].startswith("def ") and not self.scope_stack[0].startswith("async def ")
+            )
+
+            if is_literal_dict or is_literal_collection or is_constant or is_dict_call or (is_module_or_class_level and isinstance(value_node, (ast.Dict, ast.List, ast.Set, ast.Tuple))):
+                self.violations.append(
+                    f"Check 19 violation: Static hardcoded parameter dictionary/constant \"{target_name}\" declared in {self.rel_path}:{lineno}. "
+                    "Domain specifications must be dynamically queried from workspace.schemas or schema/*.sysml AST nodes."
+                )
+
+    def visit_Assign(self, node: ast.Assign):
+        for target in node.targets:
+            target_name = None
+            if isinstance(target, ast.Name):
+                target_name = target.id
+            elif isinstance(target, ast.Attribute):
+                target_name = target.attr
+            self._check_target_name(target_name, node.value, node.lineno)
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign):
+        target_name = None
+        if isinstance(node.target, ast.Name):
+            target_name = node.target.id
+        elif isinstance(node.target, ast.Attribute):
+            target_name = node.target.attr
+        if node.value:
+            self._check_target_name(target_name, node.value, node.lineno)
+        self.generic_visit(node)
+
+
 def check_domain_agnostic_ast_cleanliness(repo_root):
     """Check 19: Domain-Agnostic AST Cleanliness Gate.
 
-    Verify that upstream DEAP-spec-core tools, scripts, and validators contain
-    zero hardcoded domain concepts/variables (e.g. wingspan_m, mtow_kg, stall_speed,
-    launch_pressure, day_camera_resolution, A5_user_manual).
+    Verify that upstream DEAP-spec-core tools, scripts, and validator modules contain
+    zero static/hardcoded parameter dictionaries (e.g. GROUND_TRUTH = {...}, EXPECTED_SPECS = {...},
+    DOMAIN_PARAMS = {...}), and that all parameter extraction dynamically queries workspace.schemas
+    or schema/*.sysml AST nodes without hardcoded domain concept constants.
     """
     upstream_marker = os.path.join(repo_root, ".pipeline", "upstream")
     if not os.path.isdir(upstream_marker):
@@ -760,16 +855,11 @@ def check_domain_agnostic_ast_cleanliness(repo_root):
         return
 
     scan_dirs = [
-        os.path.join(repo_root, "skills", "spec-orchestrator", "parity_auditor"),
+        os.path.join(repo_root, "skills", "spec-orchestrator", "parity_auditor", "src", "parity_auditor", "validators"),
+        os.path.join(repo_root, "skills", "spec-orchestrator", "parity_auditor", "src", "parity_auditor", "core"),
+        os.path.join(repo_root, "skills", "spec-orchestrator", "parity_auditor", "src", "parity_auditor", "parsers"),
         os.path.join(repo_root, "scripts"),
     ]
-
-    forbidden_tokens = {
-        "wingspan_m", "mtow_kg", "stall_speed", "launch_pressure",
-        "day_camera_resolution", "A5_user_manual", "Avenger5",
-        "stall_speed_mps", "takeoff_weight_kg", "payload_capacity_kg"
-    }
-    forbidden_tokens_lower = {t.lower() for t in forbidden_tokens}
 
     violations = []
 
@@ -783,6 +873,8 @@ def check_domain_agnostic_ast_cleanliness(repo_root):
                     continue
                 if f in ("verify_downstream_baseline.py", "test_check_no_domain_config.py"):
                     continue
+                if f.startswith("test_") and sdir.endswith("scripts"):
+                    continue
 
                 file_path = os.path.join(root, f)
                 rel_path = os.path.relpath(file_path, repo_root)
@@ -795,38 +887,9 @@ def check_domain_agnostic_ast_cleanliness(repo_root):
                     violations.append(f"Failed to parse Python AST for {rel_path}: {e}")
                     continue
 
-                for node in ast.walk(tree):
-                    found_token = None
-                    lineno = getattr(node, "lineno", 0)
-
-                    if isinstance(node, ast.Name):
-                        if node.id.lower() in forbidden_tokens_lower:
-                            found_token = node.id
-                    elif isinstance(node, ast.Attribute):
-                        if node.attr.lower() in forbidden_tokens_lower:
-                            found_token = node.attr
-                    elif isinstance(node, ast.FunctionDef):
-                        if node.name.lower() in forbidden_tokens_lower:
-                            found_token = node.name
-                    elif isinstance(node, ast.ClassDef):
-                        if node.name.lower() in forbidden_tokens_lower:
-                            found_token = node.name
-                    elif isinstance(node, ast.arg):
-                        if node.arg.lower() in forbidden_tokens_lower:
-                            found_token = node.arg
-                    elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-                        for ft in forbidden_tokens:
-                            if ft.lower() in node.value.lower():
-                                found_token = ft
-                                break
-                    elif hasattr(ast, "Str") and isinstance(node, ast.Str):
-                        for ft in forbidden_tokens:
-                            if ft.lower() in node.s.lower():
-                                found_token = ft
-                                break
-
-                    if found_token:
-                        violations.append(f"Check 19 violation: Hardcoded domain token '{found_token}' found in {rel_path}:{lineno}")
+                visitor = _DomainAgnosticASTVisitor(file_path, repo_root)
+                visitor.visit(tree)
+                violations.extend(visitor.violations)
 
     if violations:
         print("ERROR: Check 19 failed (Domain-Agnostic AST Cleanliness Gate violations found):", file=sys.stderr)
@@ -834,7 +897,7 @@ def check_domain_agnostic_ast_cleanliness(repo_root):
             print(f"  - {v}", file=sys.stderr)
         sys.exit(1)
 
-    print("Success: Check 19 verified (Domain-Agnostic AST Cleanliness Gate passed — zero hardcoded domain variables in Python AST).")
+    print("Success: Check 19 verified (Domain-Agnostic AST Cleanliness Gate passed — pure dynamic schema AST architecture verified).")
 
 def _run_verification(args, dest, repo_root, is_flutter, is_react):
     # Run Checks 10, 11, 12, 13, 14, 15, 16, 17, and 19

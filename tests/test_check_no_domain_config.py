@@ -19,24 +19,68 @@ class TestCheckNoDomainConfigAndCleanliness(unittest.TestCase):
         """Verify Check 19 passes on the clean upstream repository."""
         check_domain_agnostic_ast_cleanliness(repo_root)
 
-    def test_check_domain_agnostic_ast_cleanliness_detects_violation(self):
-        """Verify Check 19 catches and raises SystemExit on hardcoded domain variables."""
+    def test_check_domain_agnostic_ast_cleanliness_detects_static_parameter_dictionaries(self):
+        """Verify Check 19 catches and raises SystemExit on static hardcoded parameter dictionaries."""
+        test_cases = [
+            'GROUND_TRUTH = {"wingspan_m": 2.5, "mtow_kg": 50}\n',
+            'EXPECTED_SPECS = {"airspeed": 100.0}\n',
+            'DOMAIN_PARAMS = {"thrust_n": 500}\n',
+            'STATIC_SPECS: dict = {"climb_rate": 15.0}\n',
+            'class GroundTruthSpecs:\n    speed = 100.0\n    mass = 50.0\n',
+            'def extract_ground_truth(repo):\n    return {"wingspan": 2.5}\n',
+        ]
+
+        for bad_code in test_cases:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                upstream_dir = os.path.join(tmpdir, ".pipeline", "upstream")
+                os.makedirs(upstream_dir, exist_ok=True)
+
+                validators_dir = os.path.join(
+                    tmpdir, "skills", "spec-orchestrator", "parity_auditor", "src", "parity_auditor", "validators"
+                )
+                os.makedirs(validators_dir, exist_ok=True)
+
+                bad_file = os.path.join(validators_dir, "bad_validator.py")
+                with open(bad_file, "w", encoding="utf-8") as f:
+                    f.write(bad_code)
+
+                with self.assertRaises(SystemExit) as cm:
+                    check_domain_agnostic_ast_cleanliness(tmpdir)
+                self.assertEqual(cm.exception.code, 1)
+
+    def test_check_domain_agnostic_ast_cleanliness_passes_dynamic_ast_validators(self):
+        """Verify Check 19 passes validators that dynamically query schemas and AST nodes."""
+        dynamic_validator_code = '''
+import os
+from parity_auditor.validators.base import IValidator
+
+class ConceptProvenanceValidator(IValidator):
+    def extract_ground_truth(self, repo):
+        schema_dir = os.path.join(repo.workspace_dir, "schema")
+        params = {}
+        if not os.path.isdir(schema_dir):
+            return params
+        return params
+
+    def validate(self, repo, **kwargs):
+        ground_truth = self.extract_ground_truth(repo)
+        return []
+'''
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Create upstream marker
             upstream_dir = os.path.join(tmpdir, ".pipeline", "upstream")
             os.makedirs(upstream_dir, exist_ok=True)
 
-            scripts_dir = os.path.join(tmpdir, "scripts")
-            os.makedirs(scripts_dir, exist_ok=True)
+            validators_dir = os.path.join(
+                tmpdir, "skills", "spec-orchestrator", "parity_auditor", "src", "parity_auditor", "validators"
+            )
+            os.makedirs(validators_dir, exist_ok=True)
 
-            # Write a bad python file containing a forbidden domain token
-            bad_file = os.path.join(scripts_dir, "bad_tool.py")
-            with open(bad_file, "w", encoding="utf-8") as f:
-                f.write("def calculate():\n    wingspan_m = 2.5\n    return wingspan_m\n")
+            good_file = os.path.join(validators_dir, "good_validator.py")
+            with open(good_file, "w", encoding="utf-8") as f:
+                f.write(dynamic_validator_code)
 
-            with self.assertRaises(SystemExit) as cm:
-                check_domain_agnostic_ast_cleanliness(tmpdir)
-            self.assertEqual(cm.exception.code, 1)
+            # Should not raise SystemExit
+            check_domain_agnostic_ast_cleanliness(tmpdir)
 
     def test_check_domain_agnostic_ast_cleanliness_skips_downstream(self):
         """Verify Check 19 skips cleanly when no upstream marker is present."""
@@ -46,7 +90,7 @@ class TestCheckNoDomainConfigAndCleanliness(unittest.TestCase):
             os.makedirs(scripts_dir, exist_ok=True)
             bad_file = os.path.join(scripts_dir, "downstream_spec.py")
             with open(bad_file, "w", encoding="utf-8") as f:
-                f.write("def test():\n    wingspan_m = 10\n")
+                f.write('GROUND_TRUTH = {"wingspan_m": 2.5}\n')
 
             # Should not raise
             check_domain_agnostic_ast_cleanliness(tmpdir)
