@@ -7,6 +7,10 @@ Tests:
 3. Negative validation of missing fields (missing Title, missing Version, missing Date).
 4. Negative validation of invalid version strings (e.g. "draft", "1", "alpha").
 5. Graceful skipping of READMEs, empty stubs, and documents marked optional.
+6. Detection and rejection of concatenated title strings.
+7. Validation of matching YAML frontmatter, H1 heading, and visual Markdown tables.
+8. Negative validation of mismatch between YAML title and H1 heading.
+9. Positive validation of agile specs with prefixes (# Epic: EPIC-001 — ...).
 """
 
 import os
@@ -28,6 +32,9 @@ from parity_auditor.validators.doc_metadata_validator import (
     _is_iso_date,
     _is_semver,
     _has_concatenated_title_metadata,
+    _strip_agile_prefix,
+    _extract_h1_heading,
+    _extract_yaml_frontmatter,
 )
 
 
@@ -67,6 +74,36 @@ class TestDocMetadataValidator(unittest.TestCase):
         self.assertFalse(_is_semver("Version 1.0"))
         self.assertFalse(_is_semver(""))
         self.assertFalse(_is_semver(None))
+
+    def test_helper_strip_agile_prefix(self):
+        """Verify stripping of agile prefixes from H1 heading text."""
+        self.assertEqual(_strip_agile_prefix("Epic: EPIC-001 — Core System Architecture"), "EPIC-001 — Core System Architecture")
+        self.assertEqual(_strip_agile_prefix("Feature: FEAT-101 — Subsystem Mounting"), "FEAT-101 — Subsystem Mounting")
+        self.assertEqual(_strip_agile_prefix("Use Case: UC-001 — Assemble Subsystem"), "UC-001 — Assemble Subsystem")
+        self.assertEqual(_strip_agile_prefix("User Story: US-001 — Coupling Verification"), "US-001 — Coupling Verification")
+        self.assertEqual(_strip_agile_prefix("Autonomous UAS Safety Concept"), "Autonomous UAS Safety Concept")
+        self.assertEqual(_strip_agile_prefix("**Epic:** Flight Guidance"), "Flight Guidance")
+
+    def test_helper_extract_h1_heading(self):
+        """Verify extraction of first H1 heading outside frontmatter and code blocks."""
+        doc_with_fm = """---
+title: System Architecture
+version: 1.0.0
+date: 2026-08-31
+---
+
+```markdown
+# Ignored Code Comment
+```
+
+# Epic: EPIC-001 — Core Architecture
+
+## Section 1
+"""
+        h1_info = _extract_h1_heading(doc_with_fm)
+        self.assertIsNotNone(h1_info)
+        self.assertEqual(h1_info[0], "EPIC-001 — Core Architecture")
+        self.assertEqual(h1_info[1], 11)
 
     def test_valid_vertical_table_passes(self):
         """Verify valid vertical frontmatter metadata table passes without findings."""
@@ -361,6 +398,186 @@ Operational scope description.
             self.assertEqual(errors[0].rule_id, "doc-metadata-concatenated-title")
             self.assertIn("Document title contains concatenated metadata attributes", str(errors[0]))
             self.assertIn("Mission Intent (DOC-MI-A5-001 v3.0.0 2026-08-31)", str(errors[0]))
+
+    def test_matching_yaml_frontmatter_h1_and_table_passes(self):
+        """Verify document with matching YAML frontmatter, H1 heading, and visual Markdown table passes."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            docs_arch = os.path.join(tmpdir, "docs", "architecture")
+            os.makedirs(docs_arch, exist_ok=True)
+
+            content = """---
+title: Autonomous UAS Architecture Specification
+version: 1.0.0
+date: 2026-08-31
+---
+
+# Autonomous UAS Architecture Specification
+
+| Attribute | Specification Detail |
+| :--- | :--- |
+| **Title** | Autonomous UAS Architecture Specification |
+| **Version** | 1.0.0 |
+| **Date** | 2026-08-31 |
+| **Status** | APPROVED |
+
+## 1. System Overview
+Architecture description.
+"""
+            with open(os.path.join(docs_arch, "ARCH_SPEC.md"), "w", encoding="utf-8") as f:
+                f.write(content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            errors = self.validator.validate(repo)
+            self.assertEqual(errors, [])
+
+    def test_yaml_title_heading_mismatch_fails(self):
+        """Verify mismatch between YAML frontmatter title and H1 heading emits doc-metadata-title-heading-mismatch."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            docs_arch = os.path.join(tmpdir, "docs", "architecture")
+            os.makedirs(docs_arch, exist_ok=True)
+
+            content = """---
+title: System Architecture Baseline
+version: 1.0.0
+date: 2026-08-31
+---
+
+# Autonomous UAS Architecture Specification
+
+| Attribute | Specification Detail |
+| :--- | :--- |
+| **Title** | Autonomous UAS Architecture Specification |
+| **Version** | 1.0.0 |
+| **Date** | 2026-08-31 |
+
+## 1. System Overview
+Architecture description.
+"""
+            with open(os.path.join(docs_arch, "ARCH_SPEC.md"), "w", encoding="utf-8") as f:
+                f.write(content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            errors = self.validator.validate(repo)
+            self.assertEqual(len(errors), 1)
+            self.assertEqual(errors[0].rule_id, "doc-metadata-title-heading-mismatch")
+            self.assertIn("docs/architecture/ARCH_SPEC.md: YAML title ('System Architecture Baseline') does not match H1 heading ('Autonomous UAS Architecture Specification').", str(errors[0]))
+
+    def test_concatenated_title_in_yaml_fails(self):
+        """Verify YAML title containing concatenated version/date/doc ID emits doc-metadata-concatenated-title."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            docs_arch = os.path.join(tmpdir, "docs", "architecture")
+            os.makedirs(docs_arch, exist_ok=True)
+
+            content = """---
+title: Flight Systems (DOC-FS-001 v2.0 2026-08-31)
+version: 2.0.0
+date: 2026-08-31
+---
+
+# Flight Systems (DOC-FS-001 v2.0 2026-08-31)
+
+| Attribute | Specification Detail |
+| :--- | :--- |
+| **Title** | Flight Systems (DOC-FS-001 v2.0 2026-08-31) |
+| **Version** | 2.0.0 |
+| **Date** | 2026-08-31 |
+"""
+            with open(os.path.join(docs_arch, "FLIGHT_SYS.md"), "w", encoding="utf-8") as f:
+                f.write(content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            errors = self.validator.validate(repo)
+            concatenated_findings = [e for e in errors if e.rule_id == "doc-metadata-concatenated-title"]
+            self.assertTrue(len(concatenated_findings) >= 1)
+            self.assertIn("Document title contains concatenated metadata attributes", str(concatenated_findings[0]))
+
+    def test_agile_spec_with_prefixes_matches_yaml_title_passes(self):
+        """Verify agile specs with prefixes (Epic:, Feature:, Use Case:, User Story:) match YAML title and pass."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            docs_epics = os.path.join(tmpdir, "docs", "epics")
+            docs_features = os.path.join(tmpdir, "docs", "features")
+            docs_use_cases = os.path.join(tmpdir, "docs", "use-cases")
+            docs_user_stories = os.path.join(tmpdir, "docs", "user-stories")
+            os.makedirs(docs_epics, exist_ok=True)
+            os.makedirs(docs_features, exist_ok=True)
+            os.makedirs(docs_use_cases, exist_ok=True)
+            os.makedirs(docs_user_stories, exist_ok=True)
+
+            # 1. Epic
+            epic_content = """---
+title: EPIC-001 — Core System Architecture
+version: 1.0.0
+date: 2026-08-31
+---
+
+# Epic: EPIC-001 — Core System Architecture
+
+| Attribute | Specification Detail |
+| :--- | :--- |
+| **Title** | EPIC-001 — Core System Architecture |
+| **Version** | 1.0.0 |
+| **Date** | 2026-08-31 |
+"""
+            with open(os.path.join(docs_epics, "EPIC-001.md"), "w", encoding="utf-8") as f:
+                f.write(epic_content)
+
+            # 2. Feature
+            feat_content = """---
+title: FEAT-101 — Subsystem Structural Mounting
+version: 1.0.0
+date: 2026-08-31
+---
+
+# Feature: FEAT-101 — Subsystem Structural Mounting
+
+| Attribute | Specification Detail |
+| :--- | :--- |
+| **Title** | FEAT-101 — Subsystem Structural Mounting |
+| **Version** | 1.0.0 |
+| **Date** | 2026-08-31 |
+"""
+            with open(os.path.join(docs_features, "FEAT-101.md"), "w", encoding="utf-8") as f:
+                f.write(feat_content)
+
+            # 3. Use Case
+            uc_content = """---
+title: UC-001 — Assemble and Verify Subsystem
+version: 1.0.0
+date: 2026-08-31
+---
+
+# Use Case: UC-001 — Assemble and Verify Subsystem
+
+| Attribute | Specification Detail |
+| :--- | :--- |
+| **Title** | UC-001 — Assemble and Verify Subsystem |
+| **Version** | 1.0.0 |
+| **Date** | 2026-08-31 |
+"""
+            with open(os.path.join(docs_use_cases, "UC-001.md"), "w", encoding="utf-8") as f:
+                f.write(uc_content)
+
+            # 4. User Story
+            us_content = """---
+title: US-001 — Subsystem Coupling Verification
+version: 1.0.0
+date: 2026-08-31
+---
+
+# User Story: US-001 — Subsystem Coupling Verification
+
+| Attribute | Specification Detail |
+| :--- | :--- |
+| **Title** | US-001 — Subsystem Coupling Verification |
+| **Version** | 1.0.0 |
+| **Date** | 2026-08-31 |
+"""
+            with open(os.path.join(docs_user_stories, "US-001.md"), "w", encoding="utf-8") as f:
+                f.write(us_content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            errors = self.validator.validate(repo)
+            self.assertEqual(errors, [])
 
 
 if __name__ == "__main__":
