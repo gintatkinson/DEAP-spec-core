@@ -24,8 +24,17 @@ def sanitize_github_token_env():
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "parity_auditor", "src")))
 
 from parity_auditor.cli import main
+from parity_auditor.validators.concept_provenance_validator import ConceptProvenanceValidator
+
+
+def check_concept_provenance(workspace_dir: str = None) -> list:
+    """Run Phase 0 Concept Provenance & CONOPS AST check directly."""
+    from parity_auditor.core.workspace import WorkspaceRepository
+    repo = WorkspaceRepository(workspace_dir=workspace_dir or os.getcwd())
+    validator = ConceptProvenanceValidator()
+    return validator.validate(repo=repo)
+
 
 if __name__ == "__main__":
     sanitize_github_token_env()
     main()
-

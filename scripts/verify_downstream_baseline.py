@@ -18,6 +18,55 @@ TIMEOUT_SECONDS = 600
 GIT_TIMEOUT_SECONDS = 30
 EXCLUDED_DIRS = {".git", "node_modules", ".dart_tool", "build"}
 
+# Ensure parity_auditor src is on path for SafetyTraceValidator
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+_repo_root = os.path.dirname(_script_dir)
+_parity_src = os.path.join(_repo_root, "skills", "spec-orchestrator", "parity_auditor", "src")
+if _parity_src not in sys.path:
+    sys.path.insert(0, _parity_src)
+
+try:
+    from parity_auditor.validators.safety_trace_validator import (
+        SafetyTraceValidator,
+        EXPECTED_LOSS_SCENARIOS,
+        parse_fmeca_modes,
+        parse_spof_rows,
+        parse_ucas,
+    )
+    from parity_auditor.core.workspace import WorkspaceRepository
+except ImportError:
+    SafetyTraceValidator = None
+    WorkspaceRepository = None
+    EXPECTED_LOSS_SCENARIOS = {f"LS-{i:02d}" for i in range(1, 41)}
+
+try:
+    from parity_auditor.validators.concept_provenance_validator import (
+        ConceptProvenanceValidator,
+        Severity as ConceptSeverity,
+    )
+except ImportError:
+    ConceptProvenanceValidator = None
+    ConceptSeverity = None
+
+try:
+    from scripts.audit_hallucinations import (
+        HallucinationScanner,
+        Severity as AuditSeverity,
+        find_repo_root as audit_find_repo_root,
+    )
+except ImportError:
+    try:
+        from audit_hallucinations import (
+            HallucinationScanner,
+            Severity as AuditSeverity,
+            find_repo_root as audit_find_repo_root,
+        )
+    except ImportError:
+        HallucinationScanner = None
+        AuditSeverity = None
+        audit_find_repo_root = None
+
+
 def _terminate_process_group(proc):
     """Terminate process group cleanly with SIGTERM followed by SIGKILL fallback."""
     try:
@@ -607,7 +656,8 @@ def check_sora_osos(content: str) -> list:
     return missing
 
 def validate_safety_matrix_content(content: str) -> list:
-    """Validate 8-pillar schema, 24 SORA OSOs, 15+ FMECA rows, 4 UCA categories, ASTM F3269-17 RTA, and MATLAB/Simulink hooks.
+    """Validate 8-pillar schema, 24 SORA OSOs, 240+ FMECA rows across 22 components,
+    strict LS-01..LS-40 set-equality, 4 UCA categories, ASTM F3269-17 RTA, and MATLAB/Simulink hooks.
 
     Returns a list of violation error strings (empty if valid).
     """
@@ -632,21 +682,30 @@ def validate_safety_matrix_content(content: str) -> list:
     if missing_uca_cats:
         errors.append(f"Pillar 4 violation: Missing UCA failure mode categories: {', '.join(missing_uca_cats)}.")
 
-    # Pillar 5: Loss Scenarios (LS-1..N)
-    if not (re.search(r'Loss\s+Scenarios?|Causal\s+Scenarios?', content, re.IGNORECASE) and re.search(r'\bLS-\d+\b|\$LS-\d+', content)):
+    # Pillar 5: Loss Scenarios (LS-1..N) - Strict Set-Equality (LS-01 through LS-40)
+    detected_ls = {f"LS-{int(m):02d}" for m in re.findall(r'\bLS-(\d+)\b', content)}
+    expected_ls = {f"LS-{i:02d}" for i in range(1, 41)}
+    if not (re.search(r'Loss\s+Scenarios?|Causal\s+Scenarios?', content, re.IGNORECASE) and detected_ls):
         errors.append("Pillar 5 violation: Missing Loss Scenarios ($LS-1..N$) & Causal Factors.")
+    elif detected_ls != expected_ls:
+        missing = sorted(expected_ls - detected_ls)
+        unexpected = sorted(detected_ls - expected_ls)
+        if missing:
+            errors.append(f"Pillar 5 violation: Loss Scenarios strict set-equality failure. Missing: {', '.join(missing)} (expected 40 scenarios LS-01..LS-40, found {len(detected_ls)}).")
+        if unexpected:
+            errors.append(f"Pillar 5 violation: Unexpected Loss Scenario(s): {', '.join(unexpected)}.")
 
     # Pillar 6: Formal Safety Constraints (SC-1..N)
     if not (re.search(r'Safety\s+Constraints?', content, re.IGNORECASE) and re.search(r'\bSC-\d+\b|\$SC-\d+', content)):
         errors.append("Pillar 6 violation: Missing Formal Safety Constraints ($SC-1..N$).")
 
-    # Pillar 7: FMECA Criticality Matrix (15+ rows)
+    # Pillar 7: FMECA Criticality Matrix (240+ rows across 22 components)
     if not re.search(r'FMECA|Failure\s+Mode', content, re.IGNORECASE):
         errors.append("Pillar 7 violation: Missing FMECA Criticality Matrix.")
     else:
         fmeca_rows = count_fmeca_rows(content)
-        if fmeca_rows < 15:
-            errors.append(f"Pillar 7 violation: FMECA Criticality Matrix contains {fmeca_rows} row(s); minimum required is 15 rows.")
+        if fmeca_rows < 240:
+            errors.append(f"Pillar 7 violation: FMECA Criticality Matrix contains {fmeca_rows} row(s); minimum required is 240 rows across 22 components.")
         if not re.search(r'\bRPN\b|Risk\s+Priority\s+Number', content, re.IGNORECASE):
             errors.append("Pillar 7 violation: FMECA table missing RPN (Risk Priority Number) calculation.")
 
@@ -674,14 +733,14 @@ def check_safety_integrity_and_sora_completeness(repo_root):
 
     Validates:
     1. Upstream clean landing zone invariant for docs/safety/ (zero concrete specifications in templates).
-    2. Downstream 8-pillar STPA/FMECA/SORA specification schema in docs/safety/STPA_MATRIX.md:
+    2. Downstream 8-pillar STPA/FMECA/SORA specification schema in docs/safety/:
        - Pillar 1: System Losses (L-1..N)
        - Pillar 2: System Hazards (H-1..N)
        - Pillar 3: Hierarchical Control Structure Topology
-       - Pillar 4: Unsafe Control Actions (UCA-1..N) covering all 4 failure modes
-       - Pillar 5: Loss Scenarios (LS-1..N) & Causal Factors
+       - Pillar 4: Unsafe Control Actions (UCA-1..N) covering 4 guide words across all control actions
+       - Pillar 5: Strict set-equality for all 40 STPA Loss Scenarios (LS-01 through LS-40)
        - Pillar 6: Formal Safety Constraints (SC-1..N)
-       - Pillar 7: FMECA Criticality Matrix with 15+ component failure mode rows and RPN
+       - Pillar 7: Quantitative FMECA Matrix with 240+ failure modes across 22 components, C_m math, sum(alpha)=1.0, and SPOF status ELIMINATED
        - Pillar 8: SORA SAIL Risk Mitigations with all 24 OSOs (OSO-01 through OSO-24), GRC, and ARC
        - ASTM F3269-17 Run-Time Assurance (RTA) architecture
        - MATLAB / Simulink / Stateflow model integration baseline hooks.
@@ -722,8 +781,19 @@ def check_safety_integrity_and_sora_completeness(repo_root):
         return
 
     all_errors = []
-    # If there is a single primary safety matrix (e.g. STPA_MATRIX.md), validate it individually.
-    # Otherwise, aggregate content across modular safety specs (e.g. STPA + FMECA + SORA in separate files).
+
+    # Run SafetyTraceValidator if available
+    if SafetyTraceValidator is not None:
+        try:
+            repo = WorkspaceRepository(workspace_dir=repo_root) if WorkspaceRepository else None
+            val = SafetyTraceValidator()
+            findings = val.validate(repo, safety_dir=safety_dir, workspace_dir=repo_root)
+            for finding in findings:
+                all_errors.append(str(finding))
+        except Exception as e:
+            all_errors.append(f"SafetyTraceValidator execution error: {e}")
+
+    # Also aggregate content across modular safety specs to check 8-pillar schema & SORA
     combined_content = []
     for s_file in sorted(safety_files):
         rel_path = os.path.relpath(s_file, repo_root)
@@ -736,7 +806,8 @@ def check_safety_integrity_and_sora_completeness(repo_root):
     aggregate_safety_content = "\n\n---\n\n".join(combined_content)
     file_errors = validate_safety_matrix_content(aggregate_safety_content)
     for err in file_errors:
-        all_errors.append(f"docs/safety/ (aggregate specifications): {err}")
+        if err not in all_errors and not any(err in a for a in all_errors):
+            all_errors.append(f"docs/safety/ (aggregate specifications): {err}")
 
     if all_errors:
         print("ERROR: Check 17 failed (Safety Integrity Quality Gate and SORA OSO-01..24 Completeness violations found):", file=sys.stderr)
@@ -744,10 +815,74 @@ def check_safety_integrity_and_sora_completeness(repo_root):
             print(f"  - {err}", file=sys.stderr)
         sys.exit(1)
 
-    print("Success: Check 17 verified (Safety Integrity Quality Gate: 8 pillars, 24 SORA OSOs, 15+ FMECA rows, 4 UCA categories, ASTM F3269-17 RTA, and MATLAB/Simulink hooks).")
+    print("Success: Check 17 verified (Safety Integrity Quality Gate: 8 pillars, 24 SORA OSOs, 240+ FMECA rows, strict 40 LS set-equality, 4 UCA categories, ASTM F3269-17 RTA, and MATLAB/Simulink hooks).")
+
+
+def check_anti_hallucination_and_concept_provenance(repo_root):
+    """
+    Check 18: Anti-Hallucination & Concept Provenance Quality Gate.
+    Invokes ConceptProvenanceValidator and HallucinationScanner programmatically.
+    Fails with exit code 1 if any finding with Severity.ERROR or Severity.WARNING
+    is discovered in docs/conops/, docs/features/, docs/epics/, docs/user-stories/, or docs/use-cases/.
+    """
+    monitored_prefixes = (
+        os.path.join("docs", "conops"),
+        os.path.join("docs", "features"),
+        os.path.join("docs", "epics"),
+        os.path.join("docs", "user-stories"),
+        os.path.join("docs", "use-cases"),
+        "docs/conops",
+        "docs/features",
+        "docs/epics",
+        "docs/user-stories",
+        "docs/use-cases",
+    )
+
+    violations = []
+
+    # 1. Run ConceptProvenanceValidator
+    if ConceptProvenanceValidator is not None:
+        try:
+            repo = WorkspaceRepository(workspace_dir=repo_root) if WorkspaceRepository else None
+            validator = ConceptProvenanceValidator()
+            findings = validator.validate(repo=repo, spec_dir=os.path.join(repo_root, "docs", "conops"), workspace_dir=repo_root)
+            for f in findings:
+                sev = getattr(f, "detail", {}).get("severity", "ERROR")
+                loc = getattr(f, "location", str(f))
+                rel = os.path.relpath(loc, repo_root) if os.path.isabs(loc) else loc
+                if any(rel.startswith(p) or p in rel for p in monitored_prefixes):
+                    if sev in ("ERROR", "WARNING", getattr(ConceptSeverity, "ERROR", "ERROR"), getattr(ConceptSeverity, "WARNING", "WARNING")):
+                        violations.append(f"[ConceptProvenanceValidator] [{sev}] {rel}: {str(f)}")
+        except Exception as e:
+            violations.append(f"ConceptProvenanceValidator execution failure: {e}")
+
+    # 2. Run HallucinationScanner
+    if HallucinationScanner is not None:
+        try:
+            from pathlib import Path
+            root_path = Path(repo_root).resolve()
+            scanner = HallucinationScanner(repo_root=root_path)
+            findings = scanner.run()
+            for f in findings:
+                rel = getattr(f, "file_path", "")
+                if any(rel.startswith(p) or p in rel for p in monitored_prefixes):
+                    sev_str = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
+                    if sev_str in ("ERROR", "WARNING"):
+                        violations.append(f"[HallucinationScanner] [{sev_str}] {rel}:{getattr(f, 'line_number', 0)}: {f.message} (matched: '{getattr(f, 'matched_text', '')}')")
+        except Exception as e:
+            violations.append(f"HallucinationScanner execution failure: {e}")
+
+    if violations:
+        print("ERROR: Check 18 failed (Anti-hallucination scanner and Phase 0 concept provenance violations discovered):", file=sys.stderr)
+        for v in violations:
+            print(f"  - {v}", file=sys.stderr)
+        sys.exit(1)
+
+    print("Success: Check 18 verified (Anti-hallucination scanner and Phase 0 concept provenance validation passed with zero errors or warnings).")
+
 
 def _run_verification(args, dest, repo_root, is_flutter, is_react):
-    # Run Checks 10, 11, 12, 13, 14, 15, 16, and 17
+    # Run Checks 10, 11, 12, 13, 14, 15, 16, 17, and 18
     check_gitignore_exists(repo_root)
     check_no_ds_store_files(repo_root)
     check_no_duplicate_master_blueprints(dest)
@@ -756,6 +891,7 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
     check_reconcile_backlog_tooling_exists(repo_root)
     check_upstream_template_clean_landing_zones(repo_root)
     check_safety_integrity_and_sora_completeness(repo_root)
+    check_anti_hallucination_and_concept_provenance(repo_root)
 
     if is_flutter:
         print(f"Verifying conformance for platform 'flutter' at '{dest}'...")

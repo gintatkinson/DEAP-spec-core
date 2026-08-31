@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-Subagent Output Integrity Validator & Escape Tokens Gate (Mechanism 3 & 4)
+Subagent Output Integrity Validator, Escape Tokens Gate, & Prompt Linter (Mechanism 3 & 4)
 
-Verifies subagent output artifacts:
+Verifies subagent output artifacts and prompt payloads:
 1. Non-zero file size
 2. File creation proof (existence on filesystem)
 3. Valid Mermaid diagram headers and closed code fences
 4. Zero unreplaced {{REQUIRED_*}} escape tokens
+5. Mechanical validation of subagent prompt payloads (single-task atomicity, template match, zero inline issue body)
 
 Usage:
-    python3 scripts/verify_subagent_output.py [--files file1 file2 ...] [--dir docs] [--report report.json]
+    python3 scripts/verify_subagent_output.py [--files file1 file2 ...] [--dir docs] [--logs-dir dir] [--report report.json]
 """
 
 import argparse
@@ -18,6 +19,22 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+try:
+    from scripts.lint_subagent_prompt import (
+        lint_prompt_payload,
+        extract_prompts_from_transcript,
+    )
+except ImportError:
+    repo_root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if repo_root_dir not in sys.path:
+        sys.path.insert(0, repo_root_dir)
+    from scripts.lint_subagent_prompt import (
+        lint_prompt_payload,
+        extract_prompts_from_transcript,
+    )
 
 
 VALID_MERMAID_HEADERS = (
@@ -43,7 +60,7 @@ VALID_MERMAID_HEADERS = (
 )
 
 
-def verify_file(file_path):
+def verify_file(file_path: str) -> Tuple[Dict[str, Any], bool]:
     check_result = {
         'file_path': str(file_path),
         'non_zero': False,
@@ -106,12 +123,13 @@ def verify_file(file_path):
     return check_result, is_pass
 
 
-def verify_prompt_payload(prompt_text):
-    """Validates prompt text payloads for untruncated skill directives:
+def verify_prompt_payload(prompt_text: str) -> Tuple[Dict[str, Any], bool]:
+    """Validates prompt text payloads for untruncated skill directives and mechanical rules:
     1. Asserts presence of view_file on SKILL.md by explicit path as step 1.
     2. Asserts presence of gh issue create for audit skills.
     3. Rejects summarized or truncated prompt payloads.
     4. Forbids gh issue close in agent prompts (reserved for Product Owner review).
+    5. Executes mechanical prompt payload linter (lint_prompt_payload).
     
     Returns (check_result_dict, is_pass_bool)
     """
@@ -120,6 +138,7 @@ def verify_prompt_payload(prompt_text):
         'audit_issue_create': True,
         'untruncated': True,
         'forbid_issue_close': True,
+        'mechanical_linter_pass': True,
         'reasons': []
     }
 
@@ -171,24 +190,92 @@ def verify_prompt_payload(prompt_text):
             check_result['audit_issue_create'] = False
             check_result['reasons'].append("Audit skill prompt missing 'gh issue create'.")
 
+    # Execute mechanical prompt payload linter
+    linter_violations = lint_prompt_payload(prompt_text)
+    if linter_violations:
+        check_result['mechanical_linter_pass'] = False
+        check_result['reasons'].extend(linter_violations)
+
     is_pass = (
         check_result['view_file_step_1'] and
         check_result['audit_issue_create'] and
         check_result['untruncated'] and
-        check_result['forbid_issue_close']
+        check_result['forbid_issue_close'] and
+        check_result['mechanical_linter_pass']
     )
     return check_result, is_pass
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Verify subagent output artifacts integrity.")
+def scan_transcript_logs(logs_dir: Optional[str] = None) -> Tuple[List[Dict[str, Any]], bool]:
+    """Scans active transcript logs in .system_generated/logs/ (or specified logs_dir)
+    for invoke_subagent prompt payloads and executes lint_prompt_payload on each payload.
+
+    Returns:
+        (results_list, is_all_passed)
+    """
+    if logs_dir is None:
+        # Check standard default locations
+        cwd_logs = os.path.join(os.getcwd(), ".system_generated", "logs")
+        script_repo_logs = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".system_generated", "logs")
+        if os.path.isdir(cwd_logs):
+            logs_dir = cwd_logs
+        elif os.path.isdir(script_repo_logs):
+            logs_dir = script_repo_logs
+        else:
+            return [], True
+
+    if not os.path.isdir(logs_dir):
+        return [], True
+
+    results: List[Dict[str, Any]] = []
+    all_passed = True
+
+    # Find transcript files (.jsonl, .log, .json)
+    for root, _, files in os.walk(logs_dir):
+        for fname in sorted(files):
+            if fname.endswith(('.jsonl', '.log', '.json')):
+                fpath = os.path.join(root, fname)
+                try:
+                    prompts = extract_prompts_from_transcript(fpath)
+                    for line_no, prompt_text in prompts:
+                        violations = lint_prompt_payload(prompt_text)
+                        passed = (len(violations) == 0)
+                        if not passed:
+                            all_passed = False
+                        results.append({
+                            'file_path': fpath,
+                            'line_number': line_no,
+                            'passed': passed,
+                            'violations': violations,
+                            'prompt_preview': prompt_text.strip()[:120] + "..." if len(prompt_text.strip()) > 120 else prompt_text.strip()
+                        })
+                except Exception as e:
+                    all_passed = False
+                    results.append({
+                        'file_path': fpath,
+                        'line_number': 0,
+                        'passed': False,
+                        'violations': [f"Error reading transcript: {e}"],
+                        'prompt_preview': ""
+                    })
+
+    return results, all_passed
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Verify subagent output artifacts integrity and prompt payload quality gates."
+    )
     parser.add_argument("--files", nargs="*", help="List of file paths to verify")
     parser.add_argument("--dir", help="Directory containing files to verify")
+    parser.add_argument("--logs-dir", help="Directory containing transcript logs to scan (default: .system_generated/logs if present)")
+    parser.add_argument("--scan-transcripts", action="store_true", help="Explicitly scan active transcripts in .system_generated/logs/")
+    parser.add_argument("--transcripts", nargs="*", help="Specific transcript files to scan")
     parser.add_argument("--prompt", "--prompts", nargs="*", help="List of prompt strings or file paths containing prompt text to verify")
     parser.add_argument("--report", help="Path to write JSON report")
     args = parser.parse_args()
 
-    target_files = []
+    target_files: List[str] = []
     if args.files:
         target_files.extend(args.files)
     if args.dir and os.path.exists(args.dir):
@@ -197,15 +284,48 @@ def main():
                 if f.endswith('.md'):
                     target_files.append(os.path.join(root, f))
 
-    prompt_inputs = []
+    prompt_inputs: List[str] = []
     if args.prompt:
         prompt_inputs.extend(args.prompt)
 
-    if not target_files and not prompt_inputs:
-        print("No files or prompts specified for verification.")
+    # Determine transcript scanning target
+    logs_dir = args.logs_dir
+    transcript_files: List[str] = []
+    if args.transcripts:
+        transcript_files.extend(args.transcripts)
+
+    transcript_results: List[Dict[str, Any]] = []
+    transcripts_passed = True
+
+    # Scan explicit transcript files if provided
+    if transcript_files:
+        for tpath in transcript_files:
+            if os.path.isfile(tpath):
+                prompts = extract_prompts_from_transcript(tpath)
+                for line_no, prompt_text in prompts:
+                    violations = lint_prompt_payload(prompt_text)
+                    passed = (len(violations) == 0)
+                    if not passed:
+                        transcripts_passed = False
+                    transcript_results.append({
+                        'file_path': tpath,
+                        'line_number': line_no,
+                        'passed': passed,
+                        'violations': violations,
+                        'prompt_preview': prompt_text.strip()[:120] + "..." if len(prompt_text.strip()) > 120 else prompt_text.strip()
+                    })
+
+    # Auto-scan or scan specified logs directory
+    scanned_results, scanned_passed = scan_transcript_logs(logs_dir)
+    transcript_results.extend(scanned_results)
+    if not scanned_passed:
+        transcripts_passed = False
+
+    if not target_files and not prompt_inputs and not transcript_results:
+        print("No files, prompts, or active transcript logs specified for verification.")
         sys.exit(0)
 
-    checks = []
+    checks: List[Dict[str, Any]] = []
     overall_status = "PASS"
 
     for fpath in target_files:
@@ -231,15 +351,32 @@ def main():
             'audit_issue_create': p_res['audit_issue_create'],
             'untruncated': p_res['untruncated'],
             'forbid_issue_close': p_res['forbid_issue_close'],
+            'mechanical_linter_pass': p_res['mechanical_linter_pass'],
             'reasons': p_res['reasons']
         })
         if not is_pass:
             overall_status = "FAIL"
 
+    if not transcripts_passed:
+        overall_status = "FAIL"
+
+    # Print transcript check details
+    if transcript_results:
+        print(f"\nSubagent Prompt Transcript Validation: {len(transcript_results)} prompt(s) evaluated.")
+        for tr in transcript_results:
+            loc = f"{os.path.basename(tr['file_path'])}:L{tr['line_number']}"
+            if tr['passed']:
+                print(f"  [PASS] {loc}: {tr['prompt_preview']}")
+            else:
+                print(f"  [FAIL] {loc}: {tr['prompt_preview']}")
+                for v in tr['violations']:
+                    print(f"    - {v}")
+
     report = {
         'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'status': overall_status,
-        'checks': checks
+        'checks': checks,
+        'transcript_checks': transcript_results
     }
 
     if args.report:
@@ -248,13 +385,12 @@ def main():
             json.dump(report, rf, indent=2)
 
     if overall_status == "PASS":
-        print(f"Subagent output verification PASSED ({len(target_files)} files, {len(prompt_inputs)} prompts verified).")
+        print(f"\nSubagent output verification PASSED ({len(target_files)} files, {len(prompt_inputs)} prompts, {len(transcript_results)} transcript prompt checks).")
         sys.exit(0)
     else:
-        print(f"Subagent output verification FAILED ({len(target_files)} files, {len(prompt_inputs)} prompts checked).")
-        sys.exit(42)
+        print(f"\nSubagent output verification FAILED ({len(target_files)} files, {len(prompt_inputs)} prompts, {len(transcript_results)} transcript prompt checks).")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
     main()
-
