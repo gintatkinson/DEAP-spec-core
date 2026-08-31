@@ -21,9 +21,9 @@ Cloud-hosted Large Language Model (LLM) endpoints introduce operational hazards 
 flowchart TD
     subgraph AirGappedEnclave["Sovereign Air-Gapped Defense & Aerospace Facility"]
         subgraph HardwareNode["ASUS ProArt Workstation (AMD Strix Halo APU)"]
-            UnifiedRAM["128 GB Unified LPDDR5X-8533 Memory (273 GB/s)"]
+            UnifiedRAM["128 GB Unified LPDDR5X-8533 Memory - 273 GB/s"]
             Zen5CPU["Zen 5 16-Core / 32-Thread CPU"]
-            RDNA35GPU["RDNA 3.5 40 CU GPU (Radeon 8060S / gfx1150)"]
+            RDNA35GPU["RDNA 3.5 40 CU GPU - Radeon 8060S / gfx1150"]
             ROCmStack["AMD ROCm 6.2+ / HIP Driver Layer (amdgpu.gttsize=114688)"]
         end
 
@@ -37,12 +37,12 @@ flowchart TD
             P0["Pipeline 0: Pre-Spec Safety & Systems (CONOPS, STPA, SysML v2)"]
             P1["Pipeline 1: Agile Backlog Projection (Epics, Features, Stories)"]
             P2["Pipeline 2: TDD Code Synthesis (ROS 2 C++, SPARK Ada, UI)"]
-            AuditEngine["Chain-of-Thought CoT Audit Log (.pipeline/diagnostics/cot_audit_log.json)"]
+            AuditEngine["Chain-of-Thought CoT Audit Log - .pipeline/diagnostics/cot_audit_log.json"]
         end
     end
 
-    Zen5CPU <--> UnifiedRAM
-    RDNA35GPU <--> UnifiedRAM
+    Zen5CPU --- UnifiedRAM
+    RDNA35GPU --- UnifiedRAM
     ROCmStack --> RuntimeTier
     RuntimeTier --> HarnessCore
     P0 --> P1 --> P2
@@ -62,20 +62,20 @@ flowchart LR
     subgraph StrixHaloSoC["AMD Ryzen AI Max+ 395 APU (TSMC 4nm)"]
         subgraph ComputeUnits["Heterogeneous Processing Blocks"]
             Zen5["16x Zen 5 CPU Cores (32 Threads, 64 MB L3 Cache)"]
-            RDNA35["40x RDNA 3.5 Compute Units (Radeon 8060S / gfx1150)"]
+            RDNA35["40x RDNA 3.5 Compute Units - Radeon 8060S / gfx1150"]
             XDNA2["XDNA 2 NPU Subsystem (50+ TOPS)"]
         end
 
         MemCtrl["256-bit Wide LPDDR5X-8533 Memory Controller"]
-        ComputeUnits <--> MemCtrl
+        ComputeUnits --- MemCtrl
     end
 
     subgraph PhysicalMemory["Unified Memory Pool (128 GB LPDDR5X)"]
-        GTT_VRAM["Dynamic VRAM / GTT Partition (amdgpu.gttsize=114688: Up to 112 GB)"]
+        GTT_VRAM["Dynamic VRAM / GTT Partition - amdgpu.gttsize=114688 - Up to 112 GB"]
         SysRAM["OS Kernel, Toolchains, Harvester & Caches (16 GB to 48 GB)"]
     end
 
-    MemCtrl <-->|"273.0 GB/s Peak Bandwidth"| PhysicalMemory
+    MemCtrl ---|"273.0 GB/s Peak Bandwidth"| PhysicalMemory
 ```
 
 ### 2.1 Silicon Subsystem Specifications
@@ -182,13 +182,13 @@ flowchart TD
 
     subgraph InferenceOptions["Local Air-Gapped ROCm Runtime Options"]
         subgraph OptionA["Option A: Ollama Service (Recommended Default)"]
-            OllamaDaemon["Ollama Daemon (:11434)"]
+            OllamaDaemon["Ollama Daemon - Port 11434"]
             EnvOverride["HSA_OVERRIDE_GFX_VERSION=11.5.0\nOLLAMA_NUM_PARALLEL=4\nOLLAMA_MAX_LOADED_MODELS=2\nOLLAMA_KEEP_ALIVE=24h"]
             OllamaDaemon --- EnvOverride
         end
 
         subgraph OptionB["Option B: vLLM ROCm Engine (High Batching)"]
-            vLLMDaemon["vLLM ROCm Server (:8000)"]
+            vLLMDaemon["vLLM ROCm Server - Port 8000"]
             vLLMFlags["--gpu-memory-utilization 0.88\n--max-model-len 32768\nPagedAttention Kernels"]
             vLLMDaemon --- vLLMFlags
         end
@@ -294,7 +294,7 @@ flowchart TD
         end
 
         subgraph Tier3["Tier 3: Rapid Subagent Repair Engine (Hot-Fixes)"]
-            Repair["DeepSeek-R1-14B-GGUF (Q8_0 / Q4_K_M)\nFootprint: ~16.0 GB | Context: 16k\nRole: AST Lint Fixes, Failing Unit Test Triage"]
+            Repair["DeepSeek-R1-14B-GGUF (Q8_0 or Q4_K_M)\nFootprint: ~16.0 GB | Context: 16k\nRole: AST Lint Fixes, Failing Unit Test Triage"]
         end
     end
 
@@ -330,8 +330,8 @@ M_{\text{total}} &= 128.0\,\text{GB} \\
 M_{\text{R1-70B}} &= 43.2\,\text{GB} \\
 M_{\text{Coder-32B}} &= 20.1\,\text{GB} \\
 M_{\text{weights}} &= M_{\text{R1-70B}} + M_{\text{Coder-32B}} = 63.3\,\text{GB} \\
-M_{\text{KV}} &= M_{\text{KV-70B}} + M_{\text{KV-32B}} \approx 16.0\,\text{GB} \quad (\text{at } 32\text{k context}) \\
-M_{\text{active\_GPU}} &= M_{\text{weights}} + M_{\text{KV}} = 79.3\,\text{GB} \le M_{\text{GTT\_limit}} = 112.0\,\text{GB} \\
+M_{kv} &= M_{\text{KV-70B}} + M_{\text{KV-32B}} \approx 16.0\,\text{GB} \quad (\text{at } 32\text{k context}) \\
+M_{\text{active\_GPU}} &= M_{\text{weights}} + M_{kv} = 79.3\,\text{GB} \le M_{\text{GTT\_limit}} = 112.0\,\text{GB} \\
 M_{\text{headroom}} &= M_{\text{total}} - M_{\text{active\_GPU}} = 48.7\,\text{GB}
 \end{aligned}
 $$
@@ -495,7 +495,7 @@ sequenceDiagram
 
     Op->>Harness: deap-harness run --air-gapped --profile ros2_cpp
     Harness->>R1: Dispatch Worker 0B (STPA Hazard & SORA Analysis)
-    R1-->>Audit: Stream <think>...</think> Reasoning Trace
+    R1-->>Audit: "Stream <think>...</think> Reasoning Trace"
     R1-->>Harness: Emit STPA Safety Constraints & Invariants (SC-01..80)
     Harness->>Audit: Record SHA-256 Checksummed Audit Record
     Harness->>Coder: Ingest SysML AST & Synthesize BDD Scenarios (Pipeline 1)

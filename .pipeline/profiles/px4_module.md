@@ -3,6 +3,9 @@ title: "Implementation Profile — PX4 Autopilot Module"
 project: "Digital Engineering Agent Platform (DEAP)"
 tier: implementation
 platform: px4_module
+disallowed_technologies:
+  - CUDA
+  - PyTorch
 created: "2026-08-29"
 last_updated: "2026-08-29"
 ---

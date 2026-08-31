@@ -6,6 +6,7 @@ and runs the build/test commands ('npm run build' for React, 'flutter analyze &&
 """
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -746,8 +747,97 @@ def check_safety_integrity_and_sora_completeness(repo_root):
 
     print("Success: Check 17 verified (Safety Integrity Quality Gate: 8 pillars, 24 SORA OSOs, 15+ FMECA rows, 4 UCA categories, ASTM F3269-17 RTA, and MATLAB/Simulink hooks).")
 
+def check_domain_agnostic_ast_cleanliness(repo_root):
+    """Check 19: Domain-Agnostic AST Cleanliness Gate.
+
+    Verify that upstream DEAP-spec-core tools, scripts, and validators contain
+    zero hardcoded domain concepts/variables (e.g. wingspan_m, mtow_kg, stall_speed,
+    launch_pressure, day_camera_resolution, A5_user_manual).
+    """
+    upstream_marker = os.path.join(repo_root, ".pipeline", "upstream")
+    if not os.path.isdir(upstream_marker):
+        print("Success: Check 19 verified (Downstream repository detected — skipping domain-agnostic AST cleanliness gate).")
+        return
+
+    scan_dirs = [
+        os.path.join(repo_root, "skills", "spec-orchestrator", "parity_auditor"),
+        os.path.join(repo_root, "scripts"),
+    ]
+
+    forbidden_tokens = {
+        "wingspan_m", "mtow_kg", "stall_speed", "launch_pressure",
+        "day_camera_resolution", "A5_user_manual", "Avenger5",
+        "stall_speed_mps", "takeoff_weight_kg", "payload_capacity_kg"
+    }
+    forbidden_tokens_lower = {t.lower() for t in forbidden_tokens}
+
+    violations = []
+
+    for sdir in scan_dirs:
+        if not os.path.isdir(sdir):
+            continue
+        for root, dirs, files in os.walk(sdir):
+            dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS and d != "__pycache__"]
+            for f in files:
+                if not f.endswith(".py"):
+                    continue
+                if f in ("verify_downstream_baseline.py", "test_check_no_domain_config.py"):
+                    continue
+
+                file_path = os.path.join(root, f)
+                rel_path = os.path.relpath(file_path, repo_root)
+
+                try:
+                    with open(file_path, "r", encoding="utf-8") as py_file:
+                        source = py_file.read()
+                    tree = ast.parse(source, filename=file_path)
+                except Exception as e:
+                    violations.append(f"Failed to parse Python AST for {rel_path}: {e}")
+                    continue
+
+                for node in ast.walk(tree):
+                    found_token = None
+                    lineno = getattr(node, "lineno", 0)
+
+                    if isinstance(node, ast.Name):
+                        if node.id.lower() in forbidden_tokens_lower:
+                            found_token = node.id
+                    elif isinstance(node, ast.Attribute):
+                        if node.attr.lower() in forbidden_tokens_lower:
+                            found_token = node.attr
+                    elif isinstance(node, ast.FunctionDef):
+                        if node.name.lower() in forbidden_tokens_lower:
+                            found_token = node.name
+                    elif isinstance(node, ast.ClassDef):
+                        if node.name.lower() in forbidden_tokens_lower:
+                            found_token = node.name
+                    elif isinstance(node, ast.arg):
+                        if node.arg.lower() in forbidden_tokens_lower:
+                            found_token = node.arg
+                    elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+                        for ft in forbidden_tokens:
+                            if ft.lower() in node.value.lower():
+                                found_token = ft
+                                break
+                    elif hasattr(ast, "Str") and isinstance(node, ast.Str):
+                        for ft in forbidden_tokens:
+                            if ft.lower() in node.s.lower():
+                                found_token = ft
+                                break
+
+                    if found_token:
+                        violations.append(f"Check 19 violation: Hardcoded domain token '{found_token}' found in {rel_path}:{lineno}")
+
+    if violations:
+        print("ERROR: Check 19 failed (Domain-Agnostic AST Cleanliness Gate violations found):", file=sys.stderr)
+        for v in violations:
+            print(f"  - {v}", file=sys.stderr)
+        sys.exit(1)
+
+    print("Success: Check 19 verified (Domain-Agnostic AST Cleanliness Gate passed — zero hardcoded domain variables in Python AST).")
+
 def _run_verification(args, dest, repo_root, is_flutter, is_react):
-    # Run Checks 10, 11, 12, 13, 14, 15, 16, and 17
+    # Run Checks 10, 11, 12, 13, 14, 15, 16, 17, and 19
     check_gitignore_exists(repo_root)
     check_no_ds_store_files(repo_root)
     check_no_duplicate_master_blueprints(dest)
@@ -756,6 +846,7 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
     check_reconcile_backlog_tooling_exists(repo_root)
     check_upstream_template_clean_landing_zones(repo_root)
     check_safety_integrity_and_sora_completeness(repo_root)
+    check_domain_agnostic_ast_cleanliness(repo_root)
 
     if is_flutter:
         print(f"Verifying conformance for platform 'flutter' at '{dest}'...")

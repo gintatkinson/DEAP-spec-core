@@ -162,7 +162,7 @@ class TestCompileSysmlUpgrades(unittest.TestCase):
 
             test_file = os.path.join(docs_dir, "test.md")
             with open(test_file, "w", encoding="utf-8") as f:
-                f.write("[Broken Absolute Link](file:///Users/perkunas/test.md)")
+                f.write("[Broken Absolute Link](file:///tmp/test.md)")
 
             repo = WorkspaceRepository(tmpdir)
             validator = LinkValidator()

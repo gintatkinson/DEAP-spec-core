@@ -242,11 +242,11 @@ def extract_metadata_from_content(content: str) -> Dict[str, Any]:
                         elif "," in val:
                             val = [item.strip().strip('"\'`') for item in val.split(",") if item.strip()]
                         elif val:
-                            val = [val.strip().strip('"\'\`')]
+                            val = [val.strip().strip('"\'`')]
                         else:
                             val = []
                     elif norm_key == "schema_containers":
-                        clean_str = val.strip().strip('"\'\`')
+                        clean_str = val.strip().strip('"\'`')
                         if clean_str.startswith("[") and clean_str.endswith("]"):
                             val = [item.strip().strip('"\'`') for item in clean_str[1:-1].split(",") if item.strip()]
                         elif "," in clean_str:

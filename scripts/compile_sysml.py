@@ -1277,11 +1277,26 @@ def _merge_part_into_package(pkg: Any, new_part: Any) -> None:
     existing = _find_part(pkg)
     if existing:
         # Merge attributes
-        existing_attrs = {getattr(a, "name", "") for a in getattr(existing, "attributes", [])}
+        existing_attrs = {getattr(a, "name", ""): a for a in getattr(existing, "attributes", [])}
         for attr in getattr(new_part, "attributes", []):
-            if getattr(attr, "name", "") not in existing_attrs:
+            a_name = getattr(attr, "name", "")
+            if a_name not in existing_attrs:
                 existing.attributes.append(attr)
-                existing_attrs.add(getattr(attr, "name", ""))
+                existing_attrs[a_name] = attr
+            else:
+                ex_attr = existing_attrs[a_name]
+                if getattr(attr, "type_name", None) and getattr(ex_attr, "type_name", "String") == "String":
+                    ex_attr.type_name = attr.type_name
+                if getattr(attr, "doc", None) and not getattr(ex_attr, "doc", None):
+                    ex_attr.doc = attr.doc
+
+        # Merge ports
+        existing_ports = {getattr(p, "name", ""): p for p in getattr(existing, "ports", [])}
+        for port in getattr(new_part, "ports", []):
+            p_name = getattr(port, "name", "")
+            if p_name not in existing_ports:
+                existing.ports.append(port)
+                existing_ports[p_name] = port
 
         # Merge actions
         existing_actions = {getattr(a, "name", ""): a for a in getattr(existing, "actions", [])}
@@ -1296,6 +1311,8 @@ def _merge_part_into_package(pkg: Any, new_part: Any) -> None:
                     ex_act.in_params = act.in_params
                 if hasattr(ex_act, "out_params") and not ex_act.out_params and getattr(act, "out_params", None):
                     ex_act.out_params = act.out_params
+                if hasattr(ex_act, "doc") and not ex_act.doc and getattr(act, "doc", ""):
+                    ex_act.doc = act.doc
 
         # Merge operations
         existing_ops = {getattr(o, "name", ""): o for o in getattr(existing, "operations", [])}
@@ -1310,6 +1327,8 @@ def _merge_part_into_package(pkg: Any, new_part: Any) -> None:
                     ex_op.parameters = op.parameters
                 if hasattr(ex_op, "return_type") and not ex_op.return_type and getattr(op, "return_type", None):
                     ex_op.return_type = op.return_type
+                if hasattr(ex_op, "doc") and not ex_op.doc and getattr(op, "doc", ""):
+                    ex_op.doc = op.doc
 
         # Merge constraints
         existing_cons = {getattr(c, "name", ""): c for c in getattr(existing, "constraints", [])}
@@ -1322,6 +1341,8 @@ def _merge_part_into_package(pkg: Any, new_part: Any) -> None:
                 ex_con = existing_cons[con_name]
                 if hasattr(ex_con, "expression") and not ex_con.expression and getattr(con, "expression", ""):
                     ex_con.expression = con.expression
+                if hasattr(ex_con, "doc") and not ex_con.doc and getattr(con, "doc", ""):
+                    ex_con.doc = con.doc
 
     else:
         pkg.part_defs.append(new_part)
@@ -1331,7 +1352,18 @@ def _merge_use_case_into_package(pkg: Any, new_uc: Any) -> None:
     uc_name = getattr(new_uc, "name", "")
     if not uc_name:
         return
-    existing = next((uc for uc in getattr(pkg, "use_case_defs", []) if getattr(uc, "name", "") == uc_name), None)
+
+    def _find_uc(p: Any) -> Optional[Any]:
+        for uc in getattr(p, "use_case_defs", []) or []:
+            if getattr(uc, "name", "") == uc_name:
+                return uc
+        for sub in getattr(p, "sub_packages", []) or []:
+            found = _find_uc(sub)
+            if found:
+                return found
+        return None
+
+    existing = _find_uc(pkg)
     if not existing:
         pkg.use_case_defs.append(new_uc)
     else:
@@ -1355,7 +1387,18 @@ def _merge_interaction_into_package(pkg: Any, new_inter: Any) -> None:
     inter_name = getattr(new_inter, "name", "")
     if not inter_name:
         return
-    existing = next((i for i in getattr(pkg, "interaction_defs", []) if getattr(i, "name", "") == inter_name), None)
+
+    def _find_inter(p: Any) -> Optional[Any]:
+        for i in getattr(p, "interaction_defs", []) or []:
+            if getattr(i, "name", "") == inter_name:
+                return i
+        for sub in getattr(p, "sub_packages", []) or []:
+            found = _find_inter(sub)
+            if found:
+                return found
+        return None
+
+    existing = _find_inter(pkg)
     if not existing:
         pkg.interaction_defs.append(new_inter)
     else:
@@ -1377,7 +1420,18 @@ def _merge_test_case_into_package(pkg: Any, new_tc: Any) -> None:
     tc_name = getattr(new_tc, "name", "")
     if not tc_name:
         return
-    existing = next((t for t in getattr(pkg, "test_case_defs", []) if getattr(t, "name", "") == tc_name), None)
+
+    def _find_tc(p: Any) -> Optional[Any]:
+        for t in getattr(p, "test_case_defs", []) or []:
+            if getattr(t, "name", "") == tc_name:
+                return t
+        for sub in getattr(p, "sub_packages", []) or []:
+            found = _find_tc(sub)
+            if found:
+                return found
+        return None
+
+    existing = _find_tc(pkg)
     if not existing:
         pkg.test_case_defs.append(new_tc)
     else:
@@ -1399,7 +1453,18 @@ def _merge_constraint_into_package(pkg: Any, new_con: Any) -> None:
     con_name = getattr(new_con, "name", "")
     if not con_name:
         return
-    existing = next((c for c in getattr(pkg, "constraint_defs", []) if getattr(c, "name", "") == con_name), None)
+
+    def _find_con(p: Any) -> Optional[Any]:
+        for c in getattr(p, "constraint_defs", []) or []:
+            if getattr(c, "name", "") == con_name:
+                return c
+        for sub in getattr(p, "sub_packages", []) or []:
+            found = _find_con(sub)
+            if found:
+                return found
+        return None
+
+    existing = _find_con(pkg)
     if not existing:
         pkg.constraint_defs.append(new_con)
     else:
@@ -1413,7 +1478,18 @@ def _merge_capability_into_package(pkg: Any, new_cap: Any) -> None:
     cap_name = getattr(new_cap, "name", "")
     if not cap_name:
         return
-    existing = next((c for c in getattr(pkg, "capability_defs", []) if getattr(c, "name", "") == cap_name), None)
+
+    def _find_cap(p: Any) -> Optional[Any]:
+        for c in getattr(p, "capability_defs", []) or []:
+            if getattr(c, "name", "") == cap_name:
+                return c
+        for sub in getattr(p, "sub_packages", []) or []:
+            found = _find_cap(sub)
+            if found:
+                return found
+        return None
+
+    existing = _find_cap(pkg)
     if not existing:
         pkg.capability_defs.append(new_cap)
     else:
@@ -1456,7 +1532,8 @@ def reverse_sync_specs_to_sysml(
     docs_dir: str = "docs",
     schema_path: Optional[str] = None,
     output_path: Optional[str] = None,
-    digest_path: Optional[str] = None
+    digest_path: Optional[str] = None,
+    allow_schema_overwrite: bool = False,
 ) -> Tuple[Any, Dict[str, Any]]:
     """
     Executes Closed-Loop Reverse Synchronization from markdown specification corpus
@@ -1469,28 +1546,44 @@ def reverse_sync_specs_to_sysml(
     - docs/epics/EPIC-*.md -> SysMLCapabilityDef
     - docs/safety/STPA_MATRIX.md -> SysMLConstraintDef (assert constraint)
 
-    Merges all extracted constructs into matching packages/parts, serializes the updated
-    SysML v2 textual model, and recomputes the cryptographic schema digest.
+    Merges all extracted constructs non-destructively into matching packages/parts,
+    serializes the updated SysML v2 textual model, and recomputes the cryptographic schema digest.
+
+    Parameters:
+        docs_dir: Path to directory containing markdown specifications.
+        schema_path: Optional path to base input SysML schema model.
+        output_path: Destination path for compiled SysML model (default: .pipeline/schema.sysml).
+        digest_path: Destination path for schema digest JSON (default: .pipeline/schema-digest.json).
+        allow_schema_overwrite: If False (default), prevents modifying or overwriting schema_path in place.
     """
     if not output_path:
         output_path = os.path.join(PROJECT_ROOT, ".pipeline", "schema.sysml")
     if not digest_path:
         digest_path = os.path.join(PROJECT_ROOT, ".pipeline", "schema-digest.json")
 
-    # Load existing package model
+    # Load existing package model from schema_path if provided
     pkg = None
-    if schema_path and os.path.exists(schema_path):
-        if SysMLParser:
-            try:
-                pkg = SysMLParser.parse_file(schema_path)
-            except Exception:
-                pass
+    if schema_path:
+        if not os.path.exists(schema_path):
+            raise FileNotFoundError(f"Base schema file not found: {schema_path}")
+        if not allow_schema_overwrite and os.path.abspath(schema_path) == os.path.abspath(output_path):
+            raise RuntimeError(
+                f"In-place overwrite of base input schema '{schema_path}' is prohibited when allow_schema_overwrite=False."
+            )
+        if SysMLParser is None:
+            raise RuntimeError("SysMLParser is not available to parse base schema.")
+        try:
+            pkg = SysMLParser.parse_file(schema_path)
+        except Exception as exc:
+            raise RuntimeError(f"Failed to parse base schema '{schema_path}': {exc}") from exc
+        if pkg is None:
+            raise RuntimeError(f"Failed to parse base schema '{schema_path}': parser returned None.")
     elif output_path and os.path.exists(output_path):
         if SysMLParser:
             try:
                 pkg = SysMLParser.parse_file(output_path)
             except Exception:
-                pass
+                pkg = None
 
     if pkg is None:
         root_name = "AutonomousUAS_SSOT"
@@ -1499,7 +1592,15 @@ def reverse_sync_specs_to_sysml(
         if SysMLPackage:
             pkg = SysMLPackage(name=root_name, doc="Single Source of Truth for Autonomous UAS Infrastructure Safety")
         else:
-            pkg = {"name": root_name, "part_defs": [], "constraint_defs": [], "use_case_defs": [], "interaction_defs": [], "test_case_defs": [], "capability_defs": []}
+            pkg = {
+                "name": root_name,
+                "part_defs": [],
+                "constraint_defs": [],
+                "use_case_defs": [],
+                "interaction_defs": [],
+                "test_case_defs": [],
+                "capability_defs": [],
+            }
 
     # Resolve docs directory path
     if not os.path.isabs(docs_dir):
@@ -1566,7 +1667,7 @@ def reverse_sync_specs_to_sysml(
     sysml_text = pkg.to_sysml() if hasattr(pkg, "to_sysml") else ""
     _atomic_write_file(output_path, sysml_text)
 
-    if schema_path and os.path.exists(schema_path) and os.path.abspath(schema_path) != os.path.abspath(output_path):
+    if allow_schema_overwrite and schema_path and os.path.exists(schema_path) and os.path.abspath(schema_path) != os.path.abspath(output_path):
         _atomic_write_file(schema_path, sysml_text)
 
     # Compute digest and node counts
@@ -1772,6 +1873,7 @@ def main():
     parser.add_argument("--out", "--output", dest="output_path", default=".pipeline/schema.sysml", help="Path to output .sysml SSOT file (default: .pipeline/schema.sysml)")
     parser.add_argument("--digest", "--digest-path", dest="digest_path", default=".pipeline/schema-digest.json", help="Path to output schema digest JSON (default: .pipeline/schema-digest.json)")
     parser.add_argument("--stpa", "--compile-stpa", action="store_true", help="Compile STPA hazard matrix to SysML constraint notation")
+    parser.add_argument("--allow-schema-overwrite", action="store_true", default=False, help="Allow in-place overwrite of base input schema file")
 
     args = parser.parse_args()
 
@@ -1780,7 +1882,8 @@ def main():
             docs_dir=args.docs_dir,
             schema_path=args.schema_path,
             output_path=args.output_path,
-            digest_path=args.digest_path
+            digest_path=args.digest_path,
+            allow_schema_overwrite=args.allow_schema_overwrite,
         )
         return
 

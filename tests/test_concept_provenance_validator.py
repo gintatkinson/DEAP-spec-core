@@ -1,0 +1,159 @@
+import os
+import sys
+import tempfile
+import unittest
+
+repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
+parity_src = os.path.join(repo_root, "skills", "spec-orchestrator", "parity_auditor", "src")
+if parity_src not in sys.path:
+    sys.path.insert(0, parity_src)
+
+from parity_auditor.core.workspace import WorkspaceRepository
+from parity_auditor.validators.concept_provenance_validator import (
+    ConceptProvenanceValidator,
+    _normalize_identifier,
+)
+
+
+class TestConceptProvenanceValidator(unittest.TestCase):
+    def test_clean_upstream_landing_zone_passes(self):
+        """Verify that empty schema/ landing zone passes gracefully with zero errors."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            os.makedirs(os.path.join(tmpdir, "schema"), exist_ok=True)
+            os.makedirs(os.path.join(tmpdir, "docs", "conops"), exist_ok=True)
+
+            with open(os.path.join(tmpdir, "docs", "conops", "conops.md"), "w", encoding="utf-8") as f:
+                f.write("# Concept of Operations\n\nGeneric operational description.\n")
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            validator = ConceptProvenanceValidator()
+            errors = validator.validate(repo)
+            self.assertEqual(errors, [])
+
+    def test_dynamic_extraction_from_sysml_and_markdown(self):
+        """Verify dynamic ground truth extraction from abstract SysML model and extracted markdown."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            schema_dir = os.path.join(tmpdir, "schema")
+            extracted_dir = os.path.join(schema_dir, "extracted")
+            os.makedirs(extracted_dir, exist_ok=True)
+
+            # Write abstract SysML schema
+            sysml_content = """
+            package GenericSystemSchema {
+                attribute system_mass : Real = 1800.0 [kg];
+                attribute nominal_power : Real = 75.5 [kW];
+                attribute payload_volume : Real = 42.0 [m3];
+            }
+            """
+            with open(os.path.join(schema_dir, "system.sysml"), "w", encoding="utf-8") as f:
+                f.write(sysml_content)
+
+            # Write abstract extracted markdown table
+            md_content = """
+            # Extracted Equipment Specification
+
+            | Property | Value |
+            | :--- | :--- |
+            | battery_capacity | 100.0 kWh |
+            | maximum_span | 12.0 m |
+            """
+            with open(os.path.join(extracted_dir, "specs.md"), "w", encoding="utf-8") as f:
+                f.write(md_content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            validator = ConceptProvenanceValidator()
+            gt = validator.extract_ground_truth(repo)
+
+            self.assertIn("system_mass", gt)
+            self.assertEqual(gt["system_mass"].value, 1800.0)
+            self.assertEqual(gt["nominal_power"].value, 75.5)
+            self.assertEqual(gt["payload_volume"].value, 42.0)
+            self.assertEqual(gt["battery_capacity"].value, 100.0)
+            self.assertEqual(gt["maximum_span"].value, 12.0)
+
+    def test_parametric_assertion_within_tolerance(self):
+        """Verify that assertions within +/- 5% tolerance pass without error."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            schema_dir = os.path.join(tmpdir, "schema")
+            conops_dir = os.path.join(tmpdir, "docs", "conops")
+            os.makedirs(schema_dir, exist_ok=True)
+            os.makedirs(conops_dir, exist_ok=True)
+
+            with open(os.path.join(schema_dir, "model.sysml"), "w", encoding="utf-8") as f:
+                f.write("package System {\n    attribute system_mass = 1800.0 [kg];\n}\n")
+
+            # 1820.0 is 1.11% deviation (< 5%)
+            conops_content = """# ConOps
+<!-- Source: schema/model.sysml -->
+
+The vehicle has a system_mass = 1820.0 kg for target mission operations.
+"""
+            with open(os.path.join(conops_dir, "conops.md"), "w", encoding="utf-8") as f:
+                f.write(conops_content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            validator = ConceptProvenanceValidator()
+            errors = validator.validate(repo)
+            self.assertEqual(errors, [])
+
+    def test_parametric_mismatch_detected(self):
+        """Verify that assertions exceeding +/- 5% tolerance are flagged with error findings."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            schema_dir = os.path.join(tmpdir, "schema")
+            conops_dir = os.path.join(tmpdir, "docs", "conops")
+            os.makedirs(schema_dir, exist_ok=True)
+            os.makedirs(conops_dir, exist_ok=True)
+
+            with open(os.path.join(schema_dir, "model.sysml"), "w", encoding="utf-8") as f:
+                f.write("package System {\n    attribute system_mass = 1800.0 [kg];\n}\n")
+
+            # 3000.0 is 66.7% deviation (> 5%)
+            conops_content = """# ConOps
+<!-- Source: schema/model.sysml -->
+
+The vehicle has a system_mass = 3000.0 kg for target mission operations.
+"""
+            with open(os.path.join(conops_dir, "conops.md"), "w", encoding="utf-8") as f:
+                f.write(conops_content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            validator = ConceptProvenanceValidator()
+            errors = validator.validate(repo)
+
+            self.assertEqual(len(errors), 1)
+            self.assertEqual(errors[0].rule_id, "concept-provenance-parametric-mismatch")
+            self.assertIn("system_mass", str(errors[0]))
+            self.assertIn("3000.0", str(errors[0]))
+
+    def test_missing_source_citation_detected(self):
+        """Verify that specification claiming schema parameters without citation is flagged."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            schema_dir = os.path.join(tmpdir, "schema")
+            conops_dir = os.path.join(tmpdir, "docs", "conops")
+            os.makedirs(schema_dir, exist_ok=True)
+            os.makedirs(conops_dir, exist_ok=True)
+
+            with open(os.path.join(schema_dir, "model.sysml"), "w", encoding="utf-8") as f:
+                f.write("package System {\n    attribute system_mass = 1800.0 [kg];\n}\n")
+
+            # Valid value but missing citation anchor
+            conops_content = """# ConOps
+
+The vehicle has a system_mass = 1800.0 kg for target mission operations.
+"""
+            with open(os.path.join(conops_dir, "conops.md"), "w", encoding="utf-8") as f:
+                f.write(conops_content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            validator = ConceptProvenanceValidator()
+            errors = validator.validate(repo)
+
+            self.assertEqual(len(errors), 1)
+            self.assertEqual(errors[0].rule_id, "concept-provenance-missing-source-citation")
+
+
+if __name__ == "__main__":
+    unittest.main()

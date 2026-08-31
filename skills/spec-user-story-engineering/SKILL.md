@@ -193,7 +193,7 @@ P_{mech} &= \tau \cdot \omega
 $$
 
 Where and Operational Parameters:
-- $E_{total}$: Total mechanical energy of the airframe.
+- $E_{total}$: Total mechanical energy of the system.
 - $E_{kinetic}$: Kinetic energy ($\frac{1}{2} m v^2$).
 - $E_{potential}$: Potential energy ($m g h$).
 - $\tau$: Motor shaft torque.

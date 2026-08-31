@@ -181,7 +181,7 @@ Normative Specification: [Normative Specification](link-to-specification)
 > - **Subgraph Title Quoting**: Mandate double quotes around subgraph titles with spaces or hyphens (e.g. `subgraph "System Boundary"`).
 
 
-> **Container Traceability:** Every Use Case MUST declare its schema container in the `Schema Containers` metadata attribute (e.g., `Avenger5Definitions::AssembleAndVerifyAirframe`). Multi-container Use Cases are forbidden.
+> **Container Traceability:** Every Use Case MUST declare its schema container in the `Schema Containers` metadata attribute (e.g., `SystemModelDefinitions::AssembleAndVerifySubsystem`). Multi-container Use Cases are forbidden.
 
 
 ## Step 5: Zero-Fault Backlog Synchronization

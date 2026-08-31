@@ -56,7 +56,7 @@ Critical and Important findings require a Mermaid diagram in Section 4. Select t
 * TOCTOU, async race: `sequenceDiagram`
 * FFI-dependent test, missing mock: `classDiagram`
 
-Must use ````mermaid` fenced blocks with valid syntax. No ASCII art. Named lifelines. `alt/loop` fragments for branches. No isolated classes. `stateDiagram-v2` syntax. Trace to file:line from Section 3.
+Must use Mermaid fenced blocks (```` ```mermaid ````) with valid syntax. No ASCII art. Named lifelines. `alt/loop` fragments for branches. No isolated classes. `stateDiagram-v2` syntax. Trace to file:line from Section 3.
 
 **All Mermaid syntax constraints are defined in `rules/platform-independence.md` and MUST be observed in full.** Most importantly here: no semicolons in `Note` statements or message text, and no curly braces in class member lines. Step D check 7 enforces these mechanically.
 
@@ -148,7 +148,7 @@ Subagents follow these steps in order. No deviation.
 3. Section headers and field labels must match the skeleton character-for-character.
 4. Section 1: Three bullet points with bold labels. Never collapse into one line.
 5. Section 2: Exactly five `[1-5]. **Why [text]?** Because [text].` lines.
-6. Section 4: Valid ````mermaid` block (Critical/Important) or "N/A — [severity] severity." (Suggestion/Nitpick). No ASCII art.
+6. Section 4: Valid Mermaid block (```` ```mermaid ````) (Critical/Important) or "N/A — [severity] severity." (Suggestion/Nitpick). No ASCII art.
 7. Section 6: Triple-backtick code block with language tag.
 8. End with SEVERITY and FILE_LOCATION lines exactly as shown in the skeleton.
 
@@ -164,7 +164,7 @@ Before filing, run these checks on the body. All must pass.
 | 4 | File location line | Matches `FILE_LOCATION: [path]:[line]` |
 | 5 | Section 1 bullets | Three lines matching `^[-*] \*\*(File|Pillar|Symptom)\*\*:` |
 | 6 | Section 2 Whys | Five lines matching `^[1-5]\. \*\*Why .*\?\*\* Because .*` |
-| 7 | Section 4 Critical/Important | Contains ````mermaid` block, AND the offline syntax gate below exits 0 |
+| 7 | Section 4 Critical/Important | Contains Mermaid block (```` ```mermaid ````), AND the offline syntax gate below exits 0 |
 | 8 | Section 4 Suggestion/Nitpick | Contains `N/A — ` |
 | 9 | Balanced code blocks | Even number of ````` occurrences |
 | 10 | No ASCII art UML | Does NOT contain unescaped `->>` or `→` outside mermaid blocks |

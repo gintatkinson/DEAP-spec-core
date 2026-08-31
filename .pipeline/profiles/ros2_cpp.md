@@ -3,6 +3,9 @@ title: "Implementation Profile — ROS2 C++"
 project: "Digital Engineering Agent Platform (DEAP)"
 tier: implementation
 platform: ros2_cpp
+disallowed_technologies:
+  - CUDA
+  - PyTorch
 created: "2026-08-29"
 last_updated: "2026-08-29"
 ---

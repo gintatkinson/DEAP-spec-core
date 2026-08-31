@@ -36,6 +36,8 @@ from .validators.source_reference_validator import SourceReferenceValidator
 from .validators.link_validator import LinkValidator
 from .validators.docstring_validator import DocstringValidator
 from .validators.profile_compliance_validator import ProfileComplianceValidator
+from .validators.concept_provenance_validator import ConceptProvenanceValidator
+from .validators.safety_trace_validator import SafetyTraceValidator
 from .utils.diagnostics import serialize_diagnostics
 from .utils.comment_utils import strip_comments_and_strings
 
@@ -977,9 +979,31 @@ def _main_impl():
         has_failed = True
     else:
         print("Success: Acceptance criteria test cases and verification bindings verified.")
-        
+
+    print("\n=== Concept Provenance & Parametric SSOT Audit ===")
+    concept_provenance_validator = ConceptProvenanceValidator()
+    concept_provenance_errors = _scope_findings(concept_provenance_validator.validate(repo), getattr(args, 'only', None))
+    if concept_provenance_errors:
+        print("[!] Concept Provenance Violations Identified:")
+        for err in concept_provenance_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Concept provenance and parametric assertions verified.")
+
+    print("\n=== Safety Traceability & Set-Equality Audit ===")
+    safety_trace_validator = SafetyTraceValidator()
+    safety_trace_errors = _scope_findings(safety_trace_validator.validate(repo), getattr(args, 'only', None))
+    if safety_trace_errors:
+        print("[!] Safety Traceability Violations Identified:")
+        for err in safety_trace_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Safety traceability set-equality verified.")
+
     if has_failed:
-        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (katex_errors or []) + (logical_ui_errors or []) + (docstring_errors or []) + (profile_compliance_errors or []) + (package_allocation_errors or []) + (feature_op_errors or []) + (interaction_errors or []) + (safety_constraint_errors or []) + (acceptance_test_errors or []) + (missing_spec_errors or []) + (source_ref_errors or []) + (link_errors or [])
+        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (katex_errors or []) + (logical_ui_errors or []) + (docstring_errors or []) + (profile_compliance_errors or []) + (package_allocation_errors or []) + (feature_op_errors or []) + (interaction_errors or []) + (safety_constraint_errors or []) + (acceptance_test_errors or []) + (missing_spec_errors or []) + (source_ref_errors or []) + (link_errors or []) + (concept_provenance_errors or []) + (safety_trace_errors or [])
         compiled_errors = all_errors
         target_file = None
         snippet_content = None

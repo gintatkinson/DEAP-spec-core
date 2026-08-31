@@ -166,19 +166,19 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     [High-level functional description and specification-engineering context of the schema module]
 
     ## 2. Requirements & Checklist
-    - [ ] #[IssueID] - [Feature Title](../features/feat-XX-name.md) {{REQUIRED_JUSTIFICATION}}
+    - [ ] #[IssueID] - [Feature Title](../features/feat-XX-name.md) (semantic linkage justification)
 
     ### Associated Use Cases & User Stories
 
     #### Associated Use Cases
-    - [ ] #[IssueID] - [Use Case Title](../use-cases/uc-XX-name.md) {{REQUIRED_JUSTIFICATION}}
+    - [ ] #[IssueID] - [Use Case Title](../use-cases/uc-XX-name.md) (semantic linkage justification)
 
     #### Associated User Stories
-    - [ ] #[IssueID] - [User Story Title](../user-stories/us-XX-name.md) {{REQUIRED_JUSTIFICATION}}
+    - [ ] #[IssueID] - [User Story Title](../user-stories/us-XX-name.md) (semantic linkage justification)
 
     > [!IMPORTANT]
-    > **EXPLICIT LINKAGE JUSTIFICATION TOKEN RULE**
-    > Subagents MUST replace all `{{REQUIRED_JUSTIFICATION}}` escape tokens with concise, context-specific semantic justifications. Leaving literal `{{REQUIRED_JUSTIFICATION}}` escape tokens or unreplaced placeholder text in generated Epic specifications is strictly prohibited and will trigger validator rejection.
+    > **EXPLICIT LINKAGE JUSTIFICATION MANDATE**
+    > Subagents MUST provide concise, context-specific semantic justifications for all checklist items. Omitting justifications or leaving unreplaced placeholder text in generated Epic specifications is strictly prohibited and will trigger validator rejection.
 
 
     ## 3. Architecture
@@ -237,7 +237,8 @@ For each Bounded Context, partition its subtree into cohesive functional feature
     [Verbatim schema grouping/container descriptions from the normative specification]
 
     ## 6. Source References
-    {{REQUIRED_SOURCE_REF}}
+    Structural Schema: [Target Schema File](link-to-schema)
+    Normative Specification: [Normative Specification](link-to-specification)
     ````
 
 3. **Feature File Structure / Template:** Every feature specification markdown file MUST follow this exact section structure and ordering:
@@ -256,7 +257,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    # Feature: [Feature Title]
 
    ## Parent Epic
-   - [ ] #[EpicIssueID] - [Epic Title](../epics/epic-XX-name.md) {{REQUIRED_JUSTIFICATION}}
+   - [ ] #[EpicIssueID] - [Epic Title](../epics/epic-XX-name.md) (semantic linkage justification)
 
    ## Description
    [Functional description of the feature]
@@ -338,10 +339,14 @@ For each Bounded Context, partition its subtree into cohesive functional feature
    [Raw normative specification context paragraphs]
 
    ## Source References
-   {{REQUIRED_SOURCE_REF}}
+   Structural Schema: [Target Schema File](link-to-schema)
+   Normative Specification: [Normative Specification](link-to-specification)
 
    ## Logical UI & Interface Bindings
-   {{REQUIRED_LUI}}
+   <!-- Single-Channel (Visual GUI) Format -->
+   - **Target LUI Component:** [Specify canonical LUI component e.g. StringInputField, TableView, PropertyGrid, OR 'Unbound (Deferred to Implementation Profile)']
+   - **Target Layout Container ID:** [Specify container ID from logical-layout.json, OR 'Unbound (Deferred to Implementation Profile)']
+   - **Data Source Binding:** [Specify exact schema path e.g. /schema:path, OR 'Unbound (Deferred to Implementation Profile)']
 
    <!-- Multi-Channel (Multi-Interface) Format -->
    | Interface Channel | Category | Target Component / Handler | Target Container / Endpoint | Data Source Binding |
@@ -352,7 +357,7 @@ For each Bounded Context, partition its subtree into cohesive functional feature
 
    > [!WARNING]
    > **Mermaid Block Closing Constraints & Code Fence Integrity:**
-    > - **Mandatory Mermaid Diagram Header Rule**: The very first non-comment line inside EVERY ```mermaid code fence MUST declare a valid diagram type header (e.g. classDiagram, graph TD, flowchart TD, sequenceDiagram, stateDiagram-v2). Omitting the header and beginning directly with relationships or member lines is strictly forbidden.
+    > - **Mandatory Mermaid Diagram Header Rule**: The very first non-comment line inside EVERY Mermaid code fence (```` ```mermaid ````) MUST declare a valid diagram type header (e.g. classDiagram, graph TD, flowchart TD, sequenceDiagram, stateDiagram-v2). Omitting the header and beginning directly with relationships or member lines is strictly forbidden.
     > - Every Mermaid diagram MUST be strictly closed with ```` ``` ```` on a new line. Leaking Mermaid blocks (e.g. having headings like `##` inside an unclosed diagram) or stray/unclosed code fences will fail downstream validation checks.
     > - Ensure there are no stray backticks or unmatched code fences in the document.
     > - **All Mermaid syntax constraints are defined in `rules/platform-independence.md` and MUST be observed in full** — including the prohibition on curly braces in class member lines, colons in class members and note strings, stereotypes on relationship lines, and semicolons in `Note` and message text. Do not maintain a local subset here; subsets drift (issue #289).

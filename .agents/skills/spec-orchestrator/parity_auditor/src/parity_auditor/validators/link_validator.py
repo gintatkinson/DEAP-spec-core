@@ -35,6 +35,7 @@ class LinkValidator(IValidator):
                     continue
                 
                 filepath = os.path.join(target_dir, filename)
+                source_dir = os.path.dirname(filepath)
                 with open(filepath, "r", encoding="utf-8") as f:
                     content = f.read()
                 
@@ -48,11 +49,28 @@ class LinkValidator(IValidator):
                         links_to_check.append(match.group(0))
 
                 for link_raw in links_to_check:
-                    link_target = link_raw.split("#")[0]  # strip fragments
-                    
+                    # Skip template placeholders / examples
+                    is_placeholder = any(placeholder in link_raw for placeholder in [
+                        "-XX-", "XX-name", "link-to-", "URL", "target", "example.com", "file.sysml",
+                        "docs/features/feat-", "docs/epics/epic-", "docs/user-stories/us-", "docs/use-cases/uc-",
+                        "EPIC-001.md", "schema/..."
+                    ]) or bool(re.search(r'(?:^|[/\\])(?:SystemModel|[A-Za-z0-9_]*[Ee]xample|[A-Za-z0-9_]*[Tt]emplate|[A-Za-z0-9_]*[Pp]laceholder)\.sysml', link_raw))
+
+                    if is_placeholder:
+                        if not os.path.exists(os.path.join(workspace_dir, link_raw)):
+                            continue
+
+                    link_target = link_raw.split("#")[0].strip()
+
+                    if not link_target:
+                        continue  # In-page anchor like `#section`
+
+                    # Check if it's an external GitHub/GitLab blob URL for a different repository
+                    if ("github.com/" in link_raw or "gitlab.com/" in link_raw) and repo_name not in link_raw:
+                        continue
+
                     is_blob = False
-                    # Clean up GitHub blob URLs, if any
-                    if "blob/" in link_target:
+                    if "blob/" in link_target and repo_name in link_target:
                         parts = link_target.split("blob/")
                         if len(parts) > 1:
                             branch_and_path = parts[1]
@@ -60,7 +78,7 @@ class LinkValidator(IValidator):
                             if len(path_parts) > 1:
                                 link_target = path_parts[1]
                                 is_blob = True
-                    elif "tree/" in link_target:
+                    elif "tree/" in link_target and repo_name in link_target:
                         parts = link_target.split("tree/")
                         if len(parts) > 1:
                             branch_and_path = parts[1]
@@ -68,20 +86,34 @@ class LinkValidator(IValidator):
                             if len(path_parts) > 1:
                                 link_target = path_parts[1]
                                 is_blob = True
-                    
-                    # If it's still a full HTTP url without blob/tree, skip
-                    if link_target.startswith("http"):
+
+                    if link_target.startswith("http://") or link_target.startswith("https://") or link_target.startswith("mailto:"):
                         continue
-                        
+
                     if link_target.startswith("/"):
                         resolved_path = os.path.join(workspace_dir, link_target.lstrip("/"))
                     elif is_blob:
                         resolved_path = os.path.join(workspace_dir, link_target)
                     else:
-                        # Standard markdown relative link
-                        resolved_path = os.path.normpath(os.path.join(target_dir, link_target))
+                        # Check relative to source_dir first, then relative to workspace_dir,
+                        # and scan schema / pipeline directories for matching schema files
+                        rel_to_source = os.path.normpath(os.path.join(source_dir, link_target))
+                        rel_to_root = os.path.normpath(os.path.join(workspace_dir, link_target))
+                        schema_path = os.path.normpath(os.path.join(workspace_dir, "schema", os.path.basename(link_target)))
+                        pipeline_path = os.path.normpath(os.path.join(workspace_dir, ".pipeline", os.path.basename(link_target)))
+
+                        if os.path.exists(rel_to_source):
+                            resolved_path = rel_to_source
+                        elif os.path.exists(rel_to_root):
+                            resolved_path = rel_to_root
+                        elif os.path.exists(schema_path):
+                            resolved_path = schema_path
+                        elif os.path.exists(pipeline_path):
+                            resolved_path = pipeline_path
+                        else:
+                            resolved_path = rel_to_source
                     
-                    if not os.path.isfile(resolved_path):
+                    if not os.path.exists(resolved_path):
                         errors.append(Finding(
                             "markdown-broken-link-reference",
                             f"{rel_dir}/{filename}: Broken markdown link points to non-existent file '{link_raw}'.",

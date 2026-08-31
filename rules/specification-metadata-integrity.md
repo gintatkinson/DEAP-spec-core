@@ -31,7 +31,7 @@ This standard applies unconditionally to all specification documents residing un
    - Column 1 contains the attribute name; Column 2 contains the corresponding specification value.
 
 3. **Valid Document-Relative Specification Source Locators**:
-   - The `Specification Source` attribute MUST use a valid document-relative path (e.g., `../../schema/Avenger5.sysml` or `[schema/Avenger5.sysml](../../schema/Avenger5.sysml)`).
+   - The `Specification Source` attribute MUST use a valid document-relative path (e.g., `../../schema/SystemModel.sysml` or `[schema/SystemModel.sysml](../../schema/SystemModel.sysml)`).
    - Absolute filesystem paths, bare repository-root paths without relative navigation, or dangling references that do not resolve from the specification's filesystem directory are strictly prohibited.
    - This ensures offline traceability and navigation directly from file browsers and markdown viewers.
 
@@ -45,24 +45,24 @@ Epics define high-level system packages, major structural assemblies, or top-lev
 
 - **Mandatory Attributes**:
   - `Issue ID`: Tracker issue identifier or integer ID.
-  - `Title`: Full epic title (e.g., `EPIC-001: Airframe & Aerodynamic Structure Subsystem`).
+  - `Title`: Full epic title (e.g., `EPIC-001: Core System Architecture`).
   - `Type`: Literal string `epic`.
-  - `Package`: Formal SysML v2 package or namespace (e.g., `Avenger5Definitions`).
+  - `Package`: Formal SysML v2 package or namespace (e.g., `SystemModelDefinitions`).
   - `Subsystem`: Subsystem classification name.
   - `Generation Mode`: Mode of generation (e.g., `subagent` or `spec-orchestrator`).
-  - `Specification Source`: Document-relative link to the authoritative source model (e.g., `[schema/Avenger5.sysml](../../schema/Avenger5.sysml)`).
+  - `Specification Source`: Document-relative link to the authoritative source model (e.g., `[schema/SystemModel.sysml](../../schema/SystemModel.sysml)`).
 
 #### Epic Metadata Table Example:
 ```markdown
 | Attribute | Specification Detail |
 | :--- | :--- |
 | **Issue ID** | 1 |
-| **Title** | EPIC-001: Airframe & Aerodynamic Structure Subsystem |
+| **Title** | EPIC-001: Core System Architecture |
 | **Type** | epic |
-| **Package** | Avenger5Definitions |
-| **Subsystem** | Airframe & Aerodynamics |
+| **Package** | SystemModelDefinitions |
+| **Subsystem** | Core Subsystems |
 | **Generation Mode** | subagent |
-| **Specification Source** | [schema/Avenger5.sysml](../../schema/Avenger5.sysml) |
+| **Specification Source** | [schema/SystemModel.sysml](../../schema/SystemModel.sysml) |
 ```
 
 ---
@@ -73,26 +73,26 @@ Features define modular subsystem components, structural part definitions (`part
 
 - **Mandatory Attributes**:
   - `Issue ID`: Tracker issue identifier or integer ID.
-  - `Title`: Full feature title (e.g., `feat-001a-fuselage-and-structural-mounting`).
+  - `Title`: Full feature title (e.g., `feat-001a-subsystem-structural-mounting`).
   - `Type`: Literal string `feature`.
   - `Parent Epic`: Identifier or relative link to parent Epic (e.g., `EPIC-001` or `[EPIC-001](../epics/EPIC-001.md)`).
   - `Interface Type`: Interface classification (e.g., `Physical / Structural / Umbilical`, `CAN / PWM / Serial`, `Ethernet / IP`).
-  - `Schema Containers`: SysML block or container definitions (e.g., `FuselageAssembly`, `Avenger5Definitions::Fuselage`).
+  - `Schema Containers`: SysML block or container definitions (e.g., `SubsystemAssembly`, `SystemModelDefinitions::Subsystem`).
   - `Generation Mode`: Mode of generation (e.g., `subagent`).
-  - `Specification Source`: Document-relative link to the source model (e.g., `[schema/Avenger5.sysml](../../schema/Avenger5.sysml)`).
+  - `Specification Source`: Document-relative link to the source model (e.g., `[schema/SystemModel.sysml](../../schema/SystemModel.sysml)`).
 
 #### Feature Metadata Table Example:
 ```markdown
 | Attribute | Specification Detail |
 | :--- | :--- |
 | **Issue ID** | 10 |
-| **Title** | feat-001a-fuselage-and-structural-mounting |
+| **Title** | feat-001a-subsystem-structural-mounting |
 | **Type** | feature |
 | **Parent Epic** | [EPIC-001](../epics/EPIC-001.md) |
 | **Interface Type** | Physical / Structural / Umbilical |
-| **Schema Containers** | `Avenger5Definitions::FuselageAssembly` |
+| **Schema Containers** | `SystemModelDefinitions::SubsystemAssembly` |
 | **Generation Mode** | subagent |
-| **Specification Source** | [schema/Avenger5.sysml](../../schema/Avenger5.sysml) |
+| **Specification Source** | [schema/SystemModel.sysml](../../schema/SystemModel.sysml) |
 ```
 
 ---
@@ -103,26 +103,26 @@ User Stories define behavioral interactions, operational workflows, control acti
 
 - **Mandatory Attributes**:
   - `Issue ID`: Tracker issue identifier or integer ID.
-  - `Title`: Full user story title (e.g., `us-001-airframe-and-wing-coupling-verification`).
+  - `Title`: Full user story title (e.g., `us-001-subsystem-coupling-verification`).
   - `Type`: Literal string `user-story`.
   - `Parent Epic`: Identifier or relative link to parent Epic.
-  - `SysML Interaction`: Behavioral action or state definition (e.g., `VerifyWingSparLocking`, `ExecuteControlAllocation`).
-  - `SysML Test Case`: Associated formal verification or test case element (e.g., `TestWingSparLockingTorque`).
+  - `SysML Interaction`: Behavioral action or state definition (e.g., `VerifySubsystemInterface`, `ExecuteControlAllocation`).
+  - `SysML Test Case`: Associated formal verification or test case element (e.g., `TestInterfaceCouplingTorque`).
   - `Generation Mode`: Mode of generation (e.g., `subagent`).
-  - `Specification Source`: Document-relative link to the source model (e.g., `[schema/Avenger5.sysml](../../schema/Avenger5.sysml)`).
+  - `Specification Source`: Document-relative link to the source model (e.g., `[schema/SystemModel.sysml](../../schema/SystemModel.sysml)`).
 
 #### User Story Metadata Table Example:
 ```markdown
 | Attribute | Specification Detail |
 | :--- | :--- |
 | **Issue ID** | 30 |
-| **Title** | us-001-airframe-and-wing-coupling-verification |
+| **Title** | us-001-subsystem-coupling-verification |
 | **Type** | user-story |
 | **Parent Epic** | [EPIC-001](../epics/EPIC-001.md) |
-| **SysML Interaction** | `Avenger5Definitions::VerifyWingSparLocking` |
-| **SysML Test Case** | `Avenger5Definitions::TestWingSparLockingTorque` |
+| **SysML Interaction** | `SystemModelDefinitions::VerifySubsystemInterface` |
+| **SysML Test Case** | `SystemModelDefinitions::TestInterfaceCouplingTorque` |
 | **Generation Mode** | subagent |
-| **Specification Source** | [schema/Avenger5.sysml](../../schema/Avenger5.sysml) |
+| **Specification Source** | [schema/SystemModel.sysml](../../schema/SystemModel.sysml) |
 ```
 
 ---
@@ -133,24 +133,24 @@ Use Cases define formal operational capabilities (`use case def`), subject bound
 
 - **Mandatory Attributes**:
   - `Issue ID`: Tracker issue identifier or integer ID.
-  - `Title`: Full use case title (e.g., `uc-001-assemble-and-verify-airframe-structure`).
+  - `Title`: Full use case title (e.g., `uc-001-assemble-and-verify-subsystem`).
   - `Type`: Literal string `use-case`.
   - `Parent Epic`: Identifier or relative link to parent Epic.
-  - `Schema Containers`: SysML use case element or container definition (e.g., `AssembleAndVerifyAirframe`).
+  - `Schema Containers`: SysML use case element or container definition (e.g., `AssembleAndVerifySubsystem`).
   - `Generation Mode`: Mode of generation (e.g., `subagent`).
-  - `Specification Source`: Document-relative link to the source model (e.g., `[schema/Avenger5.sysml](../../schema/Avenger5.sysml)`).
+  - `Specification Source`: Document-relative link to the source model (e.g., `[schema/SystemModel.sysml](../../schema/SystemModel.sysml)`).
 
 #### Use Case Metadata Table Example:
 ```markdown
 | Attribute | Specification Detail |
 | :--- | :--- |
 | **Issue ID** | 50 |
-| **Title** | uc-001-assemble-and-verify-airframe-structure |
+| **Title** | uc-001-assemble-and-verify-subsystem |
 | **Type** | use-case |
 | **Parent Epic** | [EPIC-001](../epics/EPIC-001.md) |
-| **Schema Containers** | `Avenger5Definitions::AssembleAndVerifyAirframe` |
+| **Schema Containers** | `SystemModelDefinitions::AssembleAndVerifySubsystem` |
 | **Generation Mode** | subagent |
-| **Specification Source** | [schema/Avenger5.sysml](../../schema/Avenger5.sysml) |
+| **Specification Source** | [schema/SystemModel.sysml](../../schema/SystemModel.sysml) |
 ```
 
 ---

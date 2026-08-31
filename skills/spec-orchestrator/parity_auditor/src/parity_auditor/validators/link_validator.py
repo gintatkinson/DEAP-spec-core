@@ -87,12 +87,14 @@ class LinkValidator(IValidator):
                     ))
                     continue
 
-                                # Skip template placeholders / examples
-                if any(placeholder in link_raw for placeholder in [
+                # Skip template placeholders / examples
+                is_placeholder = any(placeholder in link_raw for placeholder in [
                     "-XX-", "XX-name", "link-to-", "URL", "target", "example.com", "file.sysml",
                     "docs/features/feat-", "docs/epics/epic-", "docs/user-stories/us-", "docs/use-cases/uc-",
-                    "EPIC-001.md", "Avenger5.sysml", "schema/..."
-                ]):
+                    "EPIC-001.md", "system.sysml", "schema/..."
+                ]) or bool(re.search(r'(?:^|[/\\])(?:SystemModel|[A-Za-z0-9_]*[Ee]xample|[A-Za-z0-9_]*[Tt]emplate|[A-Za-z0-9_]*[Pp]laceholder)\.sysml', link_raw))
+
+                if is_placeholder:
                     if not os.path.exists(os.path.join(workspace_dir, link_raw)):
                         continue
 
@@ -131,13 +133,21 @@ class LinkValidator(IValidator):
                 elif is_blob:
                     resolved_path = os.path.join(workspace_dir, link_target)
                 else:
-                    # Check relative to source_dir first, then relative to workspace_dir
+                    # Check relative to source_dir first, then relative to workspace_dir,
+                    # and scan schema / pipeline directories for matching schema files
                     rel_to_source = os.path.normpath(os.path.join(source_dir, link_target))
                     rel_to_root = os.path.normpath(os.path.join(workspace_dir, link_target))
+                    schema_path = os.path.normpath(os.path.join(workspace_dir, "schema", os.path.basename(link_target)))
+                    pipeline_path = os.path.normpath(os.path.join(workspace_dir, ".pipeline", os.path.basename(link_target)))
+
                     if os.path.exists(rel_to_source):
                         resolved_path = rel_to_source
                     elif os.path.exists(rel_to_root):
                         resolved_path = rel_to_root
+                    elif os.path.exists(schema_path):
+                        resolved_path = schema_path
+                    elif os.path.exists(pipeline_path):
+                        resolved_path = pipeline_path
                     else:
                         resolved_path = rel_to_source
 
