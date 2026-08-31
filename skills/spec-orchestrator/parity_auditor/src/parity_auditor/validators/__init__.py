@@ -15,3 +15,4 @@ from .dispatch_preamble_validator import DispatchPreambleValidator, validate_dis
 from .plan_validator import PlanValidator
 from .concept_provenance_validator import ConceptProvenanceValidator
 from .safety_trace_validator import SafetyTraceValidator
+from .doc_metadata_validator import DocMetadataValidator

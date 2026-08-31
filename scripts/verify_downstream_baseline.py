@@ -323,9 +323,9 @@ def check_no_ds_store_files(repo_root):
         sys.exit(1)
     print("Success: Check 11 verified (zero .DS_Store files found).")
 
-def check_no_duplicate_master_blueprints(dest):
+def check_no_duplicate_master_blueprints(repo_root):
     """Check 12: Verify downstream repositories do NOT contain duplicate master core blueprints."""
-    upstream_marker = os.path.join(dest, ".pipeline", "upstream")
+    upstream_marker = os.path.join(repo_root, ".pipeline", "upstream")
     if os.path.isdir(upstream_marker):
         print("Success: Check 12 verified (Master core / upstream repository detected — skipping duplicate blueprint check).")
         return
@@ -335,7 +335,7 @@ def check_no_duplicate_master_blueprints(dest):
         "DEAP_SYSML_V2_SAFETY_MODEL_SPECIFICATION.sysml"
     }
     duplicates = []
-    for root, dirs, files in os.walk(dest):
+    for root, dirs, files in os.walk(repo_root):
         dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
         for f in files:
             if f in master_blueprints:
@@ -840,7 +840,7 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
     # Run Checks 10, 11, 12, 13, 14, 15, 16, 17, and 19
     check_gitignore_exists(repo_root)
     check_no_ds_store_files(repo_root)
-    check_no_duplicate_master_blueprints(dest)
+    check_no_duplicate_master_blueprints(repo_root)
     check_latex_katex_syntax(repo_root)
     check_downstream_instructions_exist(repo_root)
     check_reconcile_backlog_tooling_exists(repo_root)
@@ -921,7 +921,7 @@ def _run_verification(args, dest, repo_root, is_flutter, is_react):
                 print("Zipping the macOS application bundle...")
                 # The build output is typically at app_flutter/build/macos/Build/Products/Release/Platform Console.app
                 # We need to package it into the repository root as app_flutter_release.zip
-                zip_path = os.path.join(upstream_repo_root, "app_flutter_release.zip")
+                zip_path = os.path.join(repo_root, "app_flutter_release.zip")
                 
                 # We expect the app bundle to be named 'Platform Console.app'. 
                 # Let's find it in the release directory.

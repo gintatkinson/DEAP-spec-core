@@ -15,7 +15,7 @@ import json
 import shutil
 from typing import Set, List
 
-from .core.workspace import WorkspaceRepository
+from .core.workspace import WorkspaceRepository, extract_metadata_from_content
 from .parsers.schema_router import parse_schema_file
 from .validators.uml import UmlValidator
 from .validators.behavioral import BehavioralValidator
@@ -29,12 +29,16 @@ from .validators.test_completeness_validator import TestCompletenessValidator
 from .validators.logical_ui_validator import LogicalUiValidator
 from .validators.cardinality_validator import SchemaCardinalityValidator
 from .validators.mermaid_syntax_validator import MermaidSyntaxValidator
+from .validators.katex_validator import KatexValidator
 from .validators.spec_filename_validator import SpecFilenameValidator
 from .validators.spec_title_uniqueness_validator import SpecTitleUniquenessValidator
 from .validators.source_reference_validator import SourceReferenceValidator
 from .validators.link_validator import LinkValidator
 from .validators.docstring_validator import DocstringValidator
 from .validators.profile_compliance_validator import ProfileComplianceValidator
+from .validators.concept_provenance_validator import ConceptProvenanceValidator
+from .validators.safety_trace_validator import SafetyTraceValidator
+from .validators.doc_metadata_validator import DocMetadataValidator
 from .utils.diagnostics import serialize_diagnostics
 from .utils.comment_utils import strip_comments_and_strings
 
@@ -157,6 +161,11 @@ def parse_ignore_issues(ignore_str: str) -> set:
 
 
 def _extract_issue_id_from_frontmatter(fm_text: str, issue_number: int) -> bool:
+    data = extract_metadata_from_content(fm_text)
+    if data:
+        val = data.get("issue_id")
+        if val is not None and int(val) == issue_number:
+            return True
     try:
         import yaml
         data = yaml.safe_load(fm_text.replace('\x01', ''))
@@ -337,12 +346,6 @@ def _main_impl():
                     module_sources[module_name] = filename
             except Exception as e:
                 print(f"Warning: Failed to parse schema file {filename}: {e}")
-                
-    # A second pass over schema_dir used to classify files as parseable or
-    # merely alternative-extension. Both flags were dead: nothing read them.
-    # The surviving guard is the `all_definitions` emptiness check below, which
-    # keys on what was actually parsed rather than on what could have been.
-    # Removed in issue #303.
 
     # 2. Load all feature markdown files
     features = repo.get_feature_files(features_dir)
@@ -376,11 +379,12 @@ def _main_impl():
     if not args.scope_all:
         local_issue_ids = set()
         for f in features:
-            frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", f.content, re.DOTALL)
-            if frontmatter_match:
-                fm_text = frontmatter_match.group(1)
-                ids = [int(m) for m in re.findall(r"issue_id\s*:\s*(\d+)", fm_text)]
-                local_issue_ids.update(ids)
+            fm_data = extract_metadata_from_content(f.content)
+            if fm_data and "issue_id" in fm_data:
+                try:
+                    local_issue_ids.add(int(fm_data["issue_id"]))
+                except (ValueError, TypeError):
+                    pass
         if local_issue_ids:
             open_issues = [issue for issue in open_issues if issue.get("number") in local_issue_ids]
 
@@ -390,16 +394,13 @@ def _main_impl():
         issue_title = issue.get("title", "")
         found = False
         for f in features:
-            # Try to extract YAML frontmatter and check issue_id
-            frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", f.content, re.DOTALL)
-            if frontmatter_match:
-                fm_text = frontmatter_match.group(1)
-                found = _extract_issue_id_from_frontmatter(fm_text, issue_number)
-                if found:
-                    break
+            fm_data = extract_metadata_from_content(f.content)
+            if fm_data and fm_data.get("issue_id") == issue_number:
+                found = True
+                break
 
-            # Existing filename check as fallback only when no frontmatter present
-            else:
+            # Existing filename check as fallback only when no metadata present
+            if not fm_data:
                 basename = os.path.splitext(f.filename)[0]
                 m = re.search(r'(?:^|\D)(\d+)(?:$|\D)', basename)
                 if m and int(m.group(1)) == issue_number:
@@ -624,22 +625,18 @@ def _main_impl():
                                 content = f.read()
                                 all_spec_contents.append(content)
                                 
-                                import yaml
-                                frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
-                                if frontmatter_match:
-                                    frontmatter_text = frontmatter_match.group(1).replace('\x01', '')
-                                    data = yaml.safe_load(frontmatter_text)
-                                    if isinstance(data, dict):
-                                        for container in data.get("schema_containers", []):
-                                            if isinstance(container, dict):
-                                                path = container.get("path", "")
-                                            else:
-                                                path = str(container)
-                                            if path:
-                                                leaf = path.split("/")[-1]
-                                                if ":" in leaf:
-                                                    leaf = leaf.split(":", 1)[-1]
-                                                spec_elements.add(leaf.lower())
+                                data = extract_metadata_from_content(content)
+                                if isinstance(data, dict):
+                                    for container in data.get("schema_containers", []):
+                                        if isinstance(container, dict):
+                                            path = container.get("path", "")
+                                        else:
+                                            path = str(container)
+                                        if path:
+                                            leaf = path.split("/")[-1]
+                                            if ":" in leaf:
+                                                leaf = leaf.split(":", 1)[-1]
+                                            spec_elements.add(leaf.lower())
                         except Exception:
                             pass
 
@@ -884,6 +881,17 @@ def _main_impl():
     else:
         print("Success: Mermaid syntax rules verified.")
 
+    print("\n=== KaTeX Mathematical Rendering Integrity Validation ===")
+    katex_validator = KatexValidator()
+    katex_errors = _scope_findings(katex_validator.validate(repo), getattr(args, 'only', None))
+    if katex_errors:
+        print("[!] KaTeX Integrity Violations Identified:")
+        for err in katex_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: KaTeX math syntax and AST integrity verified.")
+
     print("\n=== Logical UI Validation ===")
     logical_ui_validator = LogicalUiValidator()
     logical_ui_errors = _scope_findings(logical_ui_validator.validate(repo, features_dir=features_dir), getattr(args, 'only', None))
@@ -966,9 +974,42 @@ def _main_impl():
         has_failed = True
     else:
         print("Success: Acceptance criteria test cases and verification bindings verified.")
-        
+
+    print("\n=== Concept Provenance & Parametric SSOT Audit ===")
+    concept_provenance_validator = ConceptProvenanceValidator()
+    concept_provenance_errors = _scope_findings(concept_provenance_validator.validate(repo), getattr(args, 'only', None))
+    if concept_provenance_errors:
+        print("[!] Concept Provenance Violations Identified:")
+        for err in concept_provenance_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Concept provenance and parametric assertions verified.")
+
+    print("\n=== Safety Traceability & Set-Equality Audit ===")
+    safety_trace_validator = SafetyTraceValidator()
+    safety_trace_errors = _scope_findings(safety_trace_validator.validate(repo), getattr(args, 'only', None))
+    if safety_trace_errors:
+        print("[!] Safety Traceability Violations Identified:")
+        for err in safety_trace_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Safety traceability set-equality verified.")
+
+    print("\n=== Document Metadata & Frontmatter Audit ===")
+    doc_metadata_validator = DocMetadataValidator()
+    doc_metadata_errors = _scope_findings(doc_metadata_validator.validate(repo), getattr(args, 'only', None))
+    if doc_metadata_errors:
+        print("[!] Document Metadata Violations Identified:")
+        for err in doc_metadata_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Document metadata tables and frontmatter valid across all markdown documents.")
+
     if has_failed:
-        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (logical_ui_errors or []) + (docstring_errors or []) + (profile_compliance_errors or []) + (package_allocation_errors or []) + (feature_op_errors or []) + (interaction_errors or []) + (safety_constraint_errors or []) + (acceptance_test_errors or []) + (missing_spec_errors or []) + (source_ref_errors or []) + (link_errors or [])
+        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (katex_errors or []) + (logical_ui_errors or []) + (docstring_errors or []) + (profile_compliance_errors or []) + (package_allocation_errors or []) + (feature_op_errors or []) + (interaction_errors or []) + (safety_constraint_errors or []) + (acceptance_test_errors or []) + (missing_spec_errors or []) + (source_ref_errors or []) + (link_errors or []) + (concept_provenance_errors or []) + (safety_trace_errors or []) + (doc_metadata_errors or [])
         compiled_errors = all_errors
         target_file = None
         snippet_content = None
@@ -1019,7 +1060,7 @@ def main():
     except Exception:
         import traceback
         traceback.print_exc()
-        upstream_repo = "gintatkinson/DEAP-spec-core"
+        upstream_repo = os.environ.get("UPSTREAM_REPOSITORY") or os.environ.get("GIT_REMOTE_ORIGIN") or "gintatkinson/uas-003"
         try:
             script_dir = os.path.dirname(os.path.abspath(__file__))
             workspace_dir = None

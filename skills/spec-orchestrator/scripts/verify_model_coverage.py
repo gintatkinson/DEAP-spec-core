@@ -24,6 +24,7 @@ def sanitize_github_token_env():
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "parity_auditor", "src")))
 
 from parity_auditor.cli import main
+from parity_auditor.validators.doc_metadata_validator import DocMetadataValidator
 
 if __name__ == "__main__":
     sanitize_github_token_env()

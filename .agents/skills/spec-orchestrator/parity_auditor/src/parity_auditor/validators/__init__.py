@@ -12,4 +12,5 @@ from .source_reference_validator import SourceReferenceValidator
 from .link_validator import LinkValidator
 from .dispatch_preamble_validator import DispatchPreambleValidator, validate_dispatch_prompt, MANDATORY_PREAMBLE_MARKERS
 from .plan_validator import PlanValidator
+from .doc_metadata_validator import DocMetadataValidator
 

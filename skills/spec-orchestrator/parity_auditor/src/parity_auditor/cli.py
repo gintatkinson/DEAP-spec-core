@@ -38,6 +38,7 @@ from .validators.docstring_validator import DocstringValidator
 from .validators.profile_compliance_validator import ProfileComplianceValidator
 from .validators.concept_provenance_validator import ConceptProvenanceValidator
 from .validators.safety_trace_validator import SafetyTraceValidator
+from .validators.doc_metadata_validator import DocMetadataValidator
 from .utils.diagnostics import serialize_diagnostics
 from .utils.comment_utils import strip_comments_and_strings
 
@@ -1002,8 +1003,19 @@ def _main_impl():
     else:
         print("Success: Safety traceability set-equality verified.")
 
+    print("\n=== Document Metadata & Frontmatter Audit ===")
+    doc_metadata_validator = DocMetadataValidator()
+    doc_metadata_errors = _scope_findings(doc_metadata_validator.validate(repo), getattr(args, 'only', None))
+    if doc_metadata_errors:
+        print("[!] Document Metadata Violations Identified:")
+        for err in doc_metadata_errors:
+            print(f"  - {err}")
+        has_failed = True
+    else:
+        print("Success: Document metadata tables and frontmatter valid across all markdown documents.")
+
     if has_failed:
-        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (katex_errors or []) + (logical_ui_errors or []) + (docstring_errors or []) + (profile_compliance_errors or []) + (package_allocation_errors or []) + (feature_op_errors or []) + (interaction_errors or []) + (safety_constraint_errors or []) + (acceptance_test_errors or []) + (missing_spec_errors or []) + (source_ref_errors or []) + (link_errors or []) + (concept_provenance_errors or []) + (safety_trace_errors or [])
+        all_errors = (uml_errors or []) + (behavioral_errors or []) + (codebase_errors or []) + (doc_errors or []) + (dependency_errors or []) + (sync_errors or []) + (schema_mapping_errors or []) + (profile_scoping_errors or []) + (test_completeness_errors or []) + (cardinality_errors or []) + (spec_filename_errors or []) + (spec_title_errors or []) + (mermaid_syntax_errors or []) + (katex_errors or []) + (logical_ui_errors or []) + (docstring_errors or []) + (profile_compliance_errors or []) + (package_allocation_errors or []) + (feature_op_errors or []) + (interaction_errors or []) + (safety_constraint_errors or []) + (acceptance_test_errors or []) + (missing_spec_errors or []) + (source_ref_errors or []) + (link_errors or []) + (concept_provenance_errors or []) + (safety_trace_errors or []) + (doc_metadata_errors or [])
         compiled_errors = all_errors
         target_file = None
         snippet_content = None
