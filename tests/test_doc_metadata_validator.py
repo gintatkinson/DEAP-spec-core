@@ -27,6 +27,7 @@ from parity_auditor.validators.doc_metadata_validator import (
     DocMetadataValidator,
     _is_iso_date,
     _is_semver,
+    _has_concatenated_title_metadata,
 )
 
 
@@ -293,6 +294,73 @@ This document does not contain a frontmatter table.
             repo = WorkspaceRepository(workspace_dir=tmpdir)
             errors = self.validator.validate(repo)
             self.assertEqual(errors, [])
+
+    def test_helper_has_concatenated_title_metadata(self):
+        """Verify concatenated title metadata helper detects versions, dates, and doc IDs."""
+        self.assertFalse(_has_concatenated_title_metadata("Mission Intent — AVENGER 5 Autonomous UAS"))
+        self.assertFalse(_has_concatenated_title_metadata("Autonomous UAS Infrastructure Safety Concept of Operations"))
+        self.assertFalse(_has_concatenated_title_metadata("STPA Matrix Specification"))
+
+        self.assertTrue(_has_concatenated_title_metadata("Mission Intent (DOC-MI-A5-001 v3.0.0 2026-08-31)"))
+        self.assertTrue(_has_concatenated_title_metadata("Mission Intent v1.0.0"))
+        self.assertTrue(_has_concatenated_title_metadata("Mission Intent v2.1"))
+        self.assertTrue(_has_concatenated_title_metadata("Mission Intent 1.0.0"))
+        self.assertTrue(_has_concatenated_title_metadata("Mission Intent (version: 2)"))
+        self.assertTrue(_has_concatenated_title_metadata("Mission Intent 2026-08-31"))
+        self.assertTrue(_has_concatenated_title_metadata("Mission Intent (DOC-MI-A5-001)"))
+
+    def test_clean_canonical_title_passes(self):
+        """Verify clean canonical document title passes without finding."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            docs_conops = os.path.join(tmpdir, "docs", "conops")
+            os.makedirs(docs_conops, exist_ok=True)
+
+            content = """# Mission Intent
+
+| Metadata | Value |
+| :--- | :--- |
+| **Title** | Mission Intent — AVENGER 5 Autonomous UAS |
+| **Version** | 1.0.0 |
+| **Date** | 2026-08-31 |
+| **Status** | APPROVED |
+
+## 1. Executive Summary
+Operational scope description.
+"""
+            with open(os.path.join(docs_conops, "MISSION_INTENT.md"), "w", encoding="utf-8") as f:
+                f.write(content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            errors = self.validator.validate(repo)
+            self.assertEqual(errors, [])
+
+    def test_concatenated_title_fails(self):
+        """Verify document title containing concatenated metadata attributes emits doc-metadata-concatenated-title."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            docs_conops = os.path.join(tmpdir, "docs", "conops")
+            os.makedirs(docs_conops, exist_ok=True)
+
+            content = """# Mission Intent
+
+| Metadata | Value |
+| :--- | :--- |
+| **Title** | Mission Intent (DOC-MI-A5-001 v3.0.0 2026-08-31) |
+| **Version** | 3.0.0 |
+| **Date** | 2026-08-31 |
+| **Status** | DRAFT |
+
+## 1. Executive Summary
+Operational scope description.
+"""
+            with open(os.path.join(docs_conops, "MISSION_INTENT.md"), "w", encoding="utf-8") as f:
+                f.write(content)
+
+            repo = WorkspaceRepository(workspace_dir=tmpdir)
+            errors = self.validator.validate(repo)
+            self.assertEqual(len(errors), 1)
+            self.assertEqual(errors[0].rule_id, "doc-metadata-concatenated-title")
+            self.assertIn("Document title contains concatenated metadata attributes", str(errors[0]))
+            self.assertIn("Mission Intent (DOC-MI-A5-001 v3.0.0 2026-08-31)", str(errors[0]))
 
 
 if __name__ == "__main__":

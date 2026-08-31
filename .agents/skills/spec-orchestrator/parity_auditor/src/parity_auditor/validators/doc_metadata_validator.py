@@ -3,7 +3,7 @@ Document Metadata & Frontmatter Integrity Validator.
 
 Validates that specification, safety, architecture, and operational markdown
 documents in docs/ contain standard frontmatter metadata tables with required fields:
-1. Title (non-empty string)
+1. Title (non-empty string, clean canonical format)
 2. Version (semantic versioning format: v?X.Y[.Z])
 3. Date or Release Date (ISO 8601 format: YYYY-MM-DD)
 
@@ -11,6 +11,7 @@ Emits structured Finding objects:
 - doc-metadata-missing-field
 - doc-metadata-invalid-date-format
 - doc-metadata-invalid-version-format
+- doc-metadata-concatenated-title
 
 Gracefully skips READMEs, empty stubs, and documents marked as optional.
 """
@@ -74,6 +75,28 @@ def _is_semver(val: str) -> bool:
     if not val:
         return False
     return bool(re.match(r'^v?\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?$', val))
+
+
+def _has_concatenated_title_metadata(val: str) -> bool:
+    """Check if title contains embedded version, date, or document ID metadata."""
+    if not val:
+        return False
+    # a) Embedded version tokens (e.g. v\d+\.\d+, \b\d+\.\d+\.\d+\b, version\s*:\s*\d+)
+    if re.search(r'(?i)\bv\d+\.\d+(?:\.\d+)?\b', val):
+        return True
+    if re.search(r'\b\d+\.\d+\.\d+\b', val):
+        return True
+    if re.search(r'(?i)\bversion\s*:\s*\d+', val):
+        return True
+    # b) Embedded ISO date patterns (e.g. \b\d{4}-\d{2}-\d{2}\b)
+    if re.search(r'\b\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])\b', val) or re.search(r'\b\d{4}-\d{2}-\d{2}\b', val):
+        return True
+    # c) Embedded document ID tokens in parentheses (e.g. \(DOC-[A-Z]+-[A-Z0-9-]+\) or \(.*?DOC-[A-Za-z0-9_-]+.*?\))
+    if re.search(r'\(.*?\bDOC-[A-Za-z0-9_-]+.*?\)', val, re.IGNORECASE):
+        return True
+    if re.search(r'\(DOC-[A-Z]+-[A-Z0-9-]+\)', val, re.IGNORECASE):
+        return True
+    return False
 
 
 class DocMetadataValidator(IValidator):
@@ -268,6 +291,19 @@ class DocMetadataValidator(IValidator):
                         f"{loc}: Invalid version format: '{raw_ver}'. Expected semantic versioning format (v?X.Y[.Z], e.g. '1.0.0' or 'v1.0').",
                         location=loc,
                         detail={"field": "Version", "value": raw_ver, "expected_format": "v?X.Y[.Z]"}
+                    ))
+
+            # 4. Validate Title format (clean canonical name without concatenated metadata)
+            title_entry = extracted.get("title")
+            if title_entry and title_entry[0]:
+                raw_title, t_line = title_entry
+                if _has_concatenated_title_metadata(raw_title):
+                    loc = f"{rel_path}:{t_line}" if t_line > 0 else rel_path
+                    errors.append(Finding(
+                        "doc-metadata-concatenated-title",
+                        f"{rel_path}: Document title contains concatenated metadata attributes ('{raw_title}'). Titles must be clean canonical names without embedded versions, dates, or IDs.",
+                        location=loc,
+                        detail={"title": raw_title}
                     ))
 
         return errors

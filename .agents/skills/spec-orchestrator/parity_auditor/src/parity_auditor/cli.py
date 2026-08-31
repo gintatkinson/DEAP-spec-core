@@ -346,6 +346,12 @@ def _main_impl():
                     module_sources[module_name] = filename
             except Exception as e:
                 print(f"Warning: Failed to parse schema file {filename}: {e}")
+                
+    # A second pass over schema_dir used to classify files as parseable or
+    # merely alternative-extension. Both flags were dead: nothing read them.
+    # The surviving guard is the `all_definitions` emptiness check below, which
+    # keys on what was actually parsed rather than on what could have been.
+    # Removed in issue #303.
 
     # 2. Load all feature markdown files
     features = repo.get_feature_files(features_dir)

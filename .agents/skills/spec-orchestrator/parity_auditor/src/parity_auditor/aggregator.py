@@ -44,6 +44,8 @@ from .validators.docstring_validator import DocstringValidator
 from .validators.profile_compliance_validator import ProfileComplianceValidator
 from .validators.dispatch_preamble_validator import DispatchPreambleValidator
 from .validators.plan_validator import PlanValidator
+from .validators.concept_provenance_validator import ConceptProvenanceValidator
+from .validators.safety_trace_validator import SafetyTraceValidator
 from .validators.doc_metadata_validator import DocMetadataValidator
 
 # Validators migrated to structured findings. Un-migrated validators are deliberately
@@ -73,6 +75,8 @@ AGGREGATING_VALIDATORS = (
     ProfileComplianceValidator,
     DispatchPreambleValidator,
     PlanValidator,
+    ConceptProvenanceValidator,
+    SafetyTraceValidator,
     DocMetadataValidator,
 )
 # SyncValidator is migrated to structured findings but deliberately absent: it shells
